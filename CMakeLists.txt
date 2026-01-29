@@ -6,5 +6,5 @@ find_package(glm REQUIRED)
 find_package(Vulkan REQUIRED)
 
 project(based_renderer CXX)
-add_executable(based_renderer src/main.cpp src/app.cpp src/renderer.cpp)
+add_executable(based_renderer src/main.cpp)
 target_link_libraries(based_renderer PRIVATE glm::glm Vulkan::Vulkan)

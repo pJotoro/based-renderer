@@ -1,14 +1,10 @@
-#include "app.h"
-#include "renderer.h"
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+#include <vulkan/vulkan.h>
 
 int main() 
 {
-	app::init();
-
-	while (app::update()) 
-	{
-
-	}
 	
 	return 0;
 }
