@@ -1,0 +1,17 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"build_systems":
+	[
+		{
+            "name": "release",
+            "working_dir": "$project_path\\build\\ninja\\release",
+            "shell_cmd": "ninja",
+            "file_regex": "^(.*)\\((\\d+),(\\d+)\\): (.*)$",
+        },
+	]
+}
