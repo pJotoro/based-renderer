@@ -3,11 +3,15 @@
 
 #include "app.h"
 
+static HWND hwnd;
+static bool running;
+
+
 namespace app
 {
 	void init()
 	{
-
+		
 	}
 
 	bool update()
