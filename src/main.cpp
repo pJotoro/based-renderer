@@ -105,7 +105,7 @@ int __stdcall WinMain(
 		}
 	}
 
-	
+
 
 	WNDCLASSEXW window_class 
 	{
@@ -145,19 +145,6 @@ int __stdcall WinMain(
 	{
 		return -2;
 	}
-
-
-
-	if (!DestroyWindow(window))
-	{
-		return -3;
-	}
-	if (!UnregisterClassW(window_class.lpszClassName, window_class.hInstance))
-	{
-		return -4;
-	}
-	device.destroy();
-	instance.destroy();
 	
 	return 0;
 }
