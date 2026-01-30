@@ -50,20 +50,13 @@ int __stdcall WinMain(
 	vk::Instance instance = vk::createInstance(instance_create_info);
 
 	std::vector<vk::PhysicalDevice> physical_devices = instance.enumeratePhysicalDevices();
-	vk::PhysicalDevice physical_device = physical_devices.front();
-	for (vk::PhysicalDevice p : physical_devices) 
-	{
-		vk::PhysicalDeviceProperties props = p.getProperties();
-		if (props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
-		{
-			physical_device = p;
-			break;
+
+	vk::PhysicalDevice physical_device = *std::find_if(physical_devices.begin(), physical_devices.end(), 
+		[](vk::PhysicalDevice p) {
+			vk::PhysicalDeviceProperties props = p.getProperties();
+			return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
 		}
-	}
-
-	
-
-
+	);
 
 	WNDCLASSEXW window_class 
 	{
