@@ -42,11 +42,28 @@ int __stdcall WinMain(
 	UNUSED(nShowCmd);
 
 	vk::ApplicationInfo app_info{};
-	vk::InstanceCreateInfo instance_create_info {
+	vk::InstanceCreateInfo instance_create_info 
+	{
 		{},
 		&app_info,
 	};
 	vk::Instance instance = vk::createInstance(instance_create_info);
+
+	std::vector<vk::PhysicalDevice> physical_devices = instance.enumeratePhysicalDevices();
+	vk::PhysicalDevice physical_device = physical_devices.front();
+	for (vk::PhysicalDevice p : physical_devices) 
+	{
+		vk::PhysicalDeviceProperties props = p.getProperties();
+		if (props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
+		{
+			physical_device = p;
+			break;
+		}
+	}
+
+	
+
+
 
 	WNDCLASSEXW window_class 
 	{
