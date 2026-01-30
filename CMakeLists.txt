@@ -9,4 +9,5 @@ target_precompile_headers(based_renderer PRIVATE src/pch.hpp)
 
 if(MSVC)
 target_compile_options(based_renderer PRIVATE /W4 /WX /diagnostics:column)
+target_link_options(based_renderer PRIVATE /subsystem:windows)
 endif()

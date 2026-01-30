@@ -1,2 +1,4 @@
 *.sublime-workspace
 build/*
+*.radproj
+challenges.txt
