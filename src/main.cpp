@@ -95,6 +95,7 @@ int __stdcall WinMain(
 
 	vk::Device device = physical_device.createDevice(vk::DeviceCreateInfo({}, device_queue_create_infos));
 
+	// Each queue family gets its own std::vector, whether or not it has any queues.
 	std::vector<std::vector<vk::Queue>> queues{queue_family_properties.size()};
 	for (size_t i = 0; i < queue_family_properties.size(); ++i)
 	{
@@ -105,7 +106,13 @@ int __stdcall WinMain(
 		}
 	}
 
+	vk::CommandPool command_pool = device.createCommandPool(
+ 		vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(), 0) // TODO: Replace 0 with graphics queue family index.
+ 	);
 
+	std::vector<vk::CommandBuffer> command_buffers = device.allocateCommandBuffers(
+		vk::CommandBufferAllocateInfo(command_pool, vk::CommandBufferLevel::ePrimary, 1)
+	);
 
 	WNDCLASSEXW window_class 
 	{
