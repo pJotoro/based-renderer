@@ -2,8 +2,11 @@
 	"folders":
 	[
 		{
-			"path": "."
-		}
+			"path": ".",
+		},
+		{
+			"path": "C:\\VulkanSDK\\1.4.335.0\\Include\\vulkan"
+		},
 	],
 	"build_systems":
 	[
@@ -19,5 +22,5 @@
             "shell_cmd": "ninja",
             "file_regex": "^(.*)\\((\\d+),(\\d+)\\): (.*)$",
         },
-	]
+	],
 }

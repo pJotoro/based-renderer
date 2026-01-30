@@ -1,7 +1,3 @@
-[requires]
-glm/1.0.1
-sdl/3.4.0
-
 [generators]
 CMakeDeps
 CMakeToolchain
