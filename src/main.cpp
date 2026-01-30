@@ -1,5 +1,6 @@
 #include "pch.hpp"
 
+// Works just like std::print, except it prints to the debug console.
 template<class... Args> void 
 dprint(std::format_string<Args...> fmt, Args&&... args) 
 {
@@ -7,6 +8,7 @@ dprint(std::format_string<Args...> fmt, Args&&... args)
 	OutputDebugStringA(s.c_str());
 }
 
+// TODO: Remove global.
 static bool running;
 
 LRESULT __stdcall Wndproc(
@@ -49,14 +51,54 @@ int __stdcall WinMain(
 	};
 	vk::Instance instance = vk::createInstance(instance_create_info);
 
+	// Choose the first discrete GPU.
+	// If there is no discrete GPU, default to the last GPU.
 	std::vector<vk::PhysicalDevice> physical_devices = instance.enumeratePhysicalDevices();
-
 	vk::PhysicalDevice physical_device = *std::find_if(physical_devices.begin(), physical_devices.end(), 
 		[](vk::PhysicalDevice p) {
 			vk::PhysicalDeviceProperties props = p.getProperties();
 			return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
 		}
 	);
+
+	std::vector<vk::QueueFamilyProperties> queue_family_properties = physical_device.getQueueFamilyProperties();
+
+	// TODO: This is stupid. Find out how queue priorities should be done.
+	std::array<float, 64> queue_priorities {
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+	};
+
+	std::vector<vk::DeviceQueueCreateInfo> device_queue_create_infos{queue_family_properties.size()};
+	for (size_t i = 0; i < device_queue_create_infos.size(); ++i)
+	{
+		device_queue_create_infos[i] = vk::DeviceQueueCreateInfo {
+			{},
+			static_cast<uint32_t>(i),
+			queue_family_properties[i].queueCount,
+			queue_priorities.data(),
+		};
+	}
+
+	vk::Device device = physical_device.createDevice(vk::DeviceCreateInfo({}, device_queue_create_infos));
+
+
+	// std::vector<std::vector<vk::Queue>> queues{queue_family_properties.count()};
+	// for (
+	// 	size_t i = 0; i < queue_family_properties.count(); ++i)
+	// {
+	// 	queues[i].reserve(static_cast<size_t>(queue_family_properties[i].queueCount));
+	// 	for (size_t j = 0; j < static_cast<size_t>(queue_family_properties[i].queueCount); ++j)
+	// 	{
+			
+	// 	}
+	// }
 
 	WNDCLASSEXW window_class 
 	{
@@ -108,6 +150,7 @@ int __stdcall WinMain(
 	{
 		return -4;
 	}
+	device.destroy();
 	instance.destroy();
 	
 	return 0;
