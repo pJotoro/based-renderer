@@ -105,16 +105,7 @@ int __stdcall WinMain(
 		}
 	}
 
-	// std::vector<std::vector<vk::Queue>> queues{queue_family_properties.count()};
-	// for (
-	// 	size_t i = 0; i < queue_family_properties.count(); ++i)
-	// {
-	// 	queues[i].reserve(static_cast<size_t>(queue_family_properties[i].queueCount));
-	// 	for (size_t j = 0; j < static_cast<size_t>(queue_family_properties[i].queueCount); ++j)
-	// 	{
-			
-	// 	}
-	// }
+	
 
 	WNDCLASSEXW window_class 
 	{
