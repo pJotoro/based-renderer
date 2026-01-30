@@ -75,19 +75,35 @@ int __stdcall WinMain(
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 	};
 
-	std::vector<vk::DeviceQueueCreateInfo> device_queue_create_infos{queue_family_properties.size()};
-	for (size_t i = 0; i < device_queue_create_infos.size(); ++i)
+	std::vector<vk::DeviceQueueCreateInfo> device_queue_create_infos;
+	device_queue_create_infos.reserve(queue_family_properties.size());
+	for (size_t i = 0; i < queue_family_properties.size(); ++i)
 	{
-		device_queue_create_infos[i] = vk::DeviceQueueCreateInfo {
-			{},
-			static_cast<uint32_t>(i),
-			queue_family_properties[i].queueCount,
-			queue_priorities.data(),
-		};
+		if (queue_family_properties[i].queueCount > 0)
+		{
+			device_queue_create_infos.push_back(
+				vk::DeviceQueueCreateInfo 
+				{
+					{},
+					static_cast<uint32_t>(i),
+					queue_family_properties[i].queueCount,
+					queue_priorities.data(),
+				}
+			);
+		}
 	}
 
 	vk::Device device = physical_device.createDevice(vk::DeviceCreateInfo({}, device_queue_create_infos));
 
+	std::vector<std::vector<vk::Queue>> queues{queue_family_properties.size()};
+	for (size_t i = 0; i < queue_family_properties.size(); ++i)
+	{
+		queues[i].resize(queue_family_properties[i].queueCount);
+		for (size_t j = 0; j < static_cast<size_t>(queue_family_properties[i].queueCount); ++j)
+		{
+			queues[i][j] = device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
+		}
+	}
 
 	// std::vector<std::vector<vk::Queue>> queues{queue_family_properties.count()};
 	// for (
@@ -120,27 +136,26 @@ int __stdcall WinMain(
 		return -1;
 	}
 
-	HWND window 
-	{ 
-		CreateWindowExW(
-			0,
-			L"based_renderer",
-			L"based_renderer",
-			WS_OVERLAPPEDWINDOW,
-			1920/4,
-			1080/4,
-			1920/2,
-			1080/2,
-			nullptr,
-			nullptr,
-			hInstance,
-			nullptr
-		) 
-	};
+	HWND window = CreateWindowExW(
+		0,
+		L"based_renderer",
+		L"based_renderer",
+		WS_OVERLAPPEDWINDOW,
+		1920/4,
+		1080/4,
+		1920/2,
+		1080/2,
+		nullptr,
+		nullptr,
+		hInstance,
+		nullptr
+	);
 	if (!window)
 	{
 		return -2;
 	}
+
+
 
 	if (!DestroyWindow(window))
 	{
