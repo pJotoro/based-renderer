@@ -1,3 +1,12 @@
+#define BASED_RENDERER_DEBUG 1
+
+#define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
+#define BASED_RENDERER_VULKAN_VALIDATION BASED_RENDERER_VULKAN_DEBUG
+#define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
+#define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
+
+#define VK_KHR_platform_surface "VK_KHR_win32_surface"
+
 #include "pch.hpp"
 
 // Works just like std::print, except it prints to the debug console.
@@ -8,10 +17,18 @@ dprint(std::format_string<Args...> fmt, Args&&... args)
 	OutputDebugStringA(s.c_str());
 }
 
-// TODO: Remove global.
-static bool running;
+// Same, but the format string is a wide string.
+template<class... Args> void 
+dprint(std::wformat_string<Args...> fmt, Args&&... args) 
+{
+	std::wstring s = std::format(fmt, std::forward<Args>(args)...);
+	OutputDebugStringW(s.c_str());
+}
 
-LRESULT __stdcall Wndproc(
+// TODO: Remove global.
+static bool win32_running;
+
+LRESULT WINAPI win32_event_callback(
 	HWND   hWnd,
 	UINT   Msg,
 	WPARAM wParam,
@@ -23,7 +40,7 @@ LRESULT __stdcall Wndproc(
 	{
 		case WM_DESTROY:
 		case WM_CLOSE: {
-			running = false;
+			win32_running = false;
 		} break;
 		default: {
 			res = DefWindowProcW(hWnd, Msg, wParam, lParam);
@@ -33,7 +50,22 @@ LRESULT __stdcall Wndproc(
 	return res;
 }
 
-int __stdcall WinMain(
+vk::Bool32 VKAPI_PTR vulkan_debug_callback(
+	vk::DebugUtilsMessageSeverityFlagBitsEXT message_severity,
+	vk::DebugUtilsMessageTypeFlagsEXT message_types,
+	const vk::DebugUtilsMessengerCallbackDataEXT * callback_data,
+	void *user_data)
+{
+	UNUSED(message_severity);
+	UNUSED(message_types);
+	UNUSED(user_data);
+
+	dprint("{}\n", callback_data->pMessage);
+
+	return vk::False;
+}
+
+int WINAPI WinMain(
 	HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR     lpCmdLine,
@@ -43,28 +75,100 @@ int __stdcall WinMain(
 	UNUSED(lpCmdLine);
 	UNUSED(nShowCmd);
 
-	vk::ApplicationInfo app_info{};
-	vk::InstanceCreateInfo instance_create_info 
+	vk::ApplicationInfo vulkan_app_info {
+		"based_renderer",
+		VK_API_VERSION_1_0,
+		"based_renderer",
+		VK_API_VERSION_1_0,
+		VK_API_VERSION_1_4,
+	};
+
+#if BASED_RENDERER_VULKAN_LAYERS
+	std::vector<const char*> vulkan_layers;
+#if BASED_RENDERER_VULKAN_DEBUG
+	vulkan_layers.push_back("VK_LAYER_LUNARG_monitor");
+#endif
+#if BASED_RENDERER_VULKAN_VALIDATION
+	vulkan_layers.push_back("VK_LAYER_KHRONOS_validation");
+	std::array<vk::ValidationFeatureEnableEXT, 2> vulkan_enabled_validation_features 
+	{
+		vk::ValidationFeatureEnableEXT::eBestPractices,
+		vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
+	};
+	vk::ValidationFeaturesEXT vulkan_validation_features 
+	{
+		vulkan_enabled_validation_features,
+	};
+#endif
+#endif // BASED_RENDERER_VULKAN_LAYERS
+
+#if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
+	vk::DebugUtilsMessengerCreateInfoEXT vulkan_debug_output_info(
+		{},
+		vk::DebugUtilsMessageSeverityFlagsEXT(
+			vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | 
+			vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | 
+			vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | 
+			vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
+		),
+		vk::DebugUtilsMessageTypeFlagsEXT(
+			vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | 
+			vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
+		),
+		vulkan_debug_callback
+	);
+#endif
+
+	std::vector<const char *> vulkan_extensions;
+	vulkan_extensions.push_back("VK_KHR_surface");
+	vulkan_extensions.push_back(VK_KHR_platform_surface);
+#if BASED_RENDERER_VULKAN_LAYERS
+	vulkan_extensions.push_back("VK_EXT_layer_settings");
+#endif
+#if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
+	vulkan_extensions.push_back("VK_EXT_debug_utils");
+#endif
+
+	vk::InstanceCreateInfo vulkan_instance_create_info 
 	{
 		{},
-		&app_info,
+		&vulkan_app_info,
+#if BASED_RENDERER_VULKAN_LAYERS
+		static_cast<uint32_t>(vulkan_layers.size()),
+		vulkan_layers.data(),
+#else
+		0,
+		nullptr,
+#endif
+		static_cast<uint32_t>(vulkan_extensions.size()),
+		vulkan_extensions.data(),
 	};
-	vk::Instance instance = vk::createInstance(instance_create_info);
+
+#if BASED_RENDERER_VULKAN_VALIDATION && BASED_RENDERER_VULKAN_DEBUG_OUTPUT
+	vulkan_instance_create_info.pNext = &vulkan_validation_features;
+	vulkan_validation_features.pNext = &vulkan_debug_output_info;
+#elif BASED_RENDERER_VULKAN_VALIDATION
+	vulkan_instance_create_info.pNext = &vulkan_validation_features;
+#elif BASED_RENDERER_VULKAN_DEBUG_OUTPUT
+	vulkan_instance_create_info.pNext = &vulkan_debug_output_info;
+#endif
+
+	vk::Instance vulkan_instance = vk::createInstance(vulkan_instance_create_info);
 
 	// Choose the first discrete GPU.
 	// If there is no discrete GPU, default to the last GPU.
-	std::vector<vk::PhysicalDevice> physical_devices = instance.enumeratePhysicalDevices();
-	vk::PhysicalDevice physical_device = *std::find_if(physical_devices.begin(), physical_devices.end(), 
+	std::vector<vk::PhysicalDevice> vulkan_physical_devices = vulkan_instance.enumeratePhysicalDevices();
+	vk::PhysicalDevice vulkan_physical_device = *std::find_if(vulkan_physical_devices.begin(), vulkan_physical_devices.end(), 
 		[](vk::PhysicalDevice p) {
 			vk::PhysicalDeviceProperties props = p.getProperties();
 			return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
 		}
 	);
 
-	std::vector<vk::QueueFamilyProperties> queue_family_properties = physical_device.getQueueFamilyProperties();
+	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
 
 	// TODO: This is stupid. Find out how queue priorities should be done.
-	std::array<float, 64> queue_priorities {
+	std::array<float, 64> vulkan_queue_priorities {
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
@@ -75,50 +179,50 @@ int __stdcall WinMain(
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 	};
 
-	std::vector<vk::DeviceQueueCreateInfo> device_queue_create_infos;
-	device_queue_create_infos.reserve(queue_family_properties.size());
-	for (size_t i = 0; i < queue_family_properties.size(); ++i)
+	std::vector<vk::DeviceQueueCreateInfo> vulkan_device_queue_infos;
+	vulkan_device_queue_infos.reserve(vulkan_queue_family_properties.size());
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
-		if (queue_family_properties[i].queueCount > 0)
+		if (vulkan_queue_family_properties[i].queueCount > 0)
 		{
-			device_queue_create_infos.push_back(
+			vulkan_device_queue_infos.push_back(
 				vk::DeviceQueueCreateInfo 
 				{
 					{},
 					static_cast<uint32_t>(i),
-					queue_family_properties[i].queueCount,
-					queue_priorities.data(),
+					vulkan_queue_family_properties[i].queueCount,
+					vulkan_queue_priorities.data(),
 				}
 			);
 		}
 	}
 
-	vk::Device device = physical_device.createDevice(vk::DeviceCreateInfo({}, device_queue_create_infos));
+	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo({}, vulkan_device_queue_infos));
 
 	// Each queue family gets its own std::vector, whether or not it has any queues.
-	std::vector<std::vector<vk::Queue>> queues{queue_family_properties.size()};
-	for (size_t i = 0; i < queue_family_properties.size(); ++i)
+	std::vector<std::vector<vk::Queue>> vulkan_queues{vulkan_queue_family_properties.size()};
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
-		queues[i].resize(queue_family_properties[i].queueCount);
-		for (size_t j = 0; j < static_cast<size_t>(queue_family_properties[i].queueCount); ++j)
+		vulkan_queues[i].resize(vulkan_queue_family_properties[i].queueCount);
+		for (size_t j = 0; j < static_cast<size_t>(vulkan_queue_family_properties[i].queueCount); ++j)
 		{
-			queues[i][j] = device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
+			vulkan_queues[i][j] = vulkan_device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
 		}
 	}
 
-	vk::CommandPool command_pool = device.createCommandPool(
+	vk::CommandPool vulkan_command_pool = vulkan_device.createCommandPool(
  		vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(), 0) // TODO: Replace 0 with graphics queue family index.
  	);
 
-	std::vector<vk::CommandBuffer> command_buffers = device.allocateCommandBuffers(
-		vk::CommandBufferAllocateInfo(command_pool, vk::CommandBufferLevel::ePrimary, 1)
+	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
+		vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, 1)
 	);
 
-	WNDCLASSEXW window_class 
+	WNDCLASSEXW win32_window_class 
 	{
 		.cbSize = sizeof(WNDCLASSEXW),
 		.style = 0,
-		.lpfnWndProc = Wndproc,
+		.lpfnWndProc = win32_event_callback,
 		.cbClsExtra = 0,
 		.cbWndExtra = 0,
 		.hInstance = hInstance,
@@ -129,12 +233,12 @@ int __stdcall WinMain(
 		.lpszClassName = L"based_renderer",
 		.hIconSm = nullptr,
 	};
-	if (!RegisterClassExW(&window_class))
+	if (!RegisterClassExW(&win32_window_class))
 	{
 		return -1;
 	}
 
-	HWND window = CreateWindowExW(
+	HWND win32_window = CreateWindowExW(
 		0,
 		L"based_renderer",
 		L"based_renderer",
@@ -148,10 +252,12 @@ int __stdcall WinMain(
 		hInstance,
 		nullptr
 	);
-	if (!window)
+	if (!win32_window)
 	{
 		return -2;
 	}
+
+
 	
 	return 0;
 }
