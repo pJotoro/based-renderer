@@ -103,20 +103,20 @@ int WINAPI WinMain(
 #endif // BASED_RENDERER_VULKAN_LAYERS
 
 #if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
-	vk::DebugUtilsMessengerCreateInfoEXT vulkan_debug_output_info(
+	vk::DebugUtilsMessengerCreateInfoEXT vulkan_debug_output_info {
 		{},
-		vk::DebugUtilsMessageSeverityFlagsEXT(
+		{
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | 
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | 
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | 
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
-		),
-		vk::DebugUtilsMessageTypeFlagsEXT(
+		},
+		{
 			vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | 
 			vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
-		),
+		},
 		vulkan_debug_callback
-	);
+	};
 #endif
 
 	std::vector<const char *> vulkan_extensions;
