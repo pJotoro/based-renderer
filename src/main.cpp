@@ -72,14 +72,14 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 }
 
 int WINAPI WinMain(
-	HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR     lpCmdLine,
-	int       nShowCmd) 
+	HINSTANCE win32_instance,
+	HINSTANCE win32_prev_instance,
+	LPSTR     win32_command_line,
+	int       win32_show_command) 
 {
-	UNUSED(hPrevInstance);
-	UNUSED(lpCmdLine);
-	UNUSED(nShowCmd);
+	UNUSED(win32_prev_instance);
+	UNUSED(win32_command_line);
+	UNUSED(win32_show_command);
 
 	vk::ApplicationInfo vulkan_app_info {
 		"based_renderer",
@@ -165,11 +165,10 @@ int WINAPI WinMain(
 	// If there is no discrete GPU, default to the last GPU.
 	std::vector<vk::PhysicalDevice> vulkan_physical_devices = vulkan_instance.enumeratePhysicalDevices();
 	vk::PhysicalDevice vulkan_physical_device = *std::find_if(vulkan_physical_devices.begin(), vulkan_physical_devices.end(), 
-		[](vk::PhysicalDevice p) {
-			vk::PhysicalDeviceProperties props = p.getProperties();
-			return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
-		}
-	);
+	[](vk::PhysicalDevice p) {
+		vk::PhysicalDeviceProperties props = p.getProperties();
+		return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
+	});
 
 	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
 
@@ -191,58 +190,21 @@ int WINAPI WinMain(
 	{
 		if (vulkan_queue_family_properties[i].queueCount > 0)
 		{
-			vulkan_device_queue_infos.push_back(
-				vk::DeviceQueueCreateInfo 
-				{
-					{},
-					static_cast<uint32_t>(i),
-					vulkan_queue_family_properties[i].queueCount,
-					vulkan_queue_priorities.data(),
-				}
-			);
+			vulkan_device_queue_infos.push_back(vk::DeviceQueueCreateInfo{
+				{},
+				static_cast<uint32_t>(i),
+				vulkan_queue_family_properties[i].queueCount,
+				vulkan_queue_priorities.data(),
+			});
 		}
 	}
 
 	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo({}, vulkan_device_queue_infos));
 
-	// Each queue family gets its own std::vector, whether or not it has any queues.
-	std::vector<std::vector<vk::Queue>> vulkan_queues{vulkan_queue_family_properties.size()};
-	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
-	{
-		vulkan_queues[i].resize(vulkan_queue_family_properties[i].queueCount);
-		for (size_t j = 0; j < static_cast<size_t>(vulkan_queue_family_properties[i].queueCount); ++j)
-		{
-			vulkan_queues[i][j] = vulkan_device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
-		}
-	}
-
-	// TODO: Remove the requirement that the graphics queue must also be capable of transfer.
-	vk::Queue vulkan_graphics_queue;
-	size_t vulkan_graphics_queue_family_idx = std::numeric_limits<size_t>::max();
-	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
-	{
-		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics|vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{})
-		{
-			vulkan_graphics_queue = vulkan_queues[i][0];
-			vulkan_graphics_queue_family_idx = i;
-			break;
-		}
-	}
-
-	vk::CommandPool vulkan_command_pool = vulkan_device.createCommandPool(
- 		vk::CommandPoolCreateInfo {
- 			vk::CommandPoolCreateFlags(), 
- 			static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
- 		}
- 	);
-
-	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
-		vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
-	);
-
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
-	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) {
+	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) 
+	{
 	    return -3;
 	}
 	auto monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
@@ -255,7 +217,7 @@ int WINAPI WinMain(
 		.lpfnWndProc = win32_event_callback,
 		.cbClsExtra = 0,
 		.cbWndExtra = 0,
-		.hInstance = hInstance,
+		.hInstance = win32_instance,
 		.hIcon = nullptr,
 		.hCursor = nullptr,
 		.hbrBackground = nullptr,
@@ -291,7 +253,7 @@ int WINAPI WinMain(
 #endif
 		nullptr,
 		nullptr,
-		hInstance,
+		win32_instance,
 		nullptr
 	);
 	if (!win32_window)
@@ -299,7 +261,44 @@ int WINAPI WinMain(
 		return -2;
 	}
 
+	vk::SurfaceKHR vulkan_surface = vulkan_instance.createWin32SurfaceKHR({
+		{},
+		win32_instance,
+		win32_window,
+	});
 
+	// Each queue family gets its own std::vector, whether or not it has any queues.
+	std::vector<std::vector<vk::Queue>> vulkan_queues{vulkan_queue_family_properties.size()};
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
+	{
+		vulkan_queues[i].resize(vulkan_queue_family_properties[i].queueCount);
+		for (size_t j = 0; j < static_cast<size_t>(vulkan_queue_family_properties[i].queueCount); ++j)
+		{
+			vulkan_queues[i][j] = vulkan_device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
+		}
+	}
+
+	// TODO: Remove the requirement that the graphics queue must also be capable of transfer.
+	vk::Queue vulkan_graphics_queue;
+	size_t vulkan_graphics_queue_family_idx = std::numeric_limits<size_t>::max();
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
+	{
+		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics|vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{})
+		{
+			vulkan_graphics_queue = vulkan_queues[i][0];
+			vulkan_graphics_queue_family_idx = i;
+			break;
+		}
+	}
+
+	vk::CommandPool vulkan_command_pool = vulkan_device.createCommandPool(vk::CommandPoolCreateInfo{
+		vk::CommandPoolCreateFlags(), 
+		static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
+	});
+
+	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
+		vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
+	);
 	
 	return 0;
 }
