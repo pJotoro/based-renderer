@@ -210,8 +210,24 @@ int WINAPI WinMain(
 		}
 	}
 
+	// TODO: Remove the requirement that the graphics queue must also be capable of transfer.
+	vk::Queue vulkan_graphics_queue;
+	size_t vulkan_graphics_queue_family_idx = std::numeric_limits<size_t>::max();
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
+	{
+		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics|vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{})
+		{
+			vulkan_graphics_queue = vulkan_queues[i][0];
+			vulkan_graphics_queue_family_idx = i;
+			break;
+		}
+	}
+
 	vk::CommandPool vulkan_command_pool = vulkan_device.createCommandPool(
- 		vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(), 0) // TODO: Replace 0 with graphics queue family index.
+ 		vk::CommandPoolCreateInfo{
+ 			vk::CommandPoolCreateFlags(), 
+ 			static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
+ 		}
  	);
 
 	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
