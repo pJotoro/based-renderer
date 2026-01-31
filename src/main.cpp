@@ -1,3 +1,5 @@
+#define UNUSED(X) (void)(X)
+
 #define BASED_RENDERER_DEBUG 1
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
@@ -6,6 +8,8 @@
 #define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
 
 #define BASED_RENDERER_VULKAN_FRAME_COUNT 2
+
+#define BASED_RENDERER_FULLSCREEN 0
 
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
 
@@ -265,14 +269,26 @@ int WINAPI WinMain(
 	}
 
 	HWND win32_window = CreateWindowExW(
+#if !BASED_RENDERER_FULLSCREEN
 		0,
+#else
+		WS_EX_TOPMOST,
+#endif
 		L"based_renderer",
 		L"based_renderer",
-		WS_OVERLAPPEDWINDOW,
+#if !BASED_RENDERER_FULLSCREEN
+		WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
 		monitor_width/4,
 		monitor_height/4,
 		monitor_width/2,
 		monitor_height/2,
+#else
+		WS_POPUP,
+		0,
+		0,
+		monitor_width,
+		monitor_height,
+#endif
 		nullptr,
 		nullptr,
 		hInstance,

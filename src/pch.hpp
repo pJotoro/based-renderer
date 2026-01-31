@@ -8,5 +8,3 @@
 #include <glm/glm.hpp>
 
 #include <format>
-
-#define UNUSED(X) (void)(X)
