@@ -5,6 +5,8 @@
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
 
+#define BASED_RENDERER_VULKAN_FRAME_COUNT 2
+
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
 
 #include "pch.hpp"
@@ -224,15 +226,23 @@ int WINAPI WinMain(
 	}
 
 	vk::CommandPool vulkan_command_pool = vulkan_device.createCommandPool(
- 		vk::CommandPoolCreateInfo{
+ 		vk::CommandPoolCreateInfo {
  			vk::CommandPoolCreateFlags(), 
  			static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
  		}
  	);
 
 	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
-		vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, 1)
+		vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
 	);
+
+	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
+	MONITORINFO monitor_info {sizeof(MONITORINFO)};
+	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) {
+	    return -3;
+	}
+	auto monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+	auto monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
 
 	WNDCLASSEXW win32_window_class 
 	{
@@ -259,10 +269,10 @@ int WINAPI WinMain(
 		L"based_renderer",
 		L"based_renderer",
 		WS_OVERLAPPEDWINDOW,
-		1920/4,
-		1080/4,
-		1920/2,
-		1080/2,
+		monitor_width/4,
+		monitor_height/4,
+		monitor_width/2,
+		monitor_height/2,
 		nullptr,
 		nullptr,
 		hInstance,
