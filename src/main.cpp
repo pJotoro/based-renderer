@@ -201,6 +201,31 @@ int WINAPI WinMain(
 
 	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo({}, vulkan_device_queue_infos));
 
+	// Each queue family gets its own std::vector, whether or not it has any queues.
+	std::vector<std::vector<vk::Queue>> vulkan_queues{vulkan_queue_family_properties.size()};
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
+	{
+		vulkan_queues[i].resize(vulkan_queue_family_properties[i].queueCount);
+		for (size_t j = 0; j < static_cast<size_t>(vulkan_queue_family_properties[i].queueCount); ++j)
+		{
+			vulkan_queues[i][j] = vulkan_device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
+		}
+	}
+
+	size_t vulkan_graphics_queue_family_idx = std::find_if(vulkan_queue_family_properties.begin(), vulkan_queue_family_properties.end(),
+	[](vk::QueueFamilyProperties &props) 
+	{
+		return (props.queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics}) != vk::QueueFlags{};
+	});
+	vk::Queue vulkan_graphics_queue = vulkan_queues[vulkan_graphics_queue_family_idx][0];
+
+	size_t vulkan_transfer_queue_family_idx = std::find_if(vulkan_queue_family_properties.begin(), vulkan_queue_family_properties.end(),
+	[](vk::QueueFamilyProperties &props) 
+	{
+		return (props.queueFlags & vk::QueueFlags{vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{};
+	});
+	vk::Queue vulkan_transfer_queue = vulkan_queues[vulkan_transfer_queue_family_idx][0];
+
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
 	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) 
@@ -267,38 +292,59 @@ int WINAPI WinMain(
 		win32_window,
 	});
 
-	// Each queue family gets its own std::vector, whether or not it has any queues.
-	std::vector<std::vector<vk::Queue>> vulkan_queues{vulkan_queue_family_properties.size()};
+	size_t vulkan_present_queue_family_idx = std::numeric_limits<size_t>::max();
 	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
-		vulkan_queues[i].resize(vulkan_queue_family_properties[i].queueCount);
-		for (size_t j = 0; j < static_cast<size_t>(vulkan_queue_family_properties[i].queueCount); ++j)
+		if (vulkan_physical_device.getSurfaceSupportedKHR(static_cast<uint32_t>(i), vulkan_surface))
 		{
-			vulkan_queues[i][j] = vulkan_device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
-		}
-	}
-
-	// TODO: Remove the requirement that the graphics queue must also be capable of transfer.
-	vk::Queue vulkan_graphics_queue;
-	size_t vulkan_graphics_queue_family_idx = std::numeric_limits<size_t>::max();
-	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
-	{
-		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics|vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{})
-		{
-			vulkan_graphics_queue = vulkan_queues[i][0];
-			vulkan_graphics_queue_family_idx = i;
+			vulkan_present_queue_family_idx = i;
 			break;
 		}
 	}
+	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx][0];
 
-	vk::CommandPool vulkan_command_pool = vulkan_device.createCommandPool(vk::CommandPoolCreateInfo{
-		vk::CommandPoolCreateFlags(), 
+	std::vector<vk::CommandPool> vulkan_command_pools;
+
+	vk::CommandPool vulkan_graphics_command_pool;
+	vulkan_command_pools.push_back(vulkan_device.createCommandPool({
+		vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient|vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
 		static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
-	});
+	}));
+	vulkan_graphics_command_pool = vulkan_command_pools.back();
 
-	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
-		vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
-	);
+	// TODO: Which command pool flags should be passed for the transfer command pool and present command pool, if any?
+
+	vk::CommandPool vulkan_transfer_command_pool;
+	if (vulkan_graphics_queue != vulkan_transfer_queue)
+	{
+		vulkan_command_pools.push_back(vulkan_device.createCommandPool({
+			vk::CommandPoolCreateFlags(),
+			static_cast<uint32_t>(vulkan_transfer_queue_family_idx),
+		}));
+		vulkan_transfer_command_pool = vulkan_command_pools.back();
+	}
+	else
+	{
+		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
+	}
+
+	vk::CommandPool vulkan_present_command_pool;
+	if (vulkan_graphics_queue != vulkan_present_queue)
+	{
+		vulkan_command_pools.push_back(vulkan_device.createCommandPool({
+			vk::CommandPoolCreateFlags(),
+			static_cast<uint32_t>(vulkan_present_queue_family_idx),
+		}));
+		vulkan_present_command_pool = vulkan_command_pools.back();
+	}
+	else
+	{
+		vulkan_present_command_pool = vulkan_graphics_command_pool;
+	}
+
+	// std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
+	// 	vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
+	// );
 	
 	return 0;
 }
