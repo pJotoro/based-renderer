@@ -335,10 +335,15 @@ int WINAPI WinMain(
 	{
 		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
 	}
-	
+
 	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
 		vk::CommandBufferAllocateInfo(vulkan_graphics_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
 	);
+
+	// TODO: How many command buffers should the transfer command pool have? Should it have only one? Should it have as many as
+	// BASED_RENDERER_VULKAN_FRAME_COUNT? The answer depends on how synchronization will work.
+
+	
 	
 	return 0;
 }
