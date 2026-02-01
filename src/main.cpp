@@ -234,6 +234,41 @@ int WINAPI WinMain(
 	}
 	vk::Queue vulkan_transfer_queue = vulkan_queues[vulkan_transfer_queue_family_idx][0];
 
+	vk::CommandPool vulkan_graphics_command_pool = vulkan_device.createCommandPool({
+		vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient|vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
+		static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
+	});
+
+	vk::CommandPool vulkan_transfer_command_pool;
+	if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
+	{
+		vulkan_transfer_command_pool = vulkan_device.createCommandPool({
+			vk::CommandPoolCreateFlags(),
+			static_cast<uint32_t>(vulkan_transfer_queue_family_idx),
+		});
+	}
+	else
+	{
+		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
+	}
+
+	std::vector<vk::CommandBuffer> vulkan_graphics_command_buffers = vulkan_device.allocateCommandBuffers({
+		vulkan_graphics_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT
+	});
+
+	vk::CommandBuffer vulkan_transfer_command_buffer;
+	if (vulkan_graphics_command_pool != vulkan_transfer_command_pool)
+	{
+		std::vector<vk::CommandBuffer> v = vulkan_device.allocateCommandBuffers({
+			vulkan_transfer_command_pool, vk::CommandBufferLevel::ePrimary, 1
+		});
+		vulkan_transfer_command_buffer = v[0];
+	}
+	else
+	{
+		// Just don't use the transfer command buffer then!
+	}
+
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
 	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) 
@@ -311,39 +346,8 @@ int WINAPI WinMain(
 	}
 	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx][0];
 
-	std::vector<vk::CommandPool> vulkan_command_pools;
 
-	vk::CommandPool vulkan_graphics_command_pool;
-	vulkan_command_pools.push_back(vulkan_device.createCommandPool({
-		vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient|vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
-		static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
-	}));
-	vulkan_graphics_command_pool = vulkan_command_pools.back();
 
-	// TODO: Which command pool flags should be passed for the transfer command pool and present command pool, if any?
-
-	vk::CommandPool vulkan_transfer_command_pool;
-	if (vulkan_graphics_queue != vulkan_transfer_queue)
-	{
-		vulkan_command_pools.push_back(vulkan_device.createCommandPool({
-			vk::CommandPoolCreateFlags(),
-			static_cast<uint32_t>(vulkan_transfer_queue_family_idx),
-		}));
-		vulkan_transfer_command_pool = vulkan_command_pools.back();
-	}
-	else
-	{
-		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
-	}
-
-	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
-		vk::CommandBufferAllocateInfo(vulkan_graphics_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
-	);
-
-	// TODO: How many command buffers should the transfer command pool have? Should it have only one? Should it have as many as
-	// BASED_RENDERER_VULKAN_FRAME_COUNT? The answer depends on how synchronization will work.
-
-	
 	
 	return 0;
 }
