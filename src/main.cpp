@@ -212,18 +212,26 @@ int WINAPI WinMain(
 		}
 	}
 
-	size_t vulkan_graphics_queue_family_idx = std::find_if(vulkan_queue_family_properties.begin(), vulkan_queue_family_properties.end(),
-	[](vk::QueueFamilyProperties &props) 
+	size_t vulkan_graphics_queue_family_idx = std::numeric_limits<size_t>::max();
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
-		return (props.queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics}) != vk::QueueFlags{};
-	});
+		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics}) != vk::QueueFlags{})
+		{
+			vulkan_graphics_queue_family_idx = i;
+			break;
+		}
+	}
 	vk::Queue vulkan_graphics_queue = vulkan_queues[vulkan_graphics_queue_family_idx][0];
 
-	size_t vulkan_transfer_queue_family_idx = std::find_if(vulkan_queue_family_properties.begin(), vulkan_queue_family_properties.end(),
-	[](vk::QueueFamilyProperties &props) 
+	size_t vulkan_transfer_queue_family_idx = std::numeric_limits<size_t>::max();
+	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
-		return (props.queueFlags & vk::QueueFlags{vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{};
-	});
+		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{})
+		{
+			vulkan_transfer_queue_family_idx = i;
+			break;
+		}
+	}
 	vk::Queue vulkan_transfer_queue = vulkan_queues[vulkan_transfer_queue_family_idx][0];
 
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
@@ -295,7 +303,7 @@ int WINAPI WinMain(
 	size_t vulkan_present_queue_family_idx = std::numeric_limits<size_t>::max();
 	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
-		if (vulkan_physical_device.getSurfaceSupportedKHR(static_cast<uint32_t>(i), vulkan_surface))
+		if (vulkan_physical_device.getSurfaceSupportKHR(static_cast<uint32_t>(i), vulkan_surface))
 		{
 			vulkan_present_queue_family_idx = i;
 			break;
