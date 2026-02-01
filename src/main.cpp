@@ -335,24 +335,10 @@ int WINAPI WinMain(
 	{
 		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
 	}
-
-	vk::CommandPool vulkan_present_command_pool;
-	if (vulkan_graphics_queue != vulkan_present_queue)
-	{
-		vulkan_command_pools.push_back(vulkan_device.createCommandPool({
-			vk::CommandPoolCreateFlags(),
-			static_cast<uint32_t>(vulkan_present_queue_family_idx),
-		}));
-		vulkan_present_command_pool = vulkan_command_pools.back();
-	}
-	else
-	{
-		vulkan_present_command_pool = vulkan_graphics_command_pool;
-	}
-
-	// std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
-	// 	vk::CommandBufferAllocateInfo(vulkan_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
-	// );
+	
+	std::vector<vk::CommandBuffer> vulkan_command_buffers = vulkan_device.allocateCommandBuffers(
+		vk::CommandBufferAllocateInfo(vulkan_graphics_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT)
+	);
 	
 	return 0;
 }
