@@ -73,25 +73,24 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 
 class VulkanAllocator {
 public:
-	vk::Buffer CreateBuffer(vk::Device device, vk::BufferCreateInfo create_info);
-	vk::Image CreateImage(vk::Device device, vk::ImageCreateInfo create_info);
+	vk::Buffer CreateBuffer(vk::Device const device, const vk::BufferCreateInfo &create_info);
+	vk::Image CreateImage(vk::Device const device, const vk::ImageCreateInfo &create_info);
 	void Allocate();
 
 private:
 	struct UnallocatedBuffer {
 		vk::Buffer buffer;
-		// TODO
+		uint32_t memory_type_idx;
 	};
 
 	struct UnallocatedImage {
 		vk::Image image;
-		// TODO
+		uint32_t memory_type_idx;
 	};
 
 	struct Allocation {
 		vk::DeviceMemory memory;
 		vk::DeviceSize offset;
-		// TODO
 	};
 
 	std::unordered_map<vk::Buffer, Allocation> buffer_allocations;
@@ -100,16 +99,20 @@ private:
 	std::vector<UnallocatedImage> unallocated_images;
 };
 
-vk::Buffer VulkanAllocator::CreateBuffer(vk::Device device, vk::BufferCreateInfo create_info) {
+vk::Buffer VulkanAllocator::CreateBuffer(vk::Device const device, const vk::BufferCreateInfo &create_info) {
+	vk::Buffer buffer = device.createBuffer(create_info);
+	vk::MemoryRequirements memory_requirements = device.getBufferMemoryRequirements(buffer);
 
 }
 
-vk::Image VulkanAllocator::CreateImage(vk::Device device, vk::ImageCreateInfo create_info) {
+vk::Image VulkanAllocator::CreateImage(vk::Device const device, const vk::ImageCreateInfo &create_info) {
+	vk::Image image = device.createImage(create_info);
+	vk::MemoryRequirements memory_requirements = device.getImageMemoryRequirements(image);
 
 }
 
 void VulkanAllocator::Allocate() {
-	
+
 }
 
 int WINAPI WinMain(
