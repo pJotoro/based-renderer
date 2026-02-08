@@ -71,8 +71,46 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	return vk::False;
 }
 
-class vk_allocator {
+class VulkanAllocator {
+public:
+	vk::Buffer CreateBuffer(vk::Device device, vk::BufferCreateInfo create_info);
+	vk::Image CreateImage(vk::Device device, vk::ImageCreateInfo create_info);
+	void Allocate();
+
+private:
+	struct UnallocatedBuffer {
+		vk::Buffer buffer;
+		// TODO
+	};
+
+	struct UnallocatedImage {
+		vk::Image image;
+		// TODO
+	};
+
+	struct Allocation {
+		vk::DeviceMemory memory;
+		vk::DeviceSize offset;
+		// TODO
+	};
+
+	std::unordered_map<vk::Buffer, Allocation> buffer_allocations;
+	std::unordered_map<vk::Image, Allocation> image_allocations;
+	std::vector<UnallocatedBuffer> unallocated_buffers;
+	std::vector<UnallocatedImage> unallocated_images;
 };
+
+vk::Buffer VulkanAllocator::CreateBuffer(vk::Device device, vk::BufferCreateInfo create_info) {
+
+}
+
+vk::Image VulkanAllocator::CreateImage(vk::Device device, vk::ImageCreateInfo create_info) {
+
+}
+
+void VulkanAllocator::Allocate() {
+	
+}
 
 int WINAPI WinMain(
 	HINSTANCE win32_instance,
@@ -355,17 +393,17 @@ int WINAPI WinMain(
 	}
 	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx][0];
 
-	std::vector<vk::SurfaceFormatKHR> vulkan_surface_formats = physical_device.getSurfaceFormatsKHR(vulkan_surface);
-  vk::Format format = vulkan_surface_formats.front(); // TODO
+	std::vector<vk::SurfaceFormatKHR> vulkan_surface_formats = vulkan_physical_device.getSurfaceFormatsKHR(vulkan_surface);
+  vk::Format vulkan_format = vulkan_surface_formats.front().format; // TODO
 
-  vk::SurfaceCapabilitiesKHR vulkan_surface_capabilities = physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
+  vk::SurfaceCapabilitiesKHR vulkan_surface_capabilities = vulkan_physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
   
   vk::Extent2D vulkan_swapchain_extent;
   if (vulkan_surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max() || 
   	vulkan_surface_capabilities.currentExtent.height == std::numeric_limits<uint32_t>::max())
   {
-    vulkan_swapchain_extent.width  = std::clamp(client_width, vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
-    vulkan_swapchain_extent.height = std::clamp(client_height vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
+    vulkan_swapchain_extent.width  = std::clamp(static_cast<uint32_t>(client_width), vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
+    vulkan_swapchain_extent.height = std::clamp(static_cast<uint32_t>(client_height), vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
   }
   else
   {
@@ -382,23 +420,26 @@ int WINAPI WinMain(
 
   vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info {
   	vk::SwapchainCreateFlagsKHR(),
-	surface,
-      std::clamp(BASED_RENDERER_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, surfaceCapabilities.maxImageCount),
-      format,
-      vk::ColorSpaceKHR::eSrgbNonlinear,
-      vulkan_swapchain_extent,
-      1,
-      vk::ImageUsageFlagBits::eColorAttachment,
-      vk::SharingMode::eExclusive,
-      {},
-      vulkan_pre_transform,
-      vulkan_composite_alpha,
-      vulkan_swapchain_present_mode,
-      true,
-      nullptr,
+		vulkan_surface,
+    std::clamp(BASED_RENDERER_VULKAN_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, vulkan_surface_capabilities.maxImageCount),
+    vulkan_format,
+    vk::ColorSpaceKHR::eSrgbNonlinear,
+    vulkan_swapchain_extent,
+    1,
+    vk::ImageUsageFlagBits::eColorAttachment,
+    vk::SharingMode::eExclusive,
+    {},
+    vulkan_pre_transform,
+    vulkan_composite_alpha,
+    vulkan_swapchain_present_mode,
+    true,
+    nullptr,
   };
 
-  std::array<uint32_t, 2> vulkan_queue_family_indices {vulkan_graphics_queue_family_idx, vulkan_transfer_queue_family_idx};
+  std::array<uint32_t, 2> vulkan_queue_family_indices {
+  	static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
+  	static_cast<uint32_t>(vulkan_transfer_queue_family_idx)
+  };
   if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
   {
 	vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
@@ -406,9 +447,9 @@ int WINAPI WinMain(
 	vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
   }
 
-  vk::SwapchainKHR vulkan_swapchain = device.createSwapchainKHR(vulkan_swapchain_create_info);
+  vk::SwapchainKHR vulkan_swapchain = vulkan_device.createSwapchainKHR(vulkan_swapchain_create_info);
 
-  std::vector<vk::Image> vulkan_swapchain_images = device.getSwapchainImagesKHR(vulkan_swapchain);
+  std::vector<vk::Image> vulkan_swapchain_images = vulkan_device.getSwapchainImagesKHR(vulkan_swapchain);
 
   std::vector<vk::ImageView> vulkan_swapchain_image_views;
   vulkan_swapchain_image_views.reserve(vulkan_swapchain_images.size());
@@ -416,14 +457,14 @@ int WINAPI WinMain(
   	{}, 
   	{},
   	vk::ImageViewType::e2D, 
-  	format, 
+  	vulkan_format, 
   	{}, 
   	{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
   };
   for (auto image : vulkan_swapchain_images)
   {
     vulkan_image_view_create_info.image = image;
-    vulkan_swapchain_image_views.push_back(device.createImageView(vulkan_image_view_create_info));
+    vulkan_swapchain_image_views.push_back(vulkan_device.createImageView(vulkan_image_view_create_info));
   }
 
 	return 0;
