@@ -71,6 +71,9 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	return vk::False;
 }
 
+class vk_allocator {
+};
+
 int WINAPI WinMain(
 	HINSTANCE win32_instance,
 	HINSTANCE win32_prev_instance,
@@ -353,75 +356,75 @@ int WINAPI WinMain(
 	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx][0];
 
 	std::vector<vk::SurfaceFormatKHR> vulkan_surface_formats = physical_device.getSurfaceFormatsKHR(vulkan_surface);
-    vk::Format format = vulkan_surface_formats.front(); // TODO
+  vk::Format format = vulkan_surface_formats.front(); // TODO
 
-    vk::SurfaceCapabilitiesKHR vulkan_surface_capabilities = physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
-    
-    vk::Extent2D vulkan_swapchain_extent;
-    if (vulkan_surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max() || 
-    	vulkan_surface_capabilities.currentExtent.height == std::numeric_limits<uint32_t>::max())
-    {
-      vulkan_swapchain_extent.width  = std::clamp(client_width, vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
-      vulkan_swapchain_extent.height = std::clamp(client_height vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
-    }
-    else
-    {
-      vulkan_swapchain_extent = vulkan_surface_capabilities.currentExtent;
-    }
+  vk::SurfaceCapabilitiesKHR vulkan_surface_capabilities = physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
+  
+  vk::Extent2D vulkan_swapchain_extent;
+  if (vulkan_surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max() || 
+  	vulkan_surface_capabilities.currentExtent.height == std::numeric_limits<uint32_t>::max())
+  {
+    vulkan_swapchain_extent.width  = std::clamp(client_width, vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
+    vulkan_swapchain_extent.height = std::clamp(client_height vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
+  }
+  else
+  {
+    vulkan_swapchain_extent = vulkan_surface_capabilities.currentExtent;
+  }
 
-    vk::PresentModeKHR vulkan_swapchain_present_mode = vk::PresentModeKHR::eFifo; // TODO
+  vk::PresentModeKHR vulkan_swapchain_present_mode = vk::PresentModeKHR::eFifo; // TODO
 
-    vk::SurfaceTransformFlagBitsKHR vulkan_pre_transform = (vulkan_surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
-                                                   ? vk::SurfaceTransformFlagBitsKHR::eIdentity
-                                                   : vulkan_surface_capabilities.currentTransform;
+  vk::SurfaceTransformFlagBitsKHR vulkan_pre_transform = (vulkan_surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
+                                                 ? vk::SurfaceTransformFlagBitsKHR::eIdentity
+                                                 : vulkan_surface_capabilities.currentTransform;
 
-    vk::CompositeAlphaFlagBitsKHR vulkan_composite_alpha = (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePreMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePreMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePostMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePostMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::eInherit) ? vk::CompositeAlphaFlagBitsKHR::eInherit : vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  vk::CompositeAlphaFlagBitsKHR vulkan_composite_alpha = (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePreMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePreMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePostMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePostMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::eInherit) ? vk::CompositeAlphaFlagBitsKHR::eInherit : vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
-    vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info {
-    	vk::SwapchainCreateFlagsKHR(),
-		surface,
-        std::clamp(BASED_RENDERER_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, surfaceCapabilities.maxImageCount),
-        format,
-        vk::ColorSpaceKHR::eSrgbNonlinear,
-        vulkan_swapchain_extent,
-        1,
-        vk::ImageUsageFlagBits::eColorAttachment,
-        vk::SharingMode::eExclusive,
-        {},
-        vulkan_pre_transform,
-        vulkan_composite_alpha,
-        vulkan_swapchain_present_mode,
-        true,
-        nullptr,
-    };
+  vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info {
+  	vk::SwapchainCreateFlagsKHR(),
+	surface,
+      std::clamp(BASED_RENDERER_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, surfaceCapabilities.maxImageCount),
+      format,
+      vk::ColorSpaceKHR::eSrgbNonlinear,
+      vulkan_swapchain_extent,
+      1,
+      vk::ImageUsageFlagBits::eColorAttachment,
+      vk::SharingMode::eExclusive,
+      {},
+      vulkan_pre_transform,
+      vulkan_composite_alpha,
+      vulkan_swapchain_present_mode,
+      true,
+      nullptr,
+  };
 
-    std::array<uint32_t, 2> vulkan_queue_family_indices {vulkan_graphics_queue_family_idx, vulkan_transfer_queue_family_idx};
-    if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
-    {
-		vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
-		vulkan_swapchain_create_info.queueFamilyIndexCount = static_cast<uint32_t>(vulkan_queue_family_indices.size());
-		vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
-    }
+  std::array<uint32_t, 2> vulkan_queue_family_indices {vulkan_graphics_queue_family_idx, vulkan_transfer_queue_family_idx};
+  if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
+  {
+	vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
+	vulkan_swapchain_create_info.queueFamilyIndexCount = static_cast<uint32_t>(vulkan_queue_family_indices.size());
+	vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
+  }
 
-    vk::SwapchainKHR vulkan_swapchain = device.createSwapchainKHR(vulkan_swapchain_create_info);
+  vk::SwapchainKHR vulkan_swapchain = device.createSwapchainKHR(vulkan_swapchain_create_info);
 
-    std::vector<vk::Image> vulkan_swapchain_images = device.getSwapchainImagesKHR(vulkan_swapchain);
+  std::vector<vk::Image> vulkan_swapchain_images = device.getSwapchainImagesKHR(vulkan_swapchain);
 
-    std::vector<vk::ImageView> vulkan_swapchain_image_views;
-    vulkan_swapchain_image_views.reserve(vulkan_swapchain_images.size());
-    vk::ImageViewCreateInfo vulkan_image_view_create_info {
-    	{}, 
-    	{}, 
-    	vk::ImageViewType::e2D, 
-    	format, 
-    	{}, 
-    	{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
-    };
-    for (auto image : vulkan_swapchain_images)
-    {
-      vulkan_image_view_create_info.image = image;
-      vulkan_swapchain_image_views.push_back(device.createImageView(vulkan_image_view_create_info));
-    }
+  std::vector<vk::ImageView> vulkan_swapchain_image_views;
+  vulkan_swapchain_image_views.reserve(vulkan_swapchain_images.size());
+  vk::ImageViewCreateInfo vulkan_image_view_create_info {
+  	{}, 
+  	{},
+  	vk::ImageViewType::e2D, 
+  	format, 
+  	{}, 
+  	{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
+  };
+  for (auto image : vulkan_swapchain_images)
+  {
+    vulkan_image_view_create_info.image = image;
+    vulkan_swapchain_image_views.push_back(device.createImageView(vulkan_image_view_create_info));
+  }
 
 	return 0;
 }
