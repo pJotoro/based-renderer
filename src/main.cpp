@@ -35,21 +35,21 @@ dprint(std::wformat_string<Args...> fmt, Args&&... args)
 static bool win32_running;
 
 LRESULT WINAPI win32_event_callback(
-	HWND   hWnd,
-	UINT   Msg,
-	WPARAM wParam,
-	LPARAM lParam)
+	HWND   win32_window,
+	UINT   win32_message,
+	WPARAM win32_w_param,
+	LPARAM win32_l_param)
 {
 	LRESULT res = 0;
 
-	switch (Msg)
+	switch (win32_message)
 	{
 		case WM_DESTROY:
 		case WM_CLOSE: {
 			win32_running = false;
 		} break;
 		default: {
-			res = DefWindowProcW(hWnd, Msg, wParam, lParam);
+			res = DefWindowProcW(win32_window, win32_message, win32_w_param, win32_l_param);
 		} break;
 	}
 
@@ -73,45 +73,85 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 
 class VulkanAllocator {
 public:
-	vk::Buffer CreateBuffer(vk::Device const device, const vk::BufferCreateInfo &create_info);
-	vk::Image CreateImage(vk::Device const device, const vk::ImageCreateInfo &create_info);
-	void Allocate();
+	vk::Buffer CreateBuffer(vk::Device const device, vk::BufferCreateInfo const &create_info, uint32_t const memory_type_idx);
+	vk::Image CreateImage(vk::Device const device, vk::ImageCreateInfo const &create_info, uint32_t const memory_type_idx);
+	void Allocate(vk::Device const device);
 
 private:
+	struct Allocation {
+		vk::DeviceMemory memory;
+		vk::DeviceSize offset;
+	};
+	std::unordered_map<vk::Buffer, Allocation> buffer_allocations;
+	std::unordered_map<vk::Image, Allocation> image_allocations;
+
 	struct UnallocatedBuffer {
 		vk::Buffer buffer;
 		uint32_t memory_type_idx;
 	};
+	std::vector<UnallocatedBuffer> unallocated_buffers;
 
 	struct UnallocatedImage {
 		vk::Image image;
 		uint32_t memory_type_idx;
 	};
-
-	struct Allocation {
-		vk::DeviceMemory memory;
-		vk::DeviceSize offset;
-	};
-
-	std::unordered_map<vk::Buffer, Allocation> buffer_allocations;
-	std::unordered_map<vk::Image, Allocation> image_allocations;
-	std::vector<UnallocatedBuffer> unallocated_buffers;
 	std::vector<UnallocatedImage> unallocated_images;
 };
 
-vk::Buffer VulkanAllocator::CreateBuffer(vk::Device const device, const vk::BufferCreateInfo &create_info) {
+vk::Buffer VulkanAllocator::CreateBuffer(vk::Device const device, vk::BufferCreateInfo const &create_info, uint32_t const memory_type_idx) {
 	vk::Buffer buffer = device.createBuffer(create_info);
-	vk::MemoryRequirements memory_requirements = device.getBufferMemoryRequirements(buffer);
-
+	this->unallocated_buffers.push_back({buffer, memory_type_idx});
+	return buffer;
 }
 
-vk::Image VulkanAllocator::CreateImage(vk::Device const device, const vk::ImageCreateInfo &create_info) {
+vk::Image VulkanAllocator::CreateImage(vk::Device const device, vk::ImageCreateInfo const &create_info, uint32_t const memory_type_idx) {
 	vk::Image image = device.createImage(create_info);
-	vk::MemoryRequirements memory_requirements = device.getImageMemoryRequirements(image);
-
+	this->unallocated_images.push_back({image, memory_type_idx});
+	return image;
 }
 
-void VulkanAllocator::Allocate() {
+void VulkanAllocator::Allocate(vk::Device const device) {
+	std::sort(
+		this->unallocated_buffers.cbegin(), 
+		this->unallocated_buffers.cend(),
+		[](UnallocatedBuffer const a, UnallocatedBuffer const b) {
+			return a.memory_type_idx < b.memory_type_idx;
+		});
+	std::sort(
+		this->unallocated_images.cbegin(), 
+		this->unallocated_images.cend(),
+		[](UnallocatedImage const a, UnallocatedImage const b) {
+			return a.memory_type_idx < b.memory_type_idx;
+		});
+
+	std::vector<vk::BindBufferMemoryInfo> bind_buffer_memory_infos;
+	bind_buffer_memory_infos.reserve(this->unallocated_buffers.size());
+	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos;
+	bind_image_memory_infos.reserve(this->unallocated_images.size());
+
+	while (unallocated_buffers.size() > 0 || unallocated_images.size() > 0) {
+		if (unallocated_buffers.back().memory_type_idx > unallocated_images.back().memory_type_idx) {
+
+		} else if (unallocated_images.back().memory_type_idx > unallocated_buffers.back().memory_type_idx) {
+			
+		} else {
+			vk::DeviceSize memory_offset = 0;
+
+			uint32_t memory_type_idx = unallocated_buffers.back().memory_type_idx;
+			for (int64_t i = unallocated_buffers.size() - 1; i >= 0; --i) {
+				if (unallocated_buffers[i].memory_type_idx != memory_type_idx) {
+					break;
+				}
+
+			}
+
+
+		}
+
+
+
+	}
+
 
 }
 
