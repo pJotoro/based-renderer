@@ -449,6 +449,20 @@ int WINAPI WinMain(
 		}
 	);
 
+	auto vulkan_physical_device_properties = vulkan_physical_device.getProperties2<
+		vk::PhysicalDeviceProperties2,
+		vk::PhysicalDeviceVulkan11Properties,
+		vk::PhysicalDeviceVulkan12Properties,
+		vk::PhysicalDeviceVulkan13Properties,
+		vk::PhysicalDeviceVulkan14Properties>();
+
+	auto vulkan_physical_device_features = vulkan_physical_device.getFeatures2<
+		vk::PhysicalDeviceFeatures2,
+		vk::PhysicalDeviceVulkan11Features,
+		vk::PhysicalDeviceVulkan12Features,
+		vk::PhysicalDeviceVulkan13Features,
+		vk::PhysicalDeviceVulkan14Features>();
+
 	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
 
 	// TODO: This is stupid. Find out how queue priorities should be done.
