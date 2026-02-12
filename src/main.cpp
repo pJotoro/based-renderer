@@ -189,7 +189,7 @@ static void VulkanAllocate(
 		vk::MemoryRequirements2 buffer_memory_requirements = device.getBufferMemoryRequirements2(memory_requirements_info);
 
 		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
-		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.align;
+		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
 		buffer_allocation.memory_type_idx = VulkanFindMemoryTypeIdx(
 			physical_device_memory_properties.memoryProperties,
 			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
@@ -227,7 +227,7 @@ static void VulkanAllocate(
 		vk::MemoryRequirements2 image_memory_requirements = device.getImageMemoryRequirements2(memory_requirements_info);
 
 		image_allocation.size = image_memory_requirements.memoryRequirements.size;
-		image_allocation.align = image_memory_requirements.memoryRequirements.align;
+		image_allocation.align = image_memory_requirements.memoryRequirements.alignment;
 		image_allocation.memory_type_idx = VulkanFindMemoryTypeIdx(
 			physical_device_memory_properties.memoryProperties,
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
@@ -260,6 +260,9 @@ static void VulkanAllocate(
 		memory_type_idx < physical_device_memory_properties.memoryProperties.memoryTypeCount; 
 		++memory_type_idx
 		) {
+		size_t bind_buffer_memory_infos_size = bind_buffer_memory_infos.size();
+		size_t bind_image_memory_infos_size = bind_image_memory_infos.size();
+
 		vk::DeviceSize memory_offset = 0;
 
 		// https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
@@ -274,7 +277,7 @@ static void VulkanAllocate(
 			vk::DeviceSize modulo = offset & (align-1);
 
 			if (modulo != 0) {
-				// If 'p' address is not aligned, push the address to the
+				// If 'offset' is not aligned, push it to the
 				// next value which is aligned
 				offset += align - modulo;
 			}
@@ -282,15 +285,41 @@ static void VulkanAllocate(
 		};
 
 		for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) {
-			if (buffer_allocation.memory_type_idx == memory_type_idx) {
+			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) {
+				memory_offset = AlignForward(memory_offset, buffer_allocation.align);
 
+				vk::BindBufferMemoryInfo bind_buffer_memory_info;
+				bind_buffer_memory_info.buffer = buffer_allocation.buffer;
+				bind_buffer_memory_info.memoryOffset = memory_offset;
+				bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
+
+				memory_offset += buffer_allocation.size;
 			}
 		}
 
 		for (VulkanImageAllocation &image_allocation : image_allocations) {
-			if (image_allocation.memory_type_idx == memory_type_idx) {
-				
+			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) {
+				memory_offset = AlignForward(memory_offset, image_allocation.align);
+
+				vk::BindImageMemoryInfo bind_image_memory_info;
+				bind_image_memory_info.image = image_allocation.image;
+				bind_image_memory_info.memoryOffset = memory_offset;
+				bind_image_memory_infos.push_back(bind_image_memory_info);
+
+				memory_offset += image_allocation.size;
 			}
+		}
+
+		vk::MemoryAllocateInfo memory_allocate_info;
+		memory_allocate_info.allocationSize = memory_offset;
+		memory_allocate_info.memoryTypeIndex = memory_type_idx;
+		vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
+
+		for (size_t i = bind_buffer_memory_infos_size; i < bind_buffer_memory_infos.size(); ++i) {
+			bind_buffer_memory_infos[i].memory = memory;
+		}
+		for (size_t i = bind_image_memory_infos_size; i < bind_image_memory_infos.size(); ++i) {
+			bind_image_memory_infos[i].memory = memory;
 		}
 	}
 
