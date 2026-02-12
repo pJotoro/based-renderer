@@ -830,38 +830,39 @@ int WINAPI WinMain(
 	if (vulkan_surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max() || 
 		vulkan_surface_capabilities.currentExtent.height == std::numeric_limits<uint32_t>::max())
 	{
-	vulkan_swapchain_extent.width  = std::clamp(static_cast<uint32_t>(client_width), vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
-	vulkan_swapchain_extent.height = std::clamp(static_cast<uint32_t>(client_height), vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
+		vulkan_swapchain_extent.width  = std::clamp(static_cast<uint32_t>(client_width), vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
+		vulkan_swapchain_extent.height = std::clamp(static_cast<uint32_t>(client_height), vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
 	}
 	else
 	{
-	vulkan_swapchain_extent = vulkan_surface_capabilities.currentExtent;
+		vulkan_swapchain_extent = vulkan_surface_capabilities.currentExtent;
 	}
 
 	vk::PresentModeKHR vulkan_swapchain_present_mode = vk::PresentModeKHR::eFifo; // TODO
 
-	vk::SurfaceTransformFlagBitsKHR vulkan_pre_transform = (vulkan_surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
-	                                             ? vk::SurfaceTransformFlagBitsKHR::eIdentity
-	                                             : vulkan_surface_capabilities.currentTransform;
+	vk::SurfaceTransformFlagBitsKHR vulkan_pre_transform = 
+		(vulkan_surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity) 
+		? vk::SurfaceTransformFlagBitsKHR::eIdentity 
+		: vulkan_surface_capabilities.currentTransform;
 
 	vk::CompositeAlphaFlagBitsKHR vulkan_composite_alpha = (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePreMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePreMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePostMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePostMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::eInherit) ? vk::CompositeAlphaFlagBitsKHR::eInherit : vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
 	vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info{
 		vk::SwapchainCreateFlagsKHR(),
 		vulkan_surface,
-	std::clamp(BASED_RENDERER_VULKAN_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, vulkan_surface_capabilities.maxImageCount),
-	vulkan_format,
-	vk::ColorSpaceKHR::eSrgbNonlinear,
-	vulkan_swapchain_extent,
-	1,
-	vk::ImageUsageFlagBits::eColorAttachment,
-	vk::SharingMode::eExclusive,
-	{},
-	vulkan_pre_transform,
-	vulkan_composite_alpha,
-	vulkan_swapchain_present_mode,
-	true,
-	nullptr,
+		std::clamp(BASED_RENDERER_VULKAN_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, vulkan_surface_capabilities.maxImageCount),
+		vulkan_format,
+		vk::ColorSpaceKHR::eSrgbNonlinear,
+		vulkan_swapchain_extent,
+		1,
+		vk::ImageUsageFlagBits::eColorAttachment,
+		vk::SharingMode::eExclusive,
+		{},
+		vulkan_pre_transform,
+		vulkan_composite_alpha,
+		vulkan_swapchain_present_mode,
+		true,
+		nullptr,
 	};
 
 	std::array<uint32_t, 2> vulkan_queue_family_indices{
@@ -870,9 +871,9 @@ int WINAPI WinMain(
 	};
 	if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
 	{
-	vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
-	vulkan_swapchain_create_info.queueFamilyIndexCount = static_cast<uint32_t>(vulkan_queue_family_indices.size());
-	vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
+		vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
+		vulkan_swapchain_create_info.queueFamilyIndexCount = static_cast<uint32_t>(vulkan_queue_family_indices.size());
+		vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
 	}
 
 	vk::SwapchainKHR vulkan_swapchain = vulkan_device.createSwapchainKHR(vulkan_swapchain_create_info);
@@ -891,8 +892,8 @@ int WINAPI WinMain(
 	};
 	for (vk::Image image : vulkan_swapchain_images)
 	{
-	vulkan_image_view_create_info.image = image;
-	vulkan_swapchain_image_views.push_back(vulkan_device.createImageView(vulkan_image_view_create_info));
+		vulkan_image_view_create_info.image = image;
+		vulkan_swapchain_image_views.push_back(vulkan_device.createImageView(vulkan_image_view_create_info));
 	}
 
 	return 0;
