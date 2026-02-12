@@ -463,6 +463,172 @@ int WINAPI WinMain(
 		vk::PhysicalDeviceVulkan13Features,
 		vk::PhysicalDeviceVulkan14Features>();
 
+	{
+		auto &features = std::get<0>(vulkan_physical_device_features).features;
+		features.robustBufferAccess = vk::False;
+		features.fullDrawIndexUint32 = vk::False;
+		features.imageCubeArray = vk::False;
+		features.independentBlend = vk::False;
+		features.geometryShader = vk::False;
+		features.tessellationShader = vk::False;
+		features.sampleRateShading = vk::False;
+		features.dualSrcBlend = vk::False;
+		features.logicOp = vk::False;
+		features.multiDrawIndirect = vk::False;
+		features.drawIndirectFirstInstance = vk::False;
+		features.depthClamp = vk::False;
+		features.depthBiasClamp = vk::False;
+		features.fillModeNonSolid = vk::False;
+		features.depthBounds = vk::False;
+		features.wideLines = vk::False;
+		features.largePoints = vk::False;
+		features.alphaToOne = vk::False;
+		features.multiViewport = vk::False;
+		features.samplerAnisotropy = vk::False;
+		features.textureCompressionETC2 = vk::False;
+		features.textureCompressionASTC_LDR = vk::False;
+		features.textureCompressionBC = vk::False;
+		features.occlusionQueryPrecise = vk::False;
+		features.pipelineStatisticsQuery = vk::False;
+		features.vertexPipelineStoresAndAtomics = vk::False;
+		features.fragmentStoresAndAtomics = vk::False;
+		features.shaderTessellationAndGeometryPointSize = vk::False;
+		features.shaderImageGatherExtended = vk::False;
+		features.shaderStorageImageExtendedFormats = vk::False;
+		features.shaderStorageImageMultisample = vk::False;
+		features.shaderStorageImageReadWithoutFormat = vk::False;
+		features.shaderStorageImageWriteWithoutFormat = vk::False;
+		features.shaderUniformBufferArrayDynamicIndexing = vk::False;
+		features.shaderSampledImageArrayDynamicIndexing = vk::False;
+		features.shaderStorageBufferArrayDynamicIndexing = vk::False;
+		features.shaderStorageImageArrayDynamicIndexing = vk::False;
+		features.shaderClipDistance = vk::False;
+		features.shaderCullDistance = vk::False;
+		features.shaderFloat64 = vk::False;
+		features.shaderInt64 = vk::False;
+		features.shaderInt16 = vk::False;
+		features.shaderResourceResidency = vk::False;
+		features.shaderResourceMinLod = vk::False;
+		features.sparseBinding = vk::False;
+		features.sparseResidencyBuffer = vk::False;
+		features.sparseResidencyImage2D = vk::False;
+		features.sparseResidencyImage3D = vk::False;
+		features.sparseResidency2Samples = vk::False;
+		features.sparseResidency4Samples = vk::False;
+		features.sparseResidency8Samples = vk::False;
+		features.sparseResidency16Samples = vk::False;
+		features.sparseResidencyAliased = vk::False;
+		features.variableMultisampleRate = vk::False;
+		features.inheritedQueries = vk::False;
+	}
+	{
+		auto &features = std::get<1>(vulkan_physical_device_features);
+		features.storageBuffer16BitAccess = vk::False;
+		features.uniformAndStorageBuffer16BitAccess = vk::False;
+		features.storagePushConstant16 = vk::False;
+		features.storageInputOutput16 = vk::False;
+		features.multiview = vk::False;
+		features.multiviewGeometryShader = vk::False;
+		features.multiviewTessellationShader = vk::False;
+		features.variablePointersStorageBuffer = vk::False;
+		features.variablePointers = vk::False;
+		features.protectedMemory = vk::False;
+		features.samplerYcbcrConversion = vk::False;
+		features.shaderDrawParameters = vk::False;
+	}
+	{
+		auto &features = std::get<2>(vulkan_physical_device_features);
+		features.samplerMirrorClampToEdge = vk::False;
+		features.drawIndirectCount = vk::False;
+		features.storageBuffer8BitAccess = vk::False;
+		features.uniformAndStorageBuffer8BitAccess = vk::False;
+		features.storagePushConstant8 = vk::False;
+		features.shaderBufferInt64Atomics = vk::False;
+		features.shaderSharedInt64Atomics = vk::False;
+		features.shaderFloat16 = vk::False;
+		features.shaderInt8 = vk::False;
+		features.descriptorIndexing = vk::False;
+		features.shaderInputAttachmentArrayDynamicIndexing = vk::False;
+		features.shaderUniformTexelBufferArrayDynamicIndexing = vk::False;
+		features.shaderStorageTexelBufferArrayDynamicIndexing = vk::False;
+		features.shaderUniformBufferArrayNonUniformIndexing = vk::False;
+		features.shaderSampledImageArrayNonUniformIndexing = vk::False;
+		features.shaderStorageBufferArrayNonUniformIndexing = vk::False;
+		features.shaderStorageImageArrayNonUniformIndexing = vk::False;
+		features.shaderInputAttachmentArrayNonUniformIndexing = vk::False;
+		features.shaderUniformTexelBufferArrayNonUniformIndexing = vk::False;
+		features.shaderStorageTexelBufferArrayNonUniformIndexing = vk::False;
+		features.descriptorBindingUniformBufferUpdateAfterBind = vk::False;
+		features.descriptorBindingSampledImageUpdateAfterBind = vk::False;
+		features.descriptorBindingStorageImageUpdateAfterBind = vk::False;
+		features.descriptorBindingStorageBufferUpdateAfterBind = vk::False;
+		features.descriptorBindingUniformTexelBufferUpdateAfterBind = vk::False;
+		features.descriptorBindingStorageTexelBufferUpdateAfterBind = vk::False;
+		features.descriptorBindingUpdateUnusedWhilePending = vk::False;
+		features.descriptorBindingPartiallyBound = vk::False;
+		features.descriptorBindingVariableDescriptorCount = vk::False;
+		features.runtimeDescriptorArray = vk::False;
+		features.samplerFilterMinmax = vk::False;
+		features.scalarBlockLayout = vk::False;
+		features.imagelessFramebuffer = vk::False;
+		features.uniformBufferStandardLayout = vk::False;
+		features.shaderSubgroupExtendedTypes = vk::False;
+		features.separateDepthStencilLayouts = vk::False;
+		features.hostQueryReset = vk::False;
+		features.timelineSemaphore = vk::False;
+		features.bufferDeviceAddress = vk::False;
+		features.bufferDeviceAddressCaptureReplay = vk::False;
+		features.bufferDeviceAddressMultiDevice = vk::False;
+		features.vulkanMemoryModel = vk::False;
+		features.vulkanMemoryModelDeviceScope = vk::False;
+		features.vulkanMemoryModelAvailabilityVisibilityChains = vk::False;
+		features.shaderOutputViewportIndex = vk::False;
+		features.shaderOutputLayer = vk::False;
+		features.subgroupBroadcastDynamicId = vk::False;
+	}
+	{
+		auto &features = std::get<3>(vulkan_physical_device_features);
+		features.robustImageAccess = vk::False;
+		features.inlineUniformBlock = vk::False;
+		features.descriptorBindingInlineUniformBlockUpdateAfterBind = vk::False;
+		features.pipelineCreationCacheControl = vk::False;
+		features.privateData = vk::False;
+		features.shaderDemoteToHelperInvocation = vk::False;
+		features.shaderTerminateInvocation = vk::False;
+		features.subgroupSizeControl = vk::False;
+		features.computeFullSubgroups = vk::False;
+		features.synchronization2 = vk::False;
+		features.textureCompressionASTC_HDR = vk::False;
+		features.shaderZeroInitializeWorkgroupMemory = vk::False;
+		features.dynamicRendering = vk::False;
+		features.shaderIntegerDotProduct = vk::False;
+		features.maintenance4 = vk::False;
+	}
+	{
+		auto &features = std::get<4>(vulkan_physical_device_features);
+		features.globalPriorityQuery = vk::False;
+		features.shaderSubgroupRotate = vk::False;
+		features.shaderSubgroupRotateClustered = vk::False;
+		features.shaderFloatControls2 = vk::False;
+		features.shaderExpectAssume = vk::False;
+		features.rectangularLines = vk::False;
+		features.bresenhamLines = vk::False;
+		features.smoothLines = vk::False;
+		features.stippledRectangularLines = vk::False;
+		features.stippledBresenhamLines = vk::False;
+		features.stippledSmoothLines = vk::False;
+		features.vertexAttributeInstanceRateDivisor = vk::False;
+		features.vertexAttributeInstanceRateZeroDivisor = vk::False;
+		features.indexTypeUint8 = vk::False;
+		features.dynamicRenderingLocalRead = vk::False;
+		features.maintenance5 = vk::False;
+		features.maintenance6 = vk::False;
+		features.pipelineProtectedAccess = vk::False;
+		features.pipelineRobustness = vk::False;
+		features.hostImageCopy = vk::False;
+		features.pushDescriptor = vk::False;
+	}
+
 	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
 
 	// TODO: This is stupid. Find out how queue priorities should be done.
@@ -492,8 +658,18 @@ int WINAPI WinMain(
 		}
 	}
 
+	std::vector<char const *> vulkan_device_extensions;
+	vulkan_device_extensions.push_back("VK_KHR_swapchain");
+
 	// TODO: Device extensions.
-	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo({}, vulkan_device_queue_infos));
+	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo{
+		{}, 
+		vulkan_device_queue_infos,
+		{},
+		vulkan_device_extensions,
+		{},
+		&std::get<0>(vulkan_physical_device_features),
+	});
 
 	// Each queue family gets its own std::vector, whether or not it has any queues.
 	std::vector<std::vector<vk::Queue>> vulkan_queues{vulkan_queue_family_properties.size()};
