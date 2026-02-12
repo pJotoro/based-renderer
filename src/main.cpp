@@ -17,7 +17,7 @@
 
 // Works just like std::print, except it prints to the debug console.
 template<class... Args> void 
-dprint(std::format_string<Args...> fmt, Args&&... args) 
+static dprint(std::format_string<Args...> fmt, Args&&... args) 
 {
 	std::string s = std::format(fmt, std::forward<Args>(args)...);
 	OutputDebugStringA(s.c_str());
@@ -25,7 +25,7 @@ dprint(std::format_string<Args...> fmt, Args&&... args)
 
 // Same, but the format string is a wide string.
 template<class... Args> void 
-dprint(std::wformat_string<Args...> fmt, Args&&... args) 
+static dprint(std::wformat_string<Args...> fmt, Args&&... args) 
 {
 	std::wstring s = std::format(fmt, std::forward<Args>(args)...);
 	OutputDebugStringW(s.c_str());
@@ -34,7 +34,7 @@ dprint(std::wformat_string<Args...> fmt, Args&&... args)
 // A clever way I found to remove an element from an std::vector.
 // Assumes that i is within the bounds of v.
 template <class T>
-void remove(std::vector<T> &v, size_t i) {
+static void remove(std::vector<T> &v, size_t i) {
 	v[i] = v.back();
 	v.pop_back();
 }
@@ -145,10 +145,10 @@ struct VulkanBufferAllocation {
 	vk::Buffer buffer;
 
 	 // out
+	vk::DeviceMemory memory;
 	vk::DeviceSize offset;
 	vk::DeviceSize size;
 	vk::DeviceSize align;
-	vk::DeviceMemory memory;
 	uint32_t memory_type_idx;
 	bool dedicated_allocation;
 };
@@ -160,14 +160,24 @@ struct VulkanImageAllocation {
 	vk::Image image;
 
 	// out
+	vk::DeviceMemory memory;
 	vk::DeviceSize offset;
 	vk::DeviceSize size;
 	vk::DeviceSize align;
-	vk::DeviceMemory memory;
 	uint32_t memory_type_idx;
 	bool dedicated_allocation;
 };
 
+// How to use:
+// 1. Create all the buffers and images you want.
+// 2. Decide which memory properties you want each of them to have (or not). 
+//    For example, a vertex buffer should probably be device local, while a
+//    staging buffer should be host visible.
+// 3. Now you can call VulkanAllocate. When passing the buffers and images,
+//    you should only fill in the fields under the "in" comment.
+// 4. For each buffer and image, the "out" fields should be filled. In all
+//    likelihood, you will only ever need to use the "memory" and "offset"
+//    fields, but the others are there as well just in case.
 static void VulkanAllocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
