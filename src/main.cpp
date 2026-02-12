@@ -34,7 +34,8 @@ static dprint(std::wformat_string<Args...> fmt, Args&&... args)
 // A clever way I found to remove an element from an std::vector.
 // Assumes that i is within the bounds of v.
 template <class T>
-static void unordered_remove(std::vector<T> &v, size_t const i) {
+static void unordered_remove(std::vector<T> &v, size_t const i) 
+{
 	v[i] = v.back();
 	v.pop_back();
 }
@@ -68,7 +69,7 @@ LRESULT WINAPI win32_event_callback(
 vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	vk::DebugUtilsMessageSeverityFlagBitsEXT message_severity,
 	vk::DebugUtilsMessageTypeFlagsEXT message_types,
-	const vk::DebugUtilsMessengerCallbackDataEXT * callback_data,
+	vk::DebugUtilsMessengerCallbackDataEXT const *callback_data,
 	void *user_data)
 {
 	UNUSED(message_severity);
@@ -80,7 +81,8 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	return vk::False;
 }
 
-struct VulkanMemoryProperties {
+struct VulkanMemoryProperties 
+{
 	vk::MemoryPropertyFlags required;
 	vk::MemoryPropertyFlags preferred;
 };
@@ -89,9 +91,8 @@ static uint32_t VulkanFindMemoryTypeIdx(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
 	VulkanMemoryProperties const memory_properties_include,
-	VulkanMemoryProperties const memory_properties_exclude
-	) {
-
+	VulkanMemoryProperties const memory_properties_exclude) 
+{
 	// We first attempt to find a perfect match, that is, matching not only the
 	// required memory properties, but also the preferred ones.
 	// If that doesn't work, we then try again, but this time without the
@@ -100,8 +101,8 @@ static uint32_t VulkanFindMemoryTypeIdx(
 	for (
 		uint32_t memory_type_idx = 0; 
 		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
-		++memory_type_idx
-		) {
+		++memory_type_idx) 
+	{
 		uint32_t memory_type_bit = 1 << memory_type_idx;
 		
 		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
@@ -110,9 +111,8 @@ static uint32_t VulkanFindMemoryTypeIdx(
 			(memory_properties_include.required & memory_properties) &&
 			(memory_properties_exclude.required & memory_properties) &&
 			(memory_properties_include.preferred & memory_properties) &&
-			(memory_properties_exclude.preferred & memory_properties)
-			) {
-
+			(memory_properties_exclude.preferred & memory_properties)) 
+		{
 			return memory_type_idx;
 		}
 	}
@@ -120,16 +120,16 @@ static uint32_t VulkanFindMemoryTypeIdx(
 	for (
 		uint32_t memory_type_idx = 0; 
 		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
-		++memory_type_idx
-		) {
+		++memory_type_idx) 
+	{
 		uint32_t memory_type_bit = 1 << memory_type_idx;
 		
 		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
 		
 		if (((memory_type_bits & memory_type_bit) != 0) &&
 			((memory_properties_include.required & memory_properties) != vk::MemoryPropertyFlags{}) &&
-			((memory_properties_exclude.required & memory_properties) == vk::MemoryPropertyFlags{})
-			) {
+			((memory_properties_exclude.required & memory_properties) == vk::MemoryPropertyFlags{})) 
+		{
 			return memory_type_idx;
 		}
 	}
@@ -138,7 +138,8 @@ static uint32_t VulkanFindMemoryTypeIdx(
 	return std::numeric_limits<uint32_t>::max();
 }
 
-struct VulkanBufferAllocation {
+struct VulkanBufferAllocation 
+{
 	// in
 	VulkanMemoryProperties memory_properties_include;
 	VulkanMemoryProperties memory_properties_exclude;
@@ -153,7 +154,8 @@ struct VulkanBufferAllocation {
 	bool dedicated_allocation;
 };
 
-struct VulkanImageAllocation {
+struct VulkanImageAllocation 
+{
 	// in
 	VulkanMemoryProperties memory_properties_include;
 	VulkanMemoryProperties memory_properties_exclude;
@@ -182,14 +184,15 @@ void VulkanAllocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
 	std::span<VulkanBufferAllocation> buffer_allocations,
-	std::span<VulkanImageAllocation> image_allocations
-	) {
+	std::span<VulkanImageAllocation> image_allocations) 
+{
 	std::vector<vk::BindBufferMemoryInfo> bind_buffer_memory_infos;
 	bind_buffer_memory_infos.reserve(buffer_allocations.size());
 	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos;
 	bind_image_memory_infos.reserve(image_allocations.size());
 
-	for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) {
+	for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) 
+	{
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::BufferMemoryRequirementsInfo2 memory_requirements_info;
@@ -206,7 +209,8 @@ void VulkanAllocate(
 			buffer_allocation.memory_properties_include,
 			buffer_allocation.memory_properties_exclude);
 
-		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) {
+		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
+		{
 			buffer_allocation.dedicated_allocation = true;
 			buffer_allocation.offset = 0;
 
@@ -227,7 +231,8 @@ void VulkanAllocate(
 		}
 	}
 
-	for (VulkanImageAllocation &image_allocation : image_allocations) {
+	for (VulkanImageAllocation &image_allocation : image_allocations) 
+	{
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::ImageMemoryRequirementsInfo2 memory_requirements_info;
@@ -244,7 +249,8 @@ void VulkanAllocate(
 			image_allocation.memory_properties_include,
 			image_allocation.memory_properties_exclude);
 
-		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) {
+		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
+		{
 			image_allocation.dedicated_allocation = true;
 			image_allocation.offset = 0;
 
@@ -268,18 +274,20 @@ void VulkanAllocate(
 	for (
 		uint32_t memory_type_idx = 0; 
 		memory_type_idx < physical_device_memory_properties.memoryProperties.memoryTypeCount; 
-		++memory_type_idx
-		) {
+		++memory_type_idx) 
+	{
 		size_t bind_buffer_memory_infos_size = bind_buffer_memory_infos.size();
 		size_t bind_image_memory_infos_size = bind_image_memory_infos.size();
 
 		vk::DeviceSize memory_offset = 0;
 
 		// https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
-		auto IsPowerOf2 = [](vk::DeviceSize x) {
+		auto IsPowerOf2 = [](vk::DeviceSize x) 
+		{
 			return (x & (x-1)) == 0;
 		};
-		auto AlignForward = [IsPowerOf2](vk::DeviceSize offset, vk::DeviceSize align) {
+		auto AlignForward = [IsPowerOf2](vk::DeviceSize offset, vk::DeviceSize align) 
+		{
 			// TODO: Switch to using an exception.
 			assert(IsPowerOf2(align));
 
@@ -294,8 +302,10 @@ void VulkanAllocate(
 			return offset;
 		};
 
-		for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) {
-			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) {
+		for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) 
+		{
+			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
+			{
 				memory_offset = AlignForward(memory_offset, buffer_allocation.align);
 
 				vk::BindBufferMemoryInfo bind_buffer_memory_info;
@@ -307,8 +317,10 @@ void VulkanAllocate(
 			}
 		}
 
-		for (VulkanImageAllocation &image_allocation : image_allocations) {
-			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) {
+		for (VulkanImageAllocation &image_allocation : image_allocations) 
+		{
+			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
+			{
 				memory_offset = AlignForward(memory_offset, image_allocation.align);
 
 				vk::BindImageMemoryInfo bind_image_memory_info;
@@ -325,10 +337,12 @@ void VulkanAllocate(
 		memory_allocate_info.memoryTypeIndex = memory_type_idx;
 		vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
 
-		for (size_t i = bind_buffer_memory_infos_size; i < bind_buffer_memory_infos.size(); ++i) {
+		for (size_t i = bind_buffer_memory_infos_size; i < bind_buffer_memory_infos.size(); ++i) 
+		{
 			bind_buffer_memory_infos[i].memory = memory;
 		}
-		for (size_t i = bind_image_memory_infos_size; i < bind_image_memory_infos.size(); ++i) {
+		for (size_t i = bind_image_memory_infos_size; i < bind_image_memory_infos.size(); ++i) 
+		{
 			bind_image_memory_infos[i].memory = memory;
 		}
 	}
@@ -347,7 +361,7 @@ int WINAPI WinMain(
 	UNUSED(win32_command_line);
 	UNUSED(win32_show_command);
 
-	vk::ApplicationInfo vulkan_app_info {
+	vk::ApplicationInfo vulkan_app_info{
 		"based_renderer",
 		VK_API_VERSION_1_0,
 		"based_renderer",
@@ -356,26 +370,24 @@ int WINAPI WinMain(
 	};
 
 #if BASED_RENDERER_VULKAN_LAYERS
-	std::vector<const char*> vulkan_layers;
+	std::vector<char const *> vulkan_layers;
 #if BASED_RENDERER_VULKAN_DEBUG
 	vulkan_layers.push_back("VK_LAYER_LUNARG_monitor");
 #endif
 #if BASED_RENDERER_VULKAN_VALIDATION
 	vulkan_layers.push_back("VK_LAYER_KHRONOS_validation");
-	std::array<vk::ValidationFeatureEnableEXT, 2> vulkan_enabled_validation_features 
-	{
+	std::array<vk::ValidationFeatureEnableEXT, 2> vulkan_enabled_validation_features{
 		vk::ValidationFeatureEnableEXT::eBestPractices,
 		vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
 	};
-	vk::ValidationFeaturesEXT vulkan_validation_features 
-	{
+	vk::ValidationFeaturesEXT vulkan_validation_features{
 		vulkan_enabled_validation_features,
 	};
 #endif
 #endif // BASED_RENDERER_VULKAN_LAYERS
 
 #if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
-	vk::DebugUtilsMessengerCreateInfoEXT vulkan_debug_output_info {
+	vk::DebugUtilsMessengerCreateInfoEXT vulkan_debug_output_info{
 		{},
 		{
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | 
@@ -391,7 +403,7 @@ int WINAPI WinMain(
 	};
 #endif
 
-	std::vector<const char *> vulkan_extensions;
+	std::vector<char const *> vulkan_extensions;
 	vulkan_extensions.push_back("VK_KHR_surface");
 	vulkan_extensions.push_back(VK_KHR_platform_surface);
 #if BASED_RENDERER_VULKAN_LAYERS
@@ -401,8 +413,7 @@ int WINAPI WinMain(
 	vulkan_extensions.push_back("VK_EXT_debug_utils");
 #endif
 
-	vk::InstanceCreateInfo vulkan_instance_create_info 
-	{
+	vk::InstanceCreateInfo vulkan_instance_create_info{
 		{},
 		&vulkan_app_info,
 #if BASED_RENDERER_VULKAN_LAYERS
@@ -430,16 +441,18 @@ int WINAPI WinMain(
 	// Choose the first discrete GPU.
 	// If there is no discrete GPU, default to the last GPU.
 	std::vector<vk::PhysicalDevice> vulkan_physical_devices = vulkan_instance.enumeratePhysicalDevices();
-	vk::PhysicalDevice vulkan_physical_device = *std::find_if(vulkan_physical_devices.begin(), vulkan_physical_devices.end(), 
-	[](vk::PhysicalDevice p) {
-		vk::PhysicalDeviceProperties props = p.getProperties();
-		return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
-	});
+	vk::PhysicalDevice vulkan_physical_device = *std::find_if(vulkan_physical_devices.begin(), vulkan_physical_devices.end(),
+		[](vk::PhysicalDevice p) 
+		{
+			vk::PhysicalDeviceProperties props = p.getProperties();
+			return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
+		}
+	);
 
 	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
 
 	// TODO: This is stupid. Find out how queue priorities should be done.
-	std::array<float, 64> vulkan_queue_priorities {
+	std::array<float, 64> vulkan_queue_priorities{
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
@@ -643,7 +656,7 @@ int WINAPI WinMain(
 
   vk::CompositeAlphaFlagBitsKHR vulkan_composite_alpha = (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePreMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePreMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePostMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePostMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::eInherit) ? vk::CompositeAlphaFlagBitsKHR::eInherit : vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
-  vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info {
+  vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info{
   	vk::SwapchainCreateFlagsKHR(),
 		vulkan_surface,
     std::clamp(BASED_RENDERER_VULKAN_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, vulkan_surface_capabilities.maxImageCount),
@@ -661,7 +674,7 @@ int WINAPI WinMain(
     nullptr,
   };
 
-  std::array<uint32_t, 2> vulkan_queue_family_indices {
+  std::array<uint32_t, 2> vulkan_queue_family_indices{
   	static_cast<uint32_t>(vulkan_graphics_queue_family_idx.value()),
   	static_cast<uint32_t>(vulkan_transfer_queue_family_idx.value())
   };
@@ -678,7 +691,7 @@ int WINAPI WinMain(
 
   std::vector<vk::ImageView> vulkan_swapchain_image_views;
   vulkan_swapchain_image_views.reserve(vulkan_swapchain_images.size());
-  vk::ImageViewCreateInfo vulkan_image_view_create_info {
+  vk::ImageViewCreateInfo vulkan_image_view_create_info{
   	{}, 
   	{},
   	vk::ImageViewType::e2D, 
@@ -686,7 +699,7 @@ int WINAPI WinMain(
   	{}, 
   	{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
   };
-  for (auto image : vulkan_swapchain_images)
+  for (vk::Image image : vulkan_swapchain_images)
   {
     vulkan_image_view_create_info.image = image;
     vulkan_swapchain_image_views.push_back(vulkan_device.createImageView(vulkan_image_view_create_info));
