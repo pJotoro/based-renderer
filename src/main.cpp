@@ -31,6 +31,15 @@ dprint(std::wformat_string<Args...> fmt, Args&&... args)
 	OutputDebugStringW(s.c_str());
 }
 
+// A clever way I found to remove an element from an std::vector.
+// Assumes that i is within the bounds of v.
+template <class T>
+void remove(std::vector<T> &v, size_t i) {
+	v[i] = v.back();
+	v.pop_back();
+}
+
+
 // TODO: Remove global.
 static bool win32_running;
 
@@ -76,164 +85,186 @@ struct VulkanMemoryProperties {
 	vk::MemoryPropertyFlags preferred;
 };
 
-struct VulkanUnallocatedBuffer {
-	VulkanMemoryProperties memory_properties_include;
-	VulkanMemoryProperties memory_properties_exclude;
-	vk::BufferCreateInfo create_info;
-};
-
-struct VulkanUnallocatedImage {
-	VulkanMemoryProperties memory_properties_include;
-	VulkanMemoryProperties memory_properties_exclude;
-	vk::ImageCreateInfo create_info;
-};
-
-struct VulkanAllocatedBuffer {
-	vk::DeviceMemory memory;
-	vk::DeviceSize offset;
-	vk::DeviceSize size;
-	vk::Buffer buffer;
-};
-
-struct VulkanAllocatedImage {
-	vk::DeviceMemory memory;
-	vk::DeviceSize offset;
-	vk::DeviceSize size;
-	vk::Image image;
-};
-
 static uint32_t VulkanFindMemoryTypeIdx(
-	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
+	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
 	VulkanMemoryProperties const memory_properties_include,
 	VulkanMemoryProperties const memory_properties_exclude
 	) {
-	for (uint32_t memory_type_idx = 0; memory_type_idx < physical_device_memory_properties.memoryTypeCount; ++memory_type_idx) {
+
+	// We first attempt to find a perfect match, that is, matching not only the
+	// required memory properties, but also the preferred ones.
+	// If that doesn't work, we then try again, but this time without the
+	// preferred ones. If that doesn't work, we throw an exception (TODO).
+
+	for (
+		uint32_t memory_type_idx = 0; 
+		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+		++memory_type_idx
+		) {
 		uint32_t memory_type_bit = 1 << memory_type_idx;
-		uint32_t memory_type_bits = buffer_memory_requirements[i].memoryRequirements.memoryTypeBits;
 		
-		uint32_t memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
 		
-		if (((memory_type_bits & memory_type_bit) != 0) &&
-			((unallocated_buffer.memory_properties_include.required & memory_properties) != 0) &&
-			((unallocated_buffer.memory_properties_exclude.required & memory_properties) == 0) &&
-			((unallocated_buffer.memory_properties_include.preferred & memory_properties) != 0) &&
-			((unallocated_buffer.memory_properties_exclude.preferred & memory_properties) == 0)
+		if ((memory_type_bits & memory_type_bit) &&
+			(memory_properties_include.required & memory_properties) &&
+			(memory_properties_exclude.required & memory_properties) &&
+			(memory_properties_include.preferred & memory_properties) &&
+			(memory_properties_exclude.preferred & memory_properties)
 			) {
-			memory_allocate_info.memoryTypeIndex = memory_type_idx;
-			break;
+
+			return memory_type_idx;
 		}
 	}
-	if (memory_allocate_info.memoryTypeIndex == std::numeric_limits<uint32_t>::max()) {
-		for (uint32_t memory_type_idx = 0; memory_type_idx < physical_device_memory_properties.memoryTypeCount; ++memory_type_idx) {
-			uint32_t memory_type_bit = 1 << memory_type_idx;
-			uint32_t memory_type_bits = buffer_memory_requirements[i].memoryRequirements.memoryTypeBits;
-			
-			uint32_t memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-			
-			if (((memory_type_bits & memory_type_bit) != 0) &&
-				((unallocated_buffer.memory_properties_include.required & memory_properties) != 0) &&
-				((unallocated_buffer.memory_properties_exclude.required & memory_properties) == 0)
-				) {
-				memory_allocate_info.memoryTypeIndex = memory_type_idx;
-				break;
-			}
+
+	for (
+		uint32_t memory_type_idx = 0; 
+		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+		++memory_type_idx
+		) {
+		uint32_t memory_type_bit = 1 << memory_type_idx;
+		
+		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+		
+		if (((memory_type_bits & memory_type_bit) != 0) &&
+			((memory_properties_include.required & memory_properties) != 0) &&
+			((memory_properties_exclude.required & memory_properties) == 0)
+			) {
+			return memory_type_idx;
 		}
 	}
 
 	// TODO: Throw exception if memoryTypeIndex is still not set.
-
+	return std::numeric_limits<uint32_t>::max();
 }
+
+struct VulkanBufferAllocation {
+	// in
+	VulkanMemoryProperties memory_properties_include;
+	VulkanMemoryProperties memory_properties_exclude;
+	vk::Buffer buffer;
+
+	 // out
+	vk::DeviceMemory memory;
+	vk::DeviceSize offset;
+	vk::DeviceSize size;
+	bool dedicated_allocation;
+};
+
+struct VulkanImageAllocation {
+	// in
+	VulkanMemoryProperties memory_properties_include;
+	VulkanMemoryProperties memory_properties_exclude;
+	vk::Image image;
+
+	// out
+	vk::DeviceMemory memory;
+	vk::DeviceSize offset;
+	vk::DeviceSize size;
+	bool dedicated_allocation;
+};
 
 static void VulkanAllocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
-	std::vector<VulkanUnallocatedBuffer> const &unallocated_buffers, 
-	std::vector<VulkanUnallocatedImage> const &unallocated_images,
-	std::vector<VulkanAllocatedBuffer> &allocated_buffers,
-	std::vector<VulkanAllocatedImage> &allocated_images
+	std::vector<VulkanBufferAllocation> &buffer_allocations, 
+	std::vector<VulkanImageAllocation> &image_allocations
 	) {
-	allocated_buffers.resize(unallocated_buffers.size());
-	allocated_images.resize(unallocated_images.size());
-	std::vector<vk::BindBufferMemoryInfo> bind_buffer_memory_infos{unallocated_buffers.size()};
-	std::vector<vk::MemoryRequirements2> buffer_memory_requirements{unallocated_buffers.size()};
-	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos{unallocated_images.size()};
-	std::vector<vk::MemoryRequirements2> image_memory_requirements{unallocated_images.size()};
+	std::vector<vk::BindBufferMemoryInfo> bind_buffer_memory_infos;
+	bind_buffer_memory_infos.reserve(buffer_allocations.size());
+	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos;
+	bind_image_memory_infos.reserve(image_allocations.size());
 
-	for (size_t i = 0; i < unallocated_buffers.size(); ++i) {
-		allocated_buffers[i].buffer = device.createBuffer(unallocated_buffers[i].create_info);
-		bind_buffer_memory_infos[i].buffer = allocated_buffers[i].buffer;
-	}
-	for (size_t i = 0; i < unallocated_images.size(); ++i) {
-		allocated_images[i].image = device.createImage(unallocated_images[i].create_info);
-		bind_image_memory_infos[i].image = allocated_images[i].image;
-	}
+	uint32_t first_buffer_memory_type_idx = std::numeric_limits<uint32_t>::max();
+	uint32_t first_image_memory_type_idx = std::numeric_limits<uint32_t>::max();
 
 	for (
 		size_t i = 0;
-		i < unallocated_buffers.size();
+		i < buffer_allocations.size();
 		++i
 		) {
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::BufferMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.buffer = allocated_buffers[i].buffer;
+		memory_requirements_info.buffer = buffer_allocations[i].buffer;
 		memory_requirements_info.pNext = &memory_dedicated_requirements;
 		
-		buffer_memory_requirements[i] = device.getBufferMemoryRequirements2(memory_requirements_info);
+		vk::MemoryRequirements2 buffer_memory_requirements = device.getBufferMemoryRequirements2(memory_requirements_info);
 
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) {
+			buffer_allocations[i].offset = 0;
+			buffer_allocations[i].size = buffer_memory_requirements.memoryRequirements.size;
+			buffer_allocations[i].dedicated_allocation = true;
+
 			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.buffer = memory_requirements_info.buffer;
+			memory_dedicated_allocate_info.buffer = buffer_allocations[i].buffer;
 			
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
-			memory_allocate_info.allocationSize = buffer_memory_requirements[i].memoryRequirements.size;
+			memory_allocate_info.allocationSize = buffer_allocations[i].size;
 			memory_allocate_info.memoryTypeIndex = VulkanFindMemoryTypeIdx(
-				physical_device_memory_properties,
-				buffer_memory_requirements[i].memoryRequirements.memoryTypeBits,
-				unallocated_buffers[i].memory_properties_include,
-				unallocated_buffers[i].memory_properties_exclude);
+				physical_device_memory_properties.memoryProperties,
+				buffer_memory_requirements.memoryRequirements.memoryTypeBits,
+				buffer_allocations[i].memory_properties_include,
+				buffer_allocations[i].memory_properties_exclude);
+			first_buffer_memory_type_idx = std::min<uint32_t>(first_buffer_memory_type_idx, memory_allocate_info.memoryTypeIndex);
 
-			vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
+			buffer_allocations[i].memory = device.allocateMemory(memory_allocate_info);;
 
-			bind_buffer_memory_infos[i].memory = memory;
+			vk::BindBufferMemoryInfo bind_buffer_memory_info;
+			bind_buffer_memory_info.buffer = buffer_allocations[i].buffer;
+			bind_buffer_memory_info.memory = buffer_allocations[i].memory;
+			bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
 		}
 	}
 
 	for (
 		size_t i = 0;
-		i < unallocated_images.size();
+		i < image_allocations.size();
 		++i
 		) {
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::ImageMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.image = allocated_images[i].image;
+		memory_requirements_info.image = image_allocations[i].image;
 		memory_requirements_info.pNext = &memory_dedicated_requirements;
 		
-		image_memory_requirements[i] = device.getImageMemoryRequirements2(memory_requirements_info);
+		vk::MemoryRequirements2 image_memory_requirements = device.getImageMemoryRequirements2(memory_requirements_info);
 
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) {
+			image_allocations[i].offset = 0;
+			image_allocations[i].size = image_memory_requirements.memoryRequirements.size;
+			image_allocations[i].dedicated_allocation = true;
+
 			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.image = allocated_images[i].image;
+			memory_dedicated_allocate_info.image = image_allocations[i].image;
 			
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
-			memory_allocate_info.allocationSize = image_memory_requirements[i].memoryRequirements.size;
+			memory_allocate_info.allocationSize = image_allocations[i].size;
 			memory_allocate_info.memoryTypeIndex = VulkanFindMemoryTypeIdx(
-				physical_device_memory_properties,
-				image_memory_requirements[i].memoryRequirements.memoryTypeBits,
-				unallocated_images[i].memory_properties_include,
-				unallocated_images[i].memory_properties_exclude
-			);
+				physical_device_memory_properties.memoryProperties,
+				image_memory_requirements.memoryRequirements.memoryTypeBits,
+				image_allocations[i].memory_properties_include,
+				image_allocations[i].memory_properties_exclude);
+			first_image_memory_type_idx = std::min<uint32_t>(first_image_memory_type_idx, memory_allocate_info.memoryTypeIndex);
 
-			vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
+			image_allocations[i].memory = device.allocateMemory(memory_allocate_info);
 
-			bind_image_memory_infos[i].memory = memory;
+			vk::BindImageMemoryInfo bind_image_memory_info;
+			bind_image_memory_info.image = image_allocations[i].image;
+			bind_image_memory_info.memory = image_allocations[i].memory;
+			bind_image_memory_infos.push_back(bind_image_memory_info);
 		}
 	}
 
+	for (
+		size_t i = 0, memory_type_idx = first_buffer_memory_type_idx;
+		i < buffer_allocations.size();
+		++i
+		) {
+
+	}
 
 	device.bindBufferMemory2(bind_buffer_memory_infos);
 	device.bindImageMemory2(bind_image_memory_infos);
