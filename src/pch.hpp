@@ -3,8 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-// Windows.h defines these macros, which screws with certain things in the C++ standard library,
-// including std::numeric_limits<T>::max().
+// Windows.h defines these macros, which screw with certain things in the C++ standard library.
 #ifdef max
 #undef max
 #endif
@@ -19,5 +18,4 @@
 
 #include <algorithm>
 #include <format>
-#include <limits>
 #include <span>

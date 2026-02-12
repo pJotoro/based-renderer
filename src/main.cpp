@@ -145,9 +145,11 @@ struct VulkanBufferAllocation {
 	vk::Buffer buffer;
 
 	 // out
-	vk::DeviceMemory memory;
 	vk::DeviceSize offset;
 	vk::DeviceSize size;
+	vk::DeviceSize align;
+	vk::DeviceMemory memory;
+	uint32_t memory_type_idx;
 	bool dedicated_allocation;
 };
 
@@ -158,9 +160,11 @@ struct VulkanImageAllocation {
 	vk::Image image;
 
 	// out
-	vk::DeviceMemory memory;
 	vk::DeviceSize offset;
 	vk::DeviceSize size;
+	vk::DeviceSize align;
+	vk::DeviceMemory memory;
+	uint32_t memory_type_idx;
 	bool dedicated_allocation;
 };
 
@@ -175,95 +179,119 @@ static void VulkanAllocate(
 	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos;
 	bind_image_memory_infos.reserve(image_allocations.size());
 
-	uint32_t first_buffer_memory_type_idx = std::numeric_limits<uint32_t>::max();
-	uint32_t first_image_memory_type_idx = std::numeric_limits<uint32_t>::max();
-
-	for (
-		size_t i = 0;
-		i < buffer_allocations.size();
-		++i
-		) {
+	for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) {
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::BufferMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.buffer = buffer_allocations[i].buffer;
+		memory_requirements_info.buffer = buffer_allocation.buffer;
 		memory_requirements_info.pNext = &memory_dedicated_requirements;
 		
 		vk::MemoryRequirements2 buffer_memory_requirements = device.getBufferMemoryRequirements2(memory_requirements_info);
 
+		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
+		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.align;
+		buffer_allocation.memory_type_idx = VulkanFindMemoryTypeIdx(
+			physical_device_memory_properties.memoryProperties,
+			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
+			buffer_allocation.memory_properties_include,
+			buffer_allocation.memory_properties_exclude);
+
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) {
-			buffer_allocations[i].offset = 0;
-			buffer_allocations[i].size = buffer_memory_requirements.memoryRequirements.size;
-			buffer_allocations[i].dedicated_allocation = true;
+			buffer_allocation.dedicated_allocation = true;
+			buffer_allocation.offset = 0;
 
 			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.buffer = buffer_allocations[i].buffer;
+			memory_dedicated_allocate_info.buffer = buffer_allocation.buffer;
 			
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
-			memory_allocate_info.allocationSize = buffer_allocations[i].size;
-			memory_allocate_info.memoryTypeIndex = VulkanFindMemoryTypeIdx(
-				physical_device_memory_properties.memoryProperties,
-				buffer_memory_requirements.memoryRequirements.memoryTypeBits,
-				buffer_allocations[i].memory_properties_include,
-				buffer_allocations[i].memory_properties_exclude);
-			first_buffer_memory_type_idx = std::min<uint32_t>(first_buffer_memory_type_idx, memory_allocate_info.memoryTypeIndex);
+			memory_allocate_info.allocationSize = buffer_allocation.size;
+			memory_allocate_info.memoryTypeIndex = buffer_allocation.memory_type_idx;
 
-			buffer_allocations[i].memory = device.allocateMemory(memory_allocate_info);;
+			buffer_allocation.memory = device.allocateMemory(memory_allocate_info);;
 
 			vk::BindBufferMemoryInfo bind_buffer_memory_info;
-			bind_buffer_memory_info.buffer = buffer_allocations[i].buffer;
-			bind_buffer_memory_info.memory = buffer_allocations[i].memory;
+			bind_buffer_memory_info.buffer = buffer_allocation.buffer;
+			bind_buffer_memory_info.memory = buffer_allocation.memory;
 			bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
 		}
 	}
 
-	for (
-		size_t i = 0;
-		i < image_allocations.size();
-		++i
-		) {
+	for (VulkanImageAllocation &image_allocation : image_allocations) {
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::ImageMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.image = image_allocations[i].image;
+		memory_requirements_info.image = image_allocation.image;
 		memory_requirements_info.pNext = &memory_dedicated_requirements;
 		
 		vk::MemoryRequirements2 image_memory_requirements = device.getImageMemoryRequirements2(memory_requirements_info);
 
+		image_allocation.size = image_memory_requirements.memoryRequirements.size;
+		image_allocation.align = image_memory_requirements.memoryRequirements.align;
+		image_allocation.memory_type_idx = VulkanFindMemoryTypeIdx(
+			physical_device_memory_properties.memoryProperties,
+			image_memory_requirements.memoryRequirements.memoryTypeBits,
+			image_allocation.memory_properties_include,
+			image_allocation.memory_properties_exclude);
+
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) {
-			image_allocations[i].offset = 0;
-			image_allocations[i].size = image_memory_requirements.memoryRequirements.size;
-			image_allocations[i].dedicated_allocation = true;
+			image_allocation.dedicated_allocation = true;
+			image_allocation.offset = 0;
 
 			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.image = image_allocations[i].image;
+			memory_dedicated_allocate_info.image = image_allocation.image;
 			
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
-			memory_allocate_info.allocationSize = image_allocations[i].size;
-			memory_allocate_info.memoryTypeIndex = VulkanFindMemoryTypeIdx(
-				physical_device_memory_properties.memoryProperties,
-				image_memory_requirements.memoryRequirements.memoryTypeBits,
-				image_allocations[i].memory_properties_include,
-				image_allocations[i].memory_properties_exclude);
-			first_image_memory_type_idx = std::min<uint32_t>(first_image_memory_type_idx, memory_allocate_info.memoryTypeIndex);
+			memory_allocate_info.allocationSize = image_allocation.size;
+			memory_allocate_info.memoryTypeIndex = image_allocation.memory_type_idx;
 
-			image_allocations[i].memory = device.allocateMemory(memory_allocate_info);
+			image_allocation.memory = device.allocateMemory(memory_allocate_info);
 
 			vk::BindImageMemoryInfo bind_image_memory_info;
-			bind_image_memory_info.image = image_allocations[i].image;
-			bind_image_memory_info.memory = image_allocations[i].memory;
+			bind_image_memory_info.image = image_allocation.image;
+			bind_image_memory_info.memory = image_allocation.memory;
 			bind_image_memory_infos.push_back(bind_image_memory_info);
 		}
 	}
 
 	for (
-		size_t i = 0, memory_type_idx = first_buffer_memory_type_idx;
-		i < buffer_allocations.size();
-		++i
+		uint32_t memory_type_idx = 0; 
+		memory_type_idx < physical_device_memory_properties.memoryProperties.memoryTypeCount; 
+		++memory_type_idx
 		) {
+		vk::DeviceSize memory_offset = 0;
 
+		// https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
+		auto IsPowerOf2 = [](vk::DeviceSize x) {
+			return (x & (x-1)) == 0;
+		};
+		auto AlignForward = [IsPowerOf2](vk::DeviceSize offset, vk::DeviceSize align) {
+			// TODO: Switch to using an exception.
+			assert(IsPowerOf2(align));
+
+			// Same as (offset % align) but faster as 'align' is a power of two
+			vk::DeviceSize modulo = offset & (align-1);
+
+			if (modulo != 0) {
+				// If 'p' address is not aligned, push the address to the
+				// next value which is aligned
+				offset += align - modulo;
+			}
+			return offset;
+		};
+
+		for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) {
+			if (buffer_allocation.memory_type_idx == memory_type_idx) {
+
+			}
+		}
+
+		for (VulkanImageAllocation &image_allocation : image_allocations) {
+			if (image_allocation.memory_type_idx == memory_type_idx) {
+				
+			}
+		}
 	}
 
 	device.bindBufferMemory2(bind_buffer_memory_infos);
