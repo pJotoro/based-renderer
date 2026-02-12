@@ -479,7 +479,7 @@ int WINAPI WinMain(
 		}
 	}
 
-	size_t vulkan_graphics_queue_family_idx = std::numeric_limits<size_t>::max();
+	std::optional<size_t> vulkan_graphics_queue_family_idx;
 	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
 		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics}) != vk::QueueFlags{})
@@ -488,9 +488,9 @@ int WINAPI WinMain(
 			break;
 		}
 	}
-	vk::Queue vulkan_graphics_queue = vulkan_queues[vulkan_graphics_queue_family_idx][0];
+	vk::Queue vulkan_graphics_queue = vulkan_queues[vulkan_graphics_queue_family_idx.value()][0];
 
-	size_t vulkan_transfer_queue_family_idx = std::numeric_limits<size_t>::max();
+	std::optional<size_t> vulkan_transfer_queue_family_idx;
 	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
 		if ((vulkan_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{})
@@ -499,11 +499,11 @@ int WINAPI WinMain(
 			break;
 		}
 	}
-	vk::Queue vulkan_transfer_queue = vulkan_queues[vulkan_transfer_queue_family_idx][0];
+	vk::Queue vulkan_transfer_queue = vulkan_queues[vulkan_transfer_queue_family_idx.value()][0];
 
 	vk::CommandPool vulkan_graphics_command_pool = vulkan_device.createCommandPool({
 		vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient|vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
-		static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
+		static_cast<uint32_t>(vulkan_graphics_queue_family_idx.value()),
 	});
 
 	vk::CommandPool vulkan_transfer_command_pool;
@@ -511,7 +511,7 @@ int WINAPI WinMain(
 	{
 		vulkan_transfer_command_pool = vulkan_device.createCommandPool({
 			vk::CommandPoolCreateFlags(),
-			static_cast<uint32_t>(vulkan_transfer_queue_family_idx),
+			static_cast<uint32_t>(vulkan_transfer_queue_family_idx.value()),
 		});
 	}
 	else
@@ -607,7 +607,7 @@ int WINAPI WinMain(
 		win32_window,
 	});
 
-	size_t vulkan_present_queue_family_idx = std::numeric_limits<size_t>::max();
+	std::optional<size_t> vulkan_present_queue_family_idx;
 	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
 	{
 		if (vulkan_physical_device.getSurfaceSupportKHR(static_cast<uint32_t>(i), vulkan_surface))
@@ -616,7 +616,7 @@ int WINAPI WinMain(
 			break;
 		}
 	}
-	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx][0];
+	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx.value()][0];
 
 	std::vector<vk::SurfaceFormatKHR> vulkan_surface_formats = vulkan_physical_device.getSurfaceFormatsKHR(vulkan_surface);
   vk::Format vulkan_format = vulkan_surface_formats.front().format; // TODO
@@ -662,8 +662,8 @@ int WINAPI WinMain(
   };
 
   std::array<uint32_t, 2> vulkan_queue_family_indices {
-  	static_cast<uint32_t>(vulkan_graphics_queue_family_idx),
-  	static_cast<uint32_t>(vulkan_transfer_queue_family_idx)
+  	static_cast<uint32_t>(vulkan_graphics_queue_family_idx.value()),
+  	static_cast<uint32_t>(vulkan_transfer_queue_family_idx.value())
   };
   if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
   {

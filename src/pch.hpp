@@ -18,4 +18,5 @@
 
 #include <algorithm>
 #include <format>
+#include <optional>
 #include <span>
