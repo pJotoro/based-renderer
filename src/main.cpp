@@ -127,8 +127,8 @@ static uint32_t VulkanFindMemoryTypeIdx(
 		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
 		
 		if (((memory_type_bits & memory_type_bit) != 0) &&
-			((memory_properties_include.required & memory_properties) != 0) &&
-			((memory_properties_exclude.required & memory_properties) == 0)
+			((memory_properties_include.required & memory_properties) != vk::MemoryPropertyFlags{}) &&
+			((memory_properties_exclude.required & memory_properties) == vk::MemoryPropertyFlags{})
 			) {
 			return memory_type_idx;
 		}
