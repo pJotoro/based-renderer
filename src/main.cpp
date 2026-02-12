@@ -9,7 +9,7 @@
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
 
-#define BASED_RENDERER_VULKAN_FRAME_COUNT 2
+#define BASED_RENDERER_VULKAN_FRAME_COUNT 2u
 
 #define BASED_RENDERER_FULLSCREEN 0
 
@@ -178,7 +178,7 @@ struct VulkanImageAllocation {
 // 4. For each buffer and image, the "out" fields will be filled. In all
 //    likelihood, you will only ever need to use the "memory" and "offset"
 //    fields, but the others are there as well just in case.
-static void VulkanAllocate(
+void VulkanAllocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
 	std::span<VulkanBufferAllocation> buffer_allocations,
