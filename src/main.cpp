@@ -34,7 +34,7 @@ static dprint(std::wformat_string<Args...> fmt, Args&&... args)
 // A clever way I found to remove an element from an std::vector.
 // Assumes that i is within the bounds of v.
 template <class T>
-static void remove(std::vector<T> &v, size_t i) {
+static void unordered_remove(std::vector<T> &v, size_t const i) {
 	v[i] = v.back();
 	v.pop_back();
 }
