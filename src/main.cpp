@@ -9,8 +9,6 @@
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
 
-#define BASED_RENDERER_VULKAN_FRAME_COUNT 2u
-
 #define BASED_RENDERER_FULLSCREEN 0
 
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
@@ -89,7 +87,7 @@ struct VulkanMemoryProperties
 	vk::MemoryPropertyFlags preferred;
 };
 
-static uint32_t VulkanFindMemoryTypeIdx(
+static uint32_t vulkan_find_memory_type_idx(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
 	VulkanMemoryProperties const memory_properties_include,
@@ -182,7 +180,7 @@ struct VulkanImageAllocation
 // 4. For each buffer and image, the "out" fields will be filled. In all
 //    likelihood, you will only ever need to use the "memory" and "offset"
 //    fields, but the others are there as well just in case.
-void VulkanAllocate(
+void vulkan_allocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
 	std::span<VulkanBufferAllocation> buffer_allocations,
@@ -205,7 +203,7 @@ void VulkanAllocate(
 
 		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
 		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
-		buffer_allocation.memory_type_idx = VulkanFindMemoryTypeIdx(
+		buffer_allocation.memory_type_idx = vulkan_find_memory_type_idx(
 			physical_device_memory_properties.memoryProperties,
 			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
 			buffer_allocation.memory_properties_include,
@@ -245,7 +243,7 @@ void VulkanAllocate(
 
 		image_allocation.size = image_memory_requirements.memoryRequirements.size;
 		image_allocation.align = image_memory_requirements.memoryRequirements.alignment;
-		image_allocation.memory_type_idx = VulkanFindMemoryTypeIdx(
+		image_allocation.memory_type_idx = vulkan_find_memory_type_idx(
 			physical_device_memory_properties.memoryProperties,
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
 			image_allocation.memory_properties_include,
@@ -725,39 +723,6 @@ int WINAPI WinMain(
 		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
 	}
 
-	std::vector<vk::CommandBuffer> vulkan_graphics_command_buffers = vulkan_device.allocateCommandBuffers({
-		vulkan_graphics_command_pool, vk::CommandBufferLevel::ePrimary, BASED_RENDERER_VULKAN_FRAME_COUNT
-	});
-
-	vk::CommandBuffer vulkan_transfer_command_buffer;
-	if (vulkan_graphics_command_pool != vulkan_transfer_command_pool)
-	{
-		std::vector<vk::CommandBuffer> v = vulkan_device.allocateCommandBuffers({
-			vulkan_transfer_command_pool, vk::CommandBufferLevel::ePrimary, 1
-		});
-		vulkan_transfer_command_buffer = v[0];
-	}
-	else
-	{
-		// Just don't use the transfer command buffer then!
-	}
-
-	std::array<vk::Fence, BASED_RENDERER_VULKAN_FRAME_COUNT> vulkan_fences;
-	for (vk::Fence &fence : vulkan_fences) 
-	{
-		fence = vulkan_device.createFence({{vk::FenceCreateFlagBits::eSignaled}});
-	}
-
-	std::array<vk::Semaphore, BASED_RENDERER_VULKAN_FRAME_COUNT> vulkan_semaphores_start;
-	std::array<vk::Semaphore, BASED_RENDERER_VULKAN_FRAME_COUNT> vulkan_semaphores_finished;
-	for (size_t i = 0; i < BASED_RENDERER_VULKAN_FRAME_COUNT; ++i)
-	{
-		vulkan_semaphores_start[i] = vulkan_device.createSemaphore({});
-		vulkan_semaphores_finished[i] = vulkan_device.createSemaphore({});
-	}
-
-
-
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
 	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) 
@@ -868,7 +833,10 @@ int WINAPI WinMain(
 	vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info{
 		vk::SwapchainCreateFlagsKHR(),
 		vulkan_surface,
-		std::clamp(BASED_RENDERER_VULKAN_FRAME_COUNT, vulkan_surface_capabilities.minImageCount, vulkan_surface_capabilities.maxImageCount),
+		// TODO: Right now, you are still basically assuming that the image count will be 2.
+		// IIRC, having an image count higher than two actually complicates synchronization somewhat.
+		// I might be wrong though. In any case, it's worth looking into.
+		std::clamp(2u, vulkan_surface_capabilities.minImageCount, vulkan_surface_capabilities.maxImageCount),
 		vulkan_format,
 		vk::ColorSpaceKHR::eSrgbNonlinear,
 		vulkan_swapchain_extent,
@@ -912,6 +880,41 @@ int WINAPI WinMain(
 	{
 		vulkan_image_view_create_info.image = image;
 		vulkan_swapchain_image_views.push_back(vulkan_device.createImageView(vulkan_image_view_create_info));
+	}
+
+	std::vector<vk::CommandBuffer> vulkan_graphics_command_buffers = vulkan_device.allocateCommandBuffers({
+		vulkan_graphics_command_pool, 
+		vk::CommandBufferLevel::ePrimary, 
+		static_cast<uint32_t>(vulkan_swapchain_images.size()),
+	});
+
+	vk::CommandBuffer vulkan_transfer_command_buffer;
+	if (vulkan_graphics_command_pool != vulkan_transfer_command_pool)
+	{
+		std::vector<vk::CommandBuffer> v = vulkan_device.allocateCommandBuffers({
+			vulkan_transfer_command_pool, 
+			vk::CommandBufferLevel::ePrimary, 
+			1,
+		});
+		vulkan_transfer_command_buffer = v[0];
+	}
+	else
+	{
+		// Just don't use the transfer command buffer then!
+	}
+
+	std::vector<vk::Fence> vulkan_fences{vulkan_swapchain_images.size()};
+	for (vk::Fence &fence : vulkan_fences) 
+	{
+		fence = vulkan_device.createFence({{vk::FenceCreateFlagBits::eSignaled}});
+	}
+
+	std::vector<vk::Semaphore> vulkan_semaphores_start{vulkan_swapchain_images.size()};
+	std::vector<vk::Semaphore> vulkan_semaphores_finished{vulkan_swapchain_images.size()};
+	for (size_t i = 0; i < vulkan_swapchain_images.size(); ++i)
+	{
+		vulkan_semaphores_start[i] = vulkan_device.createSemaphore({});
+		vulkan_semaphores_finished[i] = vulkan_device.createSemaphore({});
 	}
 
 
