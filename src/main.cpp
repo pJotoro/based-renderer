@@ -55,10 +55,12 @@ LRESULT WINAPI win32_event_callback(
 	switch (win32_message)
 	{
 		case WM_DESTROY:
-		case WM_CLOSE: {
+		case WM_CLOSE: 
+		{
 			win32_running = false;
 		} break;
-		default: {
+		default: 
+		{
 			res = DefWindowProcW(win32_window, win32_message, win32_w_param, win32_l_param);
 		} break;
 	}
@@ -294,7 +296,8 @@ void VulkanAllocate(
 			// Same as (offset % align) but faster as 'align' is a power of two
 			vk::DeviceSize modulo = offset & (align-1);
 
-			if (modulo != 0) {
+			if (modulo != 0) 
+			{
 				// If 'offset' is not aligned, push it to the
 				// next value which is aligned
 				offset += align - modulo;
@@ -739,6 +742,22 @@ int WINAPI WinMain(
 		// Just don't use the transfer command buffer then!
 	}
 
+	std::array<vk::Fence, BASED_RENDERER_VULKAN_FRAME_COUNT> vulkan_fences;
+	for (vk::Fence &fence : vulkan_fences) 
+	{
+		fence = vulkan_device.createFence({{vk::FenceCreateFlagBits::eSignaled}});
+	}
+
+	std::array<vk::Semaphore, BASED_RENDERER_VULKAN_FRAME_COUNT> vulkan_semaphores_start;
+	std::array<vk::Semaphore, BASED_RENDERER_VULKAN_FRAME_COUNT> vulkan_semaphores_finished;
+	for (size_t i = 0; i < BASED_RENDERER_VULKAN_FRAME_COUNT; ++i)
+	{
+		vulkan_semaphores_start[i] = vulkan_device.createSemaphore({});
+		vulkan_semaphores_finished[i] = vulkan_device.createSemaphore({});
+	}
+
+
+
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
 	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) 
@@ -748,8 +767,7 @@ int WINAPI WinMain(
 	int32_t monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
 	int32_t monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
 
-	WNDCLASSEXW win32_window_class 
-	{
+	WNDCLASSEXW win32_window_class{
 		.cbSize = sizeof(WNDCLASSEXW),
 		.style = 0,
 		.lpfnWndProc = win32_event_callback,
@@ -895,6 +913,8 @@ int WINAPI WinMain(
 		vulkan_image_view_create_info.image = image;
 		vulkan_swapchain_image_views.push_back(vulkan_device.createImageView(vulkan_image_view_create_info));
 	}
+
+
 
 	return 0;
 }
