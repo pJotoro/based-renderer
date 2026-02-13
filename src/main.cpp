@@ -917,7 +917,33 @@ int WINAPI WinMain(
 		vulkan_semaphores_finished[i] = vulkan_device.createSemaphore({});
 	}
 
+	size_t vulkan_frame_idx = 0;
 
+	while (win32_running) 
+	{
+		MSG win32_message;
+		if (PeekMessageW(&win32_message, win32_window, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&win32_message);
+			DispatchMessageW(&win32_message);
+			continue;
+		}
+
+		if (vulkan_device.waitForFences(
+			{vulkan_fences[vulkan_frame_idx]}, 
+			vk::True, 
+			std::numeric_limits<uint64_t>::max())
+			!= vk::Result::eSuccess)
+		{
+			break;
+		}
+		
+		// NEXT TIME YOU CODE: Decide whether you really want to use exceptions or not.
+		// You actually don't have to use them. Vulkan HPP works just fine without them.
+		// At most, you might have some difficulties with the C++ standard library.
+		// In any case, you should look into it, because exceptions are already starting
+		// to seem really annoying.
+	}
 
 	return 0;
 }
