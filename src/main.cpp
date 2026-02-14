@@ -175,7 +175,7 @@ struct VulkanImageAllocation
 // 2. Decide which memory properties you want each of them to have (or not). 
 //    For example, a vertex buffer should probably be device local, while a
 //    staging buffer should be host visible.
-// 3. Now you can call VulkanAllocate. When passing the buffers and images,
+// 3. Now you can call vulkan_allocate. When passing the buffers and images,
 //    you should only fill out the fields under the "in" comment.
 // 4. For each buffer and image, the "out" fields will be filled. In all
 //    likelihood, you will only ever need to use the "memory" and "offset"
@@ -662,7 +662,6 @@ int WINAPI WinMain(
 	std::vector<char const *> vulkan_device_extensions;
 	vulkan_device_extensions.push_back("VK_KHR_swapchain");
 
-	// TODO: Device extensions.
 	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo{
 		{}, 
 		vulkan_device_queue_infos,
@@ -682,6 +681,8 @@ int WINAPI WinMain(
 			vulkan_queues[i][j] = vulkan_device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
 		}
 	}
+
+	// Why use C for loops here? Why not std::find_if? I tried that, and it came out uglier and harder to understand. However, in other cases, like selecting which physical device to use, std::find_if is actually pretty convenient.
 
 	std::optional<size_t> vulkan_graphics_queue_family_idx;
 	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
@@ -782,10 +783,10 @@ int WINAPI WinMain(
 		return -2;
 	}
 
-	RECT client_rect;
-	GetClientRect(win32_window, &client_rect);
-	int32_t client_width = client_rect.right - client_rect.left;
-	int32_t client_height = client_rect.bottom - client_rect.top;
+	RECT win32_client_rect;
+	GetClientRect(win32_window, &win32_client_rect);
+	int32_t client_width = win32_client_rect.right - win32_client_rect.left;
+	int32_t client_height = win32_client_rect.bottom - win32_client_rect.top;
 
 	vk::SurfaceKHR vulkan_surface = vulkan_instance.createWin32SurfaceKHR({
 		{},
@@ -929,6 +930,7 @@ int WINAPI WinMain(
 			continue;
 		}
 
+		// TODO: Do something better than just break.
 		if (vulkan_device.waitForFences(
 			{vulkan_fences[vulkan_frame_idx]}, 
 			vk::True, 
@@ -937,12 +939,29 @@ int WINAPI WinMain(
 		{
 			break;
 		}
+
+		vulkan_device.resetFences({vulkan_fences[vulkan_frame_idx]});
+
+		uint32_t vulkan_image_idx = *vulkan_device.acquireNextImageKHR(vulkan_swapchain, std::numeric_limits<uint64_t>::max(), vulkan_semaphores_start[vulkan_frame_idx]);
+
+		// We only show the window once we've arrived back at the first frame.
+		// This only makes sense if there are just two frames, that is, one backbuffer
+		// and one frontbuffer. Which is to say, it is to be thrown away!
+        if (vulkan_image_idx == 0) 
+        {
+            static int win32_window_ready = -1;
+            if (win32_window_ready == -1) 
+            {
+                win32_window_ready += 1;
+            } 
+            else if (win32_window_ready == 0) 
+            {
+                win32_window_ready += 1;
+                ShowWindow(win32_window, SW_SHOW);
+            }
+        }
+
 		
-		// NEXT TIME YOU CODE: Decide whether you really want to use exceptions or not.
-		// You actually don't have to use them. Vulkan HPP works just fine without them.
-		// At most, you might have some difficulties with the C++ standard library.
-		// In any case, you should look into it, because exceptions are already starting
-		// to seem really annoying.
 	}
 
 	return 0;
