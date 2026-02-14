@@ -1,6 +1,8 @@
 #include "pch.hpp"
 
 #define UNUSED(X) (void)(X)
+#define STRINGIFY(x) #x
+#define STMT(X) do {X} while (0)
 
 #define BASED_RENDERER_DEBUG 1
 
@@ -464,170 +466,190 @@ int WINAPI WinMain(
 		vk::PhysicalDeviceVulkan13Features,
 		vk::PhysicalDeviceVulkan14Features>();
 
+	std::vector<std::string> vulkan_missing_features;
+	#define VULKAN_REQUIRE_FEATURE(FEATURE) STMT( \
+		if (!features.FEATURE) \
+		{ \
+			vulkan_missing_features.push_back(STRINGIFY(FEATURE)); \
+		} \
+	)
+	#define VULKAN_DISABLE_FEATURE(FEATURE) STMT( \
+		features.FEATURE = vk::False; \
+	)
+	// You might say: this doesn't do anything. Why define it?
+	// It's so that way, when scrolling through all of the Vulkan
+	// features I might want to use, none of them are missing.
+	#define VULKAN_ALLOW_FEATURE(FEATURE)
+
 	{
 		auto &features = std::get<0>(vulkan_physical_device_features).features;
-		features.robustBufferAccess = vk::False;
-		features.fullDrawIndexUint32 = vk::False;
-		features.imageCubeArray = vk::False;
-		features.independentBlend = vk::False;
-		features.geometryShader = vk::False;
-		features.tessellationShader = vk::False;
-		features.sampleRateShading = vk::False;
-		features.dualSrcBlend = vk::False;
-		features.logicOp = vk::False;
-		features.multiDrawIndirect = vk::False;
-		features.drawIndirectFirstInstance = vk::False;
-		features.depthClamp = vk::False;
-		features.depthBiasClamp = vk::False;
-		features.fillModeNonSolid = vk::False;
-		features.depthBounds = vk::False;
-		features.wideLines = vk::False;
-		features.largePoints = vk::False;
-		features.alphaToOne = vk::False;
-		features.multiViewport = vk::False;
-		features.samplerAnisotropy = vk::False;
-		features.textureCompressionETC2 = vk::False;
-		features.textureCompressionASTC_LDR = vk::False;
-		features.textureCompressionBC = vk::False;
-		features.occlusionQueryPrecise = vk::False;
-		features.pipelineStatisticsQuery = vk::False;
-		features.vertexPipelineStoresAndAtomics = vk::False;
-		features.fragmentStoresAndAtomics = vk::False;
-		features.shaderTessellationAndGeometryPointSize = vk::False;
-		features.shaderImageGatherExtended = vk::False;
-		features.shaderStorageImageExtendedFormats = vk::False;
-		features.shaderStorageImageMultisample = vk::False;
-		features.shaderStorageImageReadWithoutFormat = vk::False;
-		features.shaderStorageImageWriteWithoutFormat = vk::False;
-		features.shaderUniformBufferArrayDynamicIndexing = vk::False;
-		features.shaderSampledImageArrayDynamicIndexing = vk::False;
-		features.shaderStorageBufferArrayDynamicIndexing = vk::False;
-		features.shaderStorageImageArrayDynamicIndexing = vk::False;
-		features.shaderClipDistance = vk::False;
-		features.shaderCullDistance = vk::False;
-		features.shaderFloat64 = vk::False;
-		features.shaderInt64 = vk::False;
-		features.shaderInt16 = vk::False;
-		features.shaderResourceResidency = vk::False;
-		features.shaderResourceMinLod = vk::False;
-		features.sparseBinding = vk::False;
-		features.sparseResidencyBuffer = vk::False;
-		features.sparseResidencyImage2D = vk::False;
-		features.sparseResidencyImage3D = vk::False;
-		features.sparseResidency2Samples = vk::False;
-		features.sparseResidency4Samples = vk::False;
-		features.sparseResidency8Samples = vk::False;
-		features.sparseResidency16Samples = vk::False;
-		features.sparseResidencyAliased = vk::False;
-		features.variableMultisampleRate = vk::False;
-		features.inheritedQueries = vk::False;
+		VULKAN_ALLOW_FEATURE(robustBufferAccess);
+		VULKAN_DISABLE_FEATURE(fullDrawIndexUint32);
+		VULKAN_DISABLE_FEATURE(imageCubeArray);
+		VULKAN_DISABLE_FEATURE(independentBlend);
+		VULKAN_DISABLE_FEATURE(geometryShader);
+		VULKAN_DISABLE_FEATURE(tessellationShader);
+		VULKAN_DISABLE_FEATURE(sampleRateShading);
+		VULKAN_DISABLE_FEATURE(dualSrcBlend);
+		VULKAN_DISABLE_FEATURE(logicOp);
+		VULKAN_DISABLE_FEATURE(multiDrawIndirect);
+		VULKAN_DISABLE_FEATURE(drawIndirectFirstInstance);
+		VULKAN_DISABLE_FEATURE(depthClamp);
+		VULKAN_DISABLE_FEATURE(depthBiasClamp);
+		VULKAN_DISABLE_FEATURE(fillModeNonSolid);
+		VULKAN_DISABLE_FEATURE(depthBounds);
+		VULKAN_DISABLE_FEATURE(wideLines);
+		VULKAN_DISABLE_FEATURE(largePoints);
+		VULKAN_DISABLE_FEATURE(alphaToOne);
+		VULKAN_DISABLE_FEATURE(multiViewport);
+		VULKAN_DISABLE_FEATURE(samplerAnisotropy);
+		VULKAN_DISABLE_FEATURE(textureCompressionETC2);
+		VULKAN_DISABLE_FEATURE(textureCompressionASTC_LDR);
+		VULKAN_DISABLE_FEATURE(textureCompressionBC);
+		VULKAN_DISABLE_FEATURE(occlusionQueryPrecise);
+		VULKAN_DISABLE_FEATURE(pipelineStatisticsQuery);
+		VULKAN_DISABLE_FEATURE(vertexPipelineStoresAndAtomics);
+		VULKAN_DISABLE_FEATURE(fragmentStoresAndAtomics);
+		VULKAN_DISABLE_FEATURE(shaderTessellationAndGeometryPointSize);
+		VULKAN_DISABLE_FEATURE(shaderImageGatherExtended);
+		VULKAN_DISABLE_FEATURE(shaderStorageImageExtendedFormats);
+		VULKAN_DISABLE_FEATURE(shaderStorageImageMultisample);
+		VULKAN_DISABLE_FEATURE(shaderStorageImageReadWithoutFormat);
+		VULKAN_DISABLE_FEATURE(shaderStorageImageWriteWithoutFormat);
+		VULKAN_DISABLE_FEATURE(shaderUniformBufferArrayDynamicIndexing);
+		VULKAN_DISABLE_FEATURE(shaderSampledImageArrayDynamicIndexing);
+		VULKAN_DISABLE_FEATURE(shaderStorageBufferArrayDynamicIndexing);
+		VULKAN_DISABLE_FEATURE(shaderStorageImageArrayDynamicIndexing);
+		VULKAN_DISABLE_FEATURE(shaderClipDistance);
+		VULKAN_DISABLE_FEATURE(shaderCullDistance);
+		VULKAN_DISABLE_FEATURE(shaderFloat64);
+		VULKAN_DISABLE_FEATURE(shaderInt64);
+		VULKAN_DISABLE_FEATURE(shaderInt16);
+		VULKAN_DISABLE_FEATURE(shaderResourceResidency);
+		VULKAN_DISABLE_FEATURE(shaderResourceMinLod);
+		VULKAN_DISABLE_FEATURE(sparseBinding);
+		VULKAN_DISABLE_FEATURE(sparseResidencyBuffer);
+		VULKAN_DISABLE_FEATURE(sparseResidencyImage2D);
+		VULKAN_DISABLE_FEATURE(sparseResidencyImage3D);
+		VULKAN_DISABLE_FEATURE(sparseResidency2Samples);
+		VULKAN_DISABLE_FEATURE(sparseResidency4Samples);
+		VULKAN_DISABLE_FEATURE(sparseResidency8Samples);
+		VULKAN_DISABLE_FEATURE(sparseResidency16Samples);
+		VULKAN_DISABLE_FEATURE(sparseResidencyAliased);
+		VULKAN_DISABLE_FEATURE(variableMultisampleRate);
+		VULKAN_DISABLE_FEATURE(inheritedQueries);
 	}
 	{
 		auto &features = std::get<1>(vulkan_physical_device_features);
-		features.storageBuffer16BitAccess = vk::False;
-		features.uniformAndStorageBuffer16BitAccess = vk::False;
-		features.storagePushConstant16 = vk::False;
-		features.storageInputOutput16 = vk::False;
-		features.multiview = vk::False;
-		features.multiviewGeometryShader = vk::False;
-		features.multiviewTessellationShader = vk::False;
-		features.variablePointersStorageBuffer = vk::False;
-		features.variablePointers = vk::False;
-		features.protectedMemory = vk::False;
-		features.samplerYcbcrConversion = vk::False;
-		features.shaderDrawParameters = vk::False;
+		VULKAN_DISABLE_FEATURE(storageBuffer16BitAccess);
+		VULKAN_DISABLE_FEATURE(uniformAndStorageBuffer16BitAccess);
+		VULKAN_DISABLE_FEATURE(storagePushConstant16);
+		VULKAN_DISABLE_FEATURE(storageInputOutput16);
+		VULKAN_DISABLE_FEATURE(multiview);
+		VULKAN_DISABLE_FEATURE(multiviewGeometryShader);
+		VULKAN_DISABLE_FEATURE(multiviewTessellationShader);
+		VULKAN_DISABLE_FEATURE(variablePointersStorageBuffer);
+		VULKAN_DISABLE_FEATURE(variablePointers);
+		VULKAN_DISABLE_FEATURE(protectedMemory);
+		VULKAN_DISABLE_FEATURE(samplerYcbcrConversion);
+		VULKAN_DISABLE_FEATURE(shaderDrawParameters);
 	}
 	{
 		auto &features = std::get<2>(vulkan_physical_device_features);
-		features.samplerMirrorClampToEdge = vk::False;
-		features.drawIndirectCount = vk::False;
-		features.storageBuffer8BitAccess = vk::False;
-		features.uniformAndStorageBuffer8BitAccess = vk::False;
-		features.storagePushConstant8 = vk::False;
-		features.shaderBufferInt64Atomics = vk::False;
-		features.shaderSharedInt64Atomics = vk::False;
-		features.shaderFloat16 = vk::False;
-		features.shaderInt8 = vk::False;
-		features.descriptorIndexing = vk::False;
-		features.shaderInputAttachmentArrayDynamicIndexing = vk::False;
-		features.shaderUniformTexelBufferArrayDynamicIndexing = vk::False;
-		features.shaderStorageTexelBufferArrayDynamicIndexing = vk::False;
-		features.shaderUniformBufferArrayNonUniformIndexing = vk::False;
-		features.shaderSampledImageArrayNonUniformIndexing = vk::False;
-		features.shaderStorageBufferArrayNonUniformIndexing = vk::False;
-		features.shaderStorageImageArrayNonUniformIndexing = vk::False;
-		features.shaderInputAttachmentArrayNonUniformIndexing = vk::False;
-		features.shaderUniformTexelBufferArrayNonUniformIndexing = vk::False;
-		features.shaderStorageTexelBufferArrayNonUniformIndexing = vk::False;
-		features.descriptorBindingUniformBufferUpdateAfterBind = vk::False;
-		features.descriptorBindingSampledImageUpdateAfterBind = vk::False;
-		features.descriptorBindingStorageImageUpdateAfterBind = vk::False;
-		features.descriptorBindingStorageBufferUpdateAfterBind = vk::False;
-		features.descriptorBindingUniformTexelBufferUpdateAfterBind = vk::False;
-		features.descriptorBindingStorageTexelBufferUpdateAfterBind = vk::False;
-		features.descriptorBindingUpdateUnusedWhilePending = vk::False;
-		features.descriptorBindingPartiallyBound = vk::False;
-		features.descriptorBindingVariableDescriptorCount = vk::False;
-		features.runtimeDescriptorArray = vk::False;
-		features.samplerFilterMinmax = vk::False;
-		features.scalarBlockLayout = vk::False;
-		features.imagelessFramebuffer = vk::False;
-		features.uniformBufferStandardLayout = vk::False;
-		features.shaderSubgroupExtendedTypes = vk::False;
-		features.separateDepthStencilLayouts = vk::False;
-		features.hostQueryReset = vk::False;
-		features.timelineSemaphore = vk::False;
-		features.bufferDeviceAddress = vk::False;
-		features.bufferDeviceAddressCaptureReplay = vk::False;
-		features.bufferDeviceAddressMultiDevice = vk::False;
-		features.vulkanMemoryModel = vk::False;
-		features.vulkanMemoryModelDeviceScope = vk::False;
-		features.vulkanMemoryModelAvailabilityVisibilityChains = vk::False;
-		features.shaderOutputViewportIndex = vk::False;
-		features.shaderOutputLayer = vk::False;
-		features.subgroupBroadcastDynamicId = vk::False;
+		VULKAN_DISABLE_FEATURE(samplerMirrorClampToEdge);
+		VULKAN_DISABLE_FEATURE(drawIndirectCount);
+		VULKAN_DISABLE_FEATURE(storageBuffer8BitAccess);
+		VULKAN_DISABLE_FEATURE(uniformAndStorageBuffer8BitAccess);
+		VULKAN_DISABLE_FEATURE(storagePushConstant8);
+		VULKAN_DISABLE_FEATURE(shaderBufferInt64Atomics);
+		VULKAN_DISABLE_FEATURE(shaderSharedInt64Atomics);
+		VULKAN_DISABLE_FEATURE(shaderFloat16);
+		VULKAN_DISABLE_FEATURE(shaderInt8);
+		VULKAN_DISABLE_FEATURE(descriptorIndexing);
+		VULKAN_DISABLE_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
+		VULKAN_DISABLE_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
+		VULKAN_DISABLE_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
+		VULKAN_DISABLE_FEATURE(shaderUniformBufferArrayNonUniformIndexing);
+		VULKAN_DISABLE_FEATURE(shaderSampledImageArrayNonUniformIndexing);
+		VULKAN_DISABLE_FEATURE(shaderStorageBufferArrayNonUniformIndexing);
+		VULKAN_DISABLE_FEATURE(shaderStorageImageArrayNonUniformIndexing);
+		VULKAN_DISABLE_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
+		VULKAN_DISABLE_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
+		VULKAN_DISABLE_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
+		VULKAN_DISABLE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
+		VULKAN_DISABLE_FEATURE(descriptorBindingPartiallyBound);
+		VULKAN_DISABLE_FEATURE(descriptorBindingVariableDescriptorCount);
+		VULKAN_DISABLE_FEATURE(runtimeDescriptorArray);
+		VULKAN_DISABLE_FEATURE(samplerFilterMinmax);
+		VULKAN_DISABLE_FEATURE(scalarBlockLayout);
+		VULKAN_DISABLE_FEATURE(imagelessFramebuffer);
+		VULKAN_DISABLE_FEATURE(uniformBufferStandardLayout);
+		VULKAN_DISABLE_FEATURE(shaderSubgroupExtendedTypes);
+		VULKAN_DISABLE_FEATURE(separateDepthStencilLayouts);
+		VULKAN_DISABLE_FEATURE(hostQueryReset);
+		VULKAN_DISABLE_FEATURE(timelineSemaphore);
+		VULKAN_DISABLE_FEATURE(bufferDeviceAddress);
+		VULKAN_DISABLE_FEATURE(bufferDeviceAddressCaptureReplay);
+		VULKAN_DISABLE_FEATURE(bufferDeviceAddressMultiDevice);
+		VULKAN_DISABLE_FEATURE(vulkanMemoryModel);
+		VULKAN_DISABLE_FEATURE(vulkanMemoryModelDeviceScope);
+		VULKAN_DISABLE_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
+		VULKAN_DISABLE_FEATURE(shaderOutputViewportIndex);
+		VULKAN_DISABLE_FEATURE(shaderOutputLayer);
+		VULKAN_DISABLE_FEATURE(subgroupBroadcastDynamicId);
 	}
 	{
 		auto &features = std::get<3>(vulkan_physical_device_features);
-		features.robustImageAccess = vk::False;
-		features.inlineUniformBlock = vk::False;
-		features.descriptorBindingInlineUniformBlockUpdateAfterBind = vk::False;
-		features.pipelineCreationCacheControl = vk::False;
-		features.privateData = vk::False;
-		features.shaderDemoteToHelperInvocation = vk::False;
-		features.shaderTerminateInvocation = vk::False;
-		features.subgroupSizeControl = vk::False;
-		features.computeFullSubgroups = vk::False;
-		features.synchronization2 = vk::False;
-		features.textureCompressionASTC_HDR = vk::False;
-		features.shaderZeroInitializeWorkgroupMemory = vk::False;
-		features.dynamicRendering = vk::False;
-		features.shaderIntegerDotProduct = vk::False;
-		features.maintenance4 = vk::False;
+		VULKAN_ALLOW_FEATURE(robustImageAccess);
+		VULKAN_DISABLE_FEATURE(inlineUniformBlock);
+		VULKAN_DISABLE_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(pipelineCreationCacheControl);
+		VULKAN_DISABLE_FEATURE(privateData);
+		VULKAN_DISABLE_FEATURE(shaderDemoteToHelperInvocation);
+		VULKAN_DISABLE_FEATURE(shaderTerminateInvocation);
+		VULKAN_DISABLE_FEATURE(subgroupSizeControl);
+		VULKAN_DISABLE_FEATURE(computeFullSubgroups);
+		VULKAN_DISABLE_FEATURE(synchronization2);
+		VULKAN_DISABLE_FEATURE(textureCompressionASTC_HDR);
+		VULKAN_DISABLE_FEATURE(shaderZeroInitializeWorkgroupMemory);
+		VULKAN_REQUIRE_FEATURE(dynamicRendering);
+		VULKAN_DISABLE_FEATURE(shaderIntegerDotProduct);
+		VULKAN_DISABLE_FEATURE(maintenance4);
 	}
 	{
 		auto &features = std::get<4>(vulkan_physical_device_features);
-		features.globalPriorityQuery = vk::False;
-		features.shaderSubgroupRotate = vk::False;
-		features.shaderSubgroupRotateClustered = vk::False;
-		features.shaderFloatControls2 = vk::False;
-		features.shaderExpectAssume = vk::False;
-		features.rectangularLines = vk::False;
-		features.bresenhamLines = vk::False;
-		features.smoothLines = vk::False;
-		features.stippledRectangularLines = vk::False;
-		features.stippledBresenhamLines = vk::False;
-		features.stippledSmoothLines = vk::False;
-		features.vertexAttributeInstanceRateDivisor = vk::False;
-		features.vertexAttributeInstanceRateZeroDivisor = vk::False;
-		features.indexTypeUint8 = vk::False;
-		features.dynamicRenderingLocalRead = vk::False;
-		features.maintenance5 = vk::False;
-		features.maintenance6 = vk::False;
-		features.pipelineProtectedAccess = vk::False;
-		features.pipelineRobustness = vk::False;
-		features.hostImageCopy = vk::False;
-		features.pushDescriptor = vk::False;
+		VULKAN_DISABLE_FEATURE(globalPriorityQuery);
+		VULKAN_DISABLE_FEATURE(shaderSubgroupRotate);
+		VULKAN_DISABLE_FEATURE(shaderSubgroupRotateClustered);
+		VULKAN_DISABLE_FEATURE(shaderFloatControls2);
+		VULKAN_DISABLE_FEATURE(shaderExpectAssume);
+		VULKAN_DISABLE_FEATURE(rectangularLines);
+		VULKAN_DISABLE_FEATURE(bresenhamLines);
+		VULKAN_DISABLE_FEATURE(smoothLines);
+		VULKAN_DISABLE_FEATURE(stippledRectangularLines);
+		VULKAN_DISABLE_FEATURE(stippledBresenhamLines);
+		VULKAN_DISABLE_FEATURE(stippledSmoothLines);
+		VULKAN_DISABLE_FEATURE(vertexAttributeInstanceRateDivisor);
+		VULKAN_DISABLE_FEATURE(vertexAttributeInstanceRateZeroDivisor);
+		VULKAN_DISABLE_FEATURE(indexTypeUint8);
+		VULKAN_DISABLE_FEATURE(dynamicRenderingLocalRead);
+		VULKAN_DISABLE_FEATURE(maintenance5);
+		VULKAN_DISABLE_FEATURE(maintenance6);
+		VULKAN_DISABLE_FEATURE(pipelineProtectedAccess);
+		VULKAN_DISABLE_FEATURE(pipelineRobustness);
+		VULKAN_DISABLE_FEATURE(hostImageCopy);
+		VULKAN_DISABLE_FEATURE(pushDescriptor);
+	}
+
+	if (vulkan_missing_features.size() > 0)
+	{
+		return -1; // TODO: Throw an exception!
 	}
 
 	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
