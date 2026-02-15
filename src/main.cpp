@@ -16,16 +16,16 @@
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
 
 // Works just like std::print, except it prints to the debug console.
-template<class... Args> void 
-static dprint(std::format_string<Args...> fmt, Args&&... args) 
+template<class... Args> 
+static void dprint(std::format_string<Args...> fmt, Args&&... args) noexcept
 {
 	std::string s = std::format(fmt, std::forward<Args>(args)...);
 	OutputDebugStringA(s.c_str());
 }
 
 // Same, but the format string is a wide string.
-template<class... Args> void 
-static dprint(std::wformat_string<Args...> fmt, Args&&... args) 
+template<class... Args>
+static void dprint(std::wformat_string<Args...> fmt, Args&&... args) noexcept
 {
 	std::wstring s = std::format(fmt, std::forward<Args>(args)...);
 	OutputDebugStringW(s.c_str());
@@ -34,12 +34,32 @@ static dprint(std::wformat_string<Args...> fmt, Args&&... args)
 // A clever way I found to remove an element from an std::vector.
 // Assumes that i is within the bounds of v.
 template <class T>
-static void unordered_remove(std::vector<T> &v, size_t const i) 
+static void unordered_remove(std::vector<T> &v, size_t const i) noexcept
 {
 	v[i] = v.back();
 	v.pop_back();
 }
 
+static std::string to_string(std::vector<std::string> const &v)
+{
+	std::string res;
+	if (v.size() > 0)
+	{
+		for (size_t i = 0; i < v.size() - 1; ++i)
+		{
+			res += v[i] + ", ";
+		}
+		res += v.back();
+	}
+	return res;
+}
+
+static std::system_error win32_system_error()
+{
+	std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
+	std::system_error system_error{error_code};
+	return system_error;
+}
 
 // TODO: Remove global.
 static bool win32_running;
@@ -48,7 +68,7 @@ LRESULT WINAPI win32_event_callback(
 	HWND   win32_window,
 	UINT   win32_message,
 	WPARAM win32_w_param,
-	LPARAM win32_l_param)
+	LPARAM win32_l_param) noexcept
 {
 	LRESULT res = 0;
 
@@ -72,7 +92,7 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	vk::DebugUtilsMessageSeverityFlagBitsEXT message_severity,
 	vk::DebugUtilsMessageTypeFlagsEXT message_types,
 	vk::DebugUtilsMessengerCallbackDataEXT const *callback_data,
-	void *user_data)
+	void *user_data) noexcept
 {
 	UNUSED(message_severity);
 	UNUSED(message_types);
@@ -136,8 +156,8 @@ static uint32_t vulkan_find_memory_type_idx(
 		}
 	}
 
-	// TODO: Throw exception if memoryTypeIndex is still not set.
-	return std::numeric_limits<uint32_t>::max();
+	// TODO: Is there a more specific type of error we could use? Would it make sense to inherit from vk::LogicError?
+	throw vk::LogicError{"Failed to find a memory type index with the required memory properties."};
 }
 
 struct VulkanBufferAllocation 
@@ -284,11 +304,11 @@ void vulkan_allocate(
 		vk::DeviceSize memory_offset = 0;
 
 		// https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
-		auto IsPowerOf2 = [](vk::DeviceSize x) 
+		auto IsPowerOf2 = [](vk::DeviceSize const x) 
 		{
 			return (x & (x-1)) == 0;
 		};
-		auto AlignForward = [IsPowerOf2](vk::DeviceSize offset, vk::DeviceSize align) 
+		auto AlignForward = [IsPowerOf2](vk::DeviceSize offset, vk::DeviceSize const align) 
 		{
 			// TODO: Switch to using an exception.
 			assert(IsPowerOf2(align));
@@ -305,7 +325,7 @@ void vulkan_allocate(
 			return offset;
 		};
 
-		for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) 
+		for (VulkanBufferAllocation const &buffer_allocation : buffer_allocations) 
 		{
 			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
 			{
@@ -320,7 +340,7 @@ void vulkan_allocate(
 			}
 		}
 
-		for (VulkanImageAllocation &image_allocation : image_allocations) 
+		for (VulkanImageAllocation const &image_allocation : image_allocations) 
 		{
 			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
 			{
@@ -354,16 +374,46 @@ void vulkan_allocate(
 	device.bindImageMemory2(bind_image_memory_infos);
 }
 
-int WINAPI WinMain(
-	HINSTANCE win32_instance,
-	HINSTANCE win32_prev_instance,
-	LPSTR     win32_command_line,
-	int       win32_show_command) 
-{
-	UNUSED(win32_prev_instance);
-	UNUSED(win32_command_line);
-	UNUSED(win32_show_command);
+// TODO: Remove global variable.
+static HINSTANCE win32_instance;
 
+static void based_renderer_main();
+
+int WINAPI WinMain(
+	HINSTANCE instance,
+	HINSTANCE prev_instance,
+	LPSTR     command_line,
+	int       show_command)
+{
+	UNUSED(prev_instance);
+	UNUSED(command_line);
+	UNUSED(show_command);
+
+	win32_instance = instance;
+
+	try
+	{
+		based_renderer_main();
+	}
+	catch (vk::FeatureNotPresentError feature_not_present_error)
+	{
+		// TODO
+	}
+	catch (vk::SystemError system_error)
+	{
+		// TODO
+	}
+	catch (vk::LogicError logic_error)
+	{
+		// TODO
+	}
+	// TODO: The above errors are only the ones I throw myself. Eventually, you should also list whichever other ones might also happen.
+
+	return 0;
+}
+
+static void based_renderer_main()
+{
 	vk::ApplicationInfo vulkan_app_info{
 		"based_renderer",
 		VK_API_VERSION_1_0,
@@ -617,7 +667,7 @@ int WINAPI WinMain(
 		VULKAN_DISABLE_FEATURE(computeFullSubgroups);
 		VULKAN_DISABLE_FEATURE(synchronization2);
 		VULKAN_DISABLE_FEATURE(textureCompressionASTC_HDR);
-		VULKAN_DISABLE_FEATURE(shaderZeroInitializeWorkgroupMemory);
+		VULKAN_ALLOW_FEATURE(shaderZeroInitializeWorkgroupMemory);
 		VULKAN_REQUIRE_FEATURE(dynamicRendering);
 		VULKAN_DISABLE_FEATURE(shaderIntegerDotProduct);
 		VULKAN_DISABLE_FEATURE(maintenance4);
@@ -649,7 +699,7 @@ int WINAPI WinMain(
 
 	if (vulkan_missing_features.size() > 0)
 	{
-		return -1; // TODO: Throw an exception!
+		throw vk::FeatureNotPresentError{to_string(vulkan_missing_features)};
 	}
 
 	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
@@ -750,7 +800,7 @@ int WINAPI WinMain(
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
 	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) 
 	{
-	    return -3;
+	    throw win32_system_error();
 	}
 	int32_t monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
 	int32_t monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
@@ -771,7 +821,7 @@ int WINAPI WinMain(
 	};
 	if (!RegisterClassExW(&win32_window_class))
 	{
-		return -1;
+		throw win32_system_error();
 	}
 
 	HWND win32_window = CreateWindowExW(
@@ -802,7 +852,7 @@ int WINAPI WinMain(
 	);
 	if (!win32_window)
 	{
-		return -2;
+		throw win32_system_error();
 	}
 
 	RECT win32_client_rect;
@@ -985,6 +1035,4 @@ int WINAPI WinMain(
 
 		
 	}
-
-	return 0;
 }
