@@ -4,14 +4,19 @@
 #define STRINGIFY(x) #x
 #define STMT(X) do {X} while (0)
 
+#ifdef _DEBUG
 #define BASED_RENDERER_DEBUG 1
+#else
+#define BASED_RENDERER_DEBUG 0
+#endif
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
 #define BASED_RENDERER_VULKAN_VALIDATION BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
+#define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
-#define BASED_RENDERER_FULLSCREEN 0
+#define BASED_RENDERER_FULLSCREEN !BASED_RENDERER_DEBUG
 
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
 
@@ -40,7 +45,7 @@ static void unordered_remove(std::vector<T> &v, size_t const i) noexcept
 	v.pop_back();
 }
 
-static std::string to_string(std::vector<std::string> const &v)
+static std::string to_string(std::vector<std::string> const &v) noexcept
 {
 	std::string res;
 	if (v.size() > 0)
@@ -54,12 +59,77 @@ static std::string to_string(std::vector<std::string> const &v)
 	return res;
 }
 
-static std::system_error win32_system_error()
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
+static std::string read_entire_file(std::string const &path)
+{
+	std::string res;
+
+	std::ifstream file(path);
+	if (!file)
+	{
+		std::string error = "Failed to load " + path + ".";
+		throw std::runtime_error{error};
+	}
+
+	std::ostringstream buffer;
+	buffer << file.rdbuf();
+	res = buffer.str();
+
+	return res;
+}
+
+static std::system_error win32_system_error() noexcept
 {
 	std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
 	std::system_error system_error{error_code};
 	return system_error;
 }
+
+// struct VulkanShader
+// {
+// 	vk::PipelineShaderStageCreateInfo vs{
+// 		vk::PipelineShaderStageCreateFlags{},
+// 		vk::ShaderStageFlagBits::eVertex,
+// 		vk::ShaderModule{},
+// 		"main",
+// 	};
+// 	vk::PipelineShaderStageCreateInfo fs{
+// 		vk::PipelineShaderStageCreateFlags{},
+// 		vk::ShaderStageFlagBits::eFragment,
+// 		vk::ShaderModule{},
+// 		"main",
+// 	};
+
+// 	VulkanShader(vk::Device const device, std::string_view const name)
+// 	{
+// 		std::string vs_name = name + "_vs.spv";
+// 		std::string vs_file_content = read_entire_file(vs_name);
+// 		vk::ShaderModuleCreateInfo vs_shader_module_create_info{
+// 			{},
+// 			static_cast<uint32_t>(vs_file_content.size()),
+// 			static_cast<uint32_t *>(vs_file_content.data()),
+// 		};
+// 		vs.shaderModule = device.createShaderModule(vs_shader_module_create_info);
+
+// 		std::string fs_name = name + "_fs.spv";
+// 		std::string fs_file_content = read_entire_file(fs_name);
+// 		vk::ShaderModuleCreateInfo fs_shader_module_create_info{
+// 			{},
+// 			static_cast<uint32_t>(fs_file_content.size()),
+// 			static_cast<uint32_t *>(fs_file_content.data()),
+// 		};
+// 		fs.shaderModule = device.createShaderModule(fs_shader_module_create_info);
+// 	}
+
+// 	~VulkanShader()
+// 	{
+// 		vk::destroyShaderModule(fs.shaderModule);
+// 		vk::destroyShaderModule(vs.shaderModule);
+// 	}
+// }
 
 // TODO: Remove global.
 static bool win32_running;
@@ -930,6 +1000,7 @@ static void based_renderer_main()
 	};
 	if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
 	{
+		// TODO: Is this really necessary? I would have thought that using transfer queue operations is enough.
 		vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
 		vulkan_swapchain_create_info.queueFamilyIndexCount = static_cast<uint32_t>(vulkan_queue_family_indices.size());
 		vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
@@ -989,6 +1060,102 @@ static void based_renderer_main()
 		vulkan_semaphores_start[i] = vulkan_device.createSemaphore({});
 		vulkan_semaphores_finished[i] = vulkan_device.createSemaphore({});
 	}
+
+	vk::PipelineCache vulkan_pipeline_cache = vulkan_device.createPipelineCache(
+		{vk::PipelineCacheCreateFlagBits::eExternallySynchronized}
+	);
+
+	vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout({});
+
+	// VulkanShader vulkan_shader{vulkan_device, "shader"};
+
+	std::string vertex_shader_code{read_entire_file("shader_vs.spv")};
+	std::string fragment_shader_code{read_entire_file("shader_fs.spv")};
+
+	vk::ShaderModule vulkan_vertex_shader_module = vulkan_device.createShaderModule({
+		{},
+		static_cast<uint32_t>(vertex_shader_code.size()),
+		reinterpret_cast<uint32_t *>(vertex_shader_code.data()),
+	});
+
+	vk::ShaderModule vulkan_fragment_shader_module = vulkan_device.createShaderModule({
+		{},
+		static_cast<uint32_t>(fragment_shader_code.size()),
+		reinterpret_cast<uint32_t *>(fragment_shader_code.data()),
+	});
+
+	vk::PipelineShaderStageCreateInfo vulkan_vertex_shader_stage_create_info{
+		{},
+		vk::ShaderStageFlagBits::eVertex,
+		vulkan_vertex_shader_module,
+		"main",
+	};
+
+	vk::PipelineShaderStageCreateInfo vulkan_fragment_shader_stage_create_info{
+		{},
+		vk::ShaderStageFlagBits::eFragment,
+		vulkan_fragment_shader_module,
+		"main",
+	};
+
+	std::array<vk::PipelineShaderStageCreateInfo, 2> vulkan_shader_stage_create_infos{
+		vulkan_vertex_shader_stage_create_info,
+		vulkan_fragment_shader_stage_create_info,
+	};
+
+	vk::PipelineInputAssemblyStateCreateInfo vulkan_pipeline_input_assembly_state_create_info{
+		{},
+		vk::PrimitiveTopology::eTriangleList,
+	};
+
+	std::array<vk::Viewport, 1> vulkan_viewports{
+		vk::Viewport{
+			0.0f,
+			0.0f,
+			static_cast<float>(client_width),
+			static_cast<float>(client_height),
+			0.0f,
+			1.0f,
+		},
+	};
+
+	vk::PipelineViewportStateCreateInfo vulkan_pipeline_viewport_state_create_info{
+		vk::PipelineViewportStateCreateFlags{},
+		vulkan_viewports,
+	};
+
+	vk::PipelineRasterizationStateCreateInfo vulkan_pipeline_rasterization_state_create_info{};
+	vk::PipelineMultisampleStateCreateInfo vulkan_pipeline_multisample_state_create_info{};
+	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{};
+	vk::PipelineColorBlendStateCreateInfo vulkan_pipeline_color_blend_state_create_info{};
+	vk::PipelineDynamicStateCreateInfo vulkan_pipeline_dynamic_state_create_info{};
+
+	vk::GraphicsPipelineCreateInfo vulkan_graphics_pipeline_create_info(
+#if BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION
+		vk::PipelineCreateFlagBits::eDisableOptimization,
+#else
+		{},
+#endif
+		vulkan_shader_stage_create_infos,
+		nullptr,
+		&vulkan_pipeline_input_assembly_state_create_info,
+		nullptr,
+		&vulkan_pipeline_viewport_state_create_info,
+		&vulkan_pipeline_rasterization_state_create_info,
+		&vulkan_pipeline_multisample_state_create_info,
+		&vulkan_pipeline_depth_stencil_state_create_info,
+		&vulkan_pipeline_color_blend_state_create_info,
+		&vulkan_pipeline_dynamic_state_create_info,
+		vulkan_pipeline_layout
+	);
+
+
+	auto vulkan_pipelines = vulkan_device.createGraphicsPipelines(
+		vulkan_pipeline_cache,
+		{
+			vulkan_graphics_pipeline_create_info
+		}
+	);
 
 	size_t vulkan_frame_idx = 0;
 
