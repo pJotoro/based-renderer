@@ -729,7 +729,7 @@ static void based_renderer_main()
 		VULKAN_ALLOW_FEATURE(robustImageAccess);
 		VULKAN_DISABLE_FEATURE(inlineUniformBlock);
 		VULKAN_DISABLE_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
-		VULKAN_DISABLE_FEATURE(pipelineCreationCacheControl);
+		VULKAN_ALLOW_FEATURE(pipelineCreationCacheControl);
 		VULKAN_DISABLE_FEATURE(privateData);
 		VULKAN_DISABLE_FEATURE(shaderDemoteToHelperInvocation);
 		VULKAN_DISABLE_FEATURE(shaderTerminateInvocation);
@@ -1061,8 +1061,13 @@ static void based_renderer_main()
 		vulkan_semaphores_finished[i] = vulkan_device.createSemaphore({});
 	}
 
+	vk::PipelineCacheCreateFlagBits vulkan_pipeline_cache_flag_bits{};
+	if (std::get<3>(vulkan_physical_device_features).pipelineCreationCacheControl)
+	{
+		vulkan_pipeline_cache_flag_bits = vk::PipelineCacheCreateFlagBits::eExternallySynchronized;
+	}
 	vk::PipelineCache vulkan_pipeline_cache = vulkan_device.createPipelineCache(
-		{vk::PipelineCacheCreateFlagBits::eExternallySynchronized}
+		{vulkan_pipeline_cache_flag_bits}
 	);
 
 	vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout({});
@@ -1178,7 +1183,6 @@ static void based_renderer_main()
 		{
 			break;
 		}
-
 		vulkan_device.resetFences({vulkan_fences[vulkan_frame_idx]});
 
 		uint32_t vulkan_image_idx = *vulkan_device.acquireNextImageKHR(vulkan_swapchain, std::numeric_limits<uint64_t>::max(), vulkan_semaphores_start[vulkan_frame_idx]);
@@ -1200,6 +1204,31 @@ static void based_renderer_main()
             }
         }
 
-		
+		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
+		cb.begin({
+			vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+		});
+
+		std::array<vk::RenderingAttachmentInfo, 1> vulkan_rendering_attachment_infos{
+			{
+				vulkan_swapchain_image_views[vulkan_image_idx],
+			},
+		};
+
+		cb.beginRendering({
+			vk::RenderingFlags{},
+			vk::Rect2D{
+				vk::Offset2D{0, 0},
+				vk::Extent2D{static_cast<uint32_t>(client_width), static_cast<uint32_t>(client_height)},
+			},
+			1,
+			1,
+			vulkan_rendering_attachment_infos,
+		});
+
+		cb.endRendering();
+		cb.end();
+
+		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
 }
