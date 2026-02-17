@@ -18,5 +18,7 @@
 
 #include <algorithm>
 #include <format>
+#include <fstream>
 #include <optional>
 #include <span>
+#include <sstream>

@@ -59,10 +59,6 @@ static std::string to_string(std::vector<std::string> const &v) noexcept
 	return res;
 }
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
 static std::string read_entire_file(std::string const &path)
 {
 	std::string res;
@@ -1248,7 +1244,9 @@ static void based_renderer_main()
 
 			}
 		};
-		vulkan_graphics_queue.submit2(vulkan_submit_infos);
+		vulkan_graphics_queue.submit2(vulkan_submit_infos, vulkan_fences[vulkan_frame_idx]);
+
+
 
 		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
