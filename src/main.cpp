@@ -1155,7 +1155,7 @@ static void based_renderer_main()
 	);
 
 
-	auto vulkan_pipelines = vulkan_device.createGraphicsPipelines(
+	auto vulkan_pipelines = *vulkan_device.createGraphicsPipelines(
 		vulkan_pipeline_cache,
 		{
 			vulkan_graphics_pipeline_create_info
@@ -1226,8 +1226,29 @@ static void based_renderer_main()
 			vulkan_rendering_attachment_infos,
 		});
 
+		cb.bindPipeline(
+			vk::PipelineBindPoint::eGraphics,
+			vulkan_pipelines[0]
+		);
+		cb.draw(6, 1, 0, 0);
+
 		cb.endRendering();
 		cb.end();
+
+		std::array<vk::SemaphoreSubmitInfo, 1> vulkan_wait_semaphore_infos{
+			{
+				vulkan_semaphores_start[vulkan_frame_idx],
+			},
+		};
+
+		std::array<vk::SubmitInfo2, 1> vulkan_submit_infos{
+			vk::SubmitInfo2{
+				{},
+				vulkan_wait_semaphore_infos
+
+			}
+		};
+		vulkan_graphics_queue.submit2(vulkan_submit_infos);
 
 		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
