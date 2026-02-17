@@ -1049,12 +1049,12 @@ static void based_renderer_main()
 		fence = vulkan_device.createFence({{vk::FenceCreateFlagBits::eSignaled}});
 	}
 
-	std::vector<vk::Semaphore> vulkan_semaphores_start{vulkan_swapchain_images.size()};
-	std::vector<vk::Semaphore> vulkan_semaphores_finished{vulkan_swapchain_images.size()};
+	std::vector<vk::Semaphore> vulkan_semaphores_wait{vulkan_swapchain_images.size()};
+	std::vector<vk::Semaphore> vulkan_semaphores_signal{vulkan_swapchain_images.size()};
 	for (size_t i = 0; i < vulkan_swapchain_images.size(); ++i)
 	{
-		vulkan_semaphores_start[i] = vulkan_device.createSemaphore({});
-		vulkan_semaphores_finished[i] = vulkan_device.createSemaphore({});
+		vulkan_semaphores_wait[i] = vulkan_device.createSemaphore({});
+		vulkan_semaphores_signal[i] = vulkan_device.createSemaphore({});
 	}
 
 	vk::PipelineCacheCreateFlagBits vulkan_pipeline_cache_flag_bits{};
@@ -1181,7 +1181,7 @@ static void based_renderer_main()
 		}
 		vulkan_device.resetFences({vulkan_fences[vulkan_frame_idx]});
 
-		uint32_t vulkan_image_idx = *vulkan_device.acquireNextImageKHR(vulkan_swapchain, std::numeric_limits<uint64_t>::max(), vulkan_semaphores_start[vulkan_frame_idx]);
+		uint32_t vulkan_image_idx = *vulkan_device.acquireNextImageKHR(vulkan_swapchain, std::numeric_limits<uint64_t>::max(), vulkan_semaphores_wait[vulkan_frame_idx]);
 
 		// We only show the window once we've arrived back at the first frame.
 		// This only makes sense if there are just two frames, that is, one backbuffer
@@ -1233,20 +1233,46 @@ static void based_renderer_main()
 
 		std::array<vk::SemaphoreSubmitInfo, 1> vulkan_wait_semaphore_infos{
 			{
-				vulkan_semaphores_start[vulkan_frame_idx],
+				vulkan_semaphores_wait[vulkan_frame_idx],
+			},
+		};
+
+		std::array<vk::CommandBufferSubmitInfo, 1> vulkan_command_buffer_submit_infos{
+			{
+				cb,
+			},
+		};
+
+		std::array<vk::SemaphoreSubmitInfo, 1> vulkan_signal_semaphore_infos{
+			{
+				vulkan_semaphores_signal[vulkan_frame_idx],
 			},
 		};
 
 		std::array<vk::SubmitInfo2, 1> vulkan_submit_infos{
 			vk::SubmitInfo2{
 				{},
-				vulkan_wait_semaphore_infos
-
+				vulkan_wait_semaphore_infos,
+				vulkan_command_buffer_submit_infos,
+				vulkan_signal_semaphore_infos,
 			}
 		};
 		vulkan_graphics_queue.submit2(vulkan_submit_infos, vulkan_fences[vulkan_frame_idx]);
 
-
+		std::array<vk::Semaphore, 1> vulkan_signal_semaphores{vulkan_semaphores_signal[vulkan_frame_idx]};
+		std::array<vk::SwapchainKHR, 1> vulkan_swapchains{vulkan_swapchain};
+		std::array<uint32_t, 1> vulkan_image_indices{vulkan_image_idx};
+		std::array<vk::Result, 1> vulkan_present_results;
+		// TODO: Use the present queue.
+		if (vulkan_graphics_queue.presentKHR({
+			vulkan_signal_semaphores,
+			vulkan_swapchains,
+			vulkan_image_indices,
+			vulkan_present_results
+		}) != vk::Result::eSuccess)
+		{
+			break; // TODO: Do something better than just break.
+		}
 
 		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
