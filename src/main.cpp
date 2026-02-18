@@ -1277,3 +1277,8 @@ static void based_renderer_main()
 		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
 }
+
+// NEXT TIME YOU CODE:
+// You just switched to using Visual Studio.
+// Naturally, this will completely screw up your CMake/Conan build system.
+// Something you should ask yourself is: should I even use Conan? Would it make sense to switch to vcpkg?

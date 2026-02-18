@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "debug",
+      "inherits": "vcpkg",
+      "binaryDir": "${sourceDir}/build/ninja/debug",
+      "environment": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "vcpkg",
+      "binaryDir": "${sourceDir}/build/ninja/release",
+      "environment": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ]
+}
