@@ -84,49 +84,6 @@ static std::system_error win32_system_error() noexcept
 	return system_error;
 }
 
-// struct VulkanShader
-// {
-// 	vk::PipelineShaderStageCreateInfo vs{
-// 		vk::PipelineShaderStageCreateFlags{},
-// 		vk::ShaderStageFlagBits::eVertex,
-// 		vk::ShaderModule{},
-// 		"main",
-// 	};
-// 	vk::PipelineShaderStageCreateInfo fs{
-// 		vk::PipelineShaderStageCreateFlags{},
-// 		vk::ShaderStageFlagBits::eFragment,
-// 		vk::ShaderModule{},
-// 		"main",
-// 	};
-
-// 	VulkanShader(vk::Device const device, std::string_view const name)
-// 	{
-// 		std::string vs_name = name + "_vs.spv";
-// 		std::string vs_file_content = read_entire_file(vs_name);
-// 		vk::ShaderModuleCreateInfo vs_shader_module_create_info{
-// 			{},
-// 			static_cast<uint32_t>(vs_file_content.size()),
-// 			static_cast<uint32_t *>(vs_file_content.data()),
-// 		};
-// 		vs.shaderModule = device.createShaderModule(vs_shader_module_create_info);
-
-// 		std::string fs_name = name + "_fs.spv";
-// 		std::string fs_file_content = read_entire_file(fs_name);
-// 		vk::ShaderModuleCreateInfo fs_shader_module_create_info{
-// 			{},
-// 			static_cast<uint32_t>(fs_file_content.size()),
-// 			static_cast<uint32_t *>(fs_file_content.data()),
-// 		};
-// 		fs.shaderModule = device.createShaderModule(fs_shader_module_create_info);
-// 	}
-
-// 	~VulkanShader()
-// 	{
-// 		vk::destroyShaderModule(fs.shaderModule);
-// 		vk::destroyShaderModule(vs.shaderModule);
-// 	}
-// }
-
 // TODO: Remove global.
 static bool win32_running;
 
