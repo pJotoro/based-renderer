@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.2)
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan 1.4.0 REQUIRED)
 
 project(based_renderer CXX)
 add_executable(based_renderer src/main.cpp)
