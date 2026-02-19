@@ -5,7 +5,7 @@
 			"path": ".",
 		},
 		{
-			"path": "C:\\VulkanSDK\\1.4.335.0\\Include\\vulkan"
+			"path": "C:\\VulkanSDK\\1.4.341.1\\Include\\vulkan"
 		},
 	],
 	"build_systems":

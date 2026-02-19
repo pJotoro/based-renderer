@@ -1,8 +1,11 @@
 #include "pch.hpp"
 
+// TODO: Would it make sense to add BASED_RENDERER_ to these macro names?
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
 #define STMT(X) do {X} while (0)
+
+// TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
 #ifdef _DEBUG
 #define BASED_RENDERER_DEBUG 1
@@ -18,7 +21,10 @@
 
 #define BASED_RENDERER_FULLSCREEN !BASED_RENDERER_DEBUG
 
+// TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
+
+// TODO: How does printing to the debug output work on other systems?
 
 // Works just like std::print, except it prints to the debug console.
 template<class... Args> 
@@ -77,6 +83,8 @@ static std::string read_entire_file(std::string const &path)
 	return res;
 }
 
+// TODO: What about system errors on other systems?
+// TODO: Is there a cross-platform way to get the last error?
 static std::system_error win32_system_error() noexcept
 {
 	std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
@@ -141,7 +149,7 @@ static uint32_t vulkan_find_memory_type_idx(
 	// We first attempt to find a perfect match, that is, matching not only the
 	// required memory properties, but also the preferred ones.
 	// If that doesn't work, we then try again, but this time without the
-	// preferred ones. If that doesn't work, we throw an exception (TODO).
+	// preferred ones. If that doesn't work, we throw an exception.
 
 	for (
 		uint32_t memory_type_idx = 0; 
@@ -215,6 +223,8 @@ struct VulkanImageAllocation
 	bool dedicated_allocation;
 };
 
+// TODO: I just read through vulkan_allocate, and I'm pretty sure I made some huge mistakes, specifically in the second half. I'm pretty sure I forgot to set the memory field in the case where the allocation is not a dedicated allocation.
+
 // How to use:
 // 1. Create all the buffers and images you want.
 // 2. Decide which memory properties you want each of them to have (or not). 
@@ -267,7 +277,7 @@ void vulkan_allocate(
 			memory_allocate_info.allocationSize = buffer_allocation.size;
 			memory_allocate_info.memoryTypeIndex = buffer_allocation.memory_type_idx;
 
-			buffer_allocation.memory = device.allocateMemory(memory_allocate_info);;
+			buffer_allocation.memory = device.allocateMemory(memory_allocate_info);
 
 			vk::BindBufferMemoryInfo bind_buffer_memory_info;
 			bind_buffer_memory_info.buffer = buffer_allocation.buffer;
@@ -445,13 +455,15 @@ static void based_renderer_main()
 		VK_API_VERSION_1_4,
 	};
 
+	// TODO: Query instance layer support.
+
 #if BASED_RENDERER_VULKAN_LAYERS
-	std::vector<char const *> vulkan_layers;
+	std::vector<char const *> vulkan_instance_layers;
 #if BASED_RENDERER_VULKAN_DEBUG
-	vulkan_layers.push_back("VK_LAYER_LUNARG_monitor");
+	vulkan_instance_layers.push_back("VK_LAYER_LUNARG_monitor");
 #endif
 #if BASED_RENDERER_VULKAN_VALIDATION
-	vulkan_layers.push_back("VK_LAYER_KHRONOS_validation");
+	vulkan_instance_layers.push_back("VK_LAYER_KHRONOS_validation");
 	std::array<vk::ValidationFeatureEnableEXT, 2> vulkan_enabled_validation_features{
 		vk::ValidationFeatureEnableEXT::eBestPractices,
 		vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
@@ -479,28 +491,30 @@ static void based_renderer_main()
 	};
 #endif
 
-	std::vector<char const *> vulkan_extensions;
-	vulkan_extensions.push_back("VK_KHR_surface");
-	vulkan_extensions.push_back(VK_KHR_platform_surface);
+	// TODO: Query instance extension support.
+
+	std::vector<char const *> vulkan_instance_extensions;
+	vulkan_instance_extensions.push_back("VK_KHR_surface");
+	vulkan_instance_extensions.push_back(VK_KHR_platform_surface);
 #if BASED_RENDERER_VULKAN_LAYERS
-	vulkan_extensions.push_back("VK_EXT_layer_settings");
+	vulkan_instance_extensions.push_back("VK_EXT_layer_settings");
 #endif
 #if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
-	vulkan_extensions.push_back("VK_EXT_debug_utils");
+	vulkan_instance_extensions.push_back("VK_EXT_debug_utils");
 #endif
 
 	vk::InstanceCreateInfo vulkan_instance_create_info{
 		{},
 		&vulkan_app_info,
 #if BASED_RENDERER_VULKAN_LAYERS
-		static_cast<uint32_t>(vulkan_layers.size()),
-		vulkan_layers.data(),
+		static_cast<uint32_t>(vulkan_instance_layers.size()),
+		vulkan_instance_layers.data(),
 #else
 		0,
 		nullptr,
 #endif
-		static_cast<uint32_t>(vulkan_extensions.size()),
-		vulkan_extensions.data(),
+		static_cast<uint32_t>(vulkan_instance_extensions.size()),
+		vulkan_instance_extensions.data(),
 	};
 
 #if BASED_RENDERER_VULKAN_VALIDATION && BASED_RENDERER_VULKAN_DEBUG_OUTPUT
@@ -753,6 +767,8 @@ static void based_renderer_main()
 			});
 		}
 	}
+
+	// TODO: Query device extension support.
 
 	std::vector<char const *> vulkan_device_extensions;
 	vulkan_device_extensions.push_back("VK_KHR_swapchain");
@@ -1234,8 +1250,3 @@ static void based_renderer_main()
 		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
 }
-
-// NEXT TIME YOU CODE:
-// You just switched to using Visual Studio.
-// Naturally, this will completely screw up your CMake/Conan build system.
-// Something you should ask yourself is: should I even use Conan? Would it make sense to switch to vcpkg?
