@@ -341,8 +341,11 @@ void vulkan_allocate(
 		};
 		auto align_forward = [is_power_of_2](vk::DeviceSize offset, vk::DeviceSize const align) 
 		{
-			// TODO: Switch to using an exception.
-			assert(is_power_of_2(align));
+			if (!is_power_of_2(align))
+			{
+				std::string message{std::format("{} is not a power of 2.", align)};
+				throw vk::LogicError{message};
+			}
 
 			// Same as (offset % align) but faster as 'align' is a power of two
 			vk::DeviceSize modulo = offset & (align-1);
