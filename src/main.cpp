@@ -337,14 +337,14 @@ void vulkan_allocate(
 		vk::DeviceSize memory_offset = 0;
 
 		// https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
-		auto IsPowerOf2 = [](vk::DeviceSize const x) 
+		auto is_power_of_2 = [](vk::DeviceSize const x) 
 		{
 			return (x & (x-1)) == 0;
 		};
-		auto AlignForward = [IsPowerOf2](vk::DeviceSize offset, vk::DeviceSize const align) 
+		auto align_forward = [is_power_of_2](vk::DeviceSize offset, vk::DeviceSize const align) 
 		{
 			// TODO: Switch to using an exception.
-			assert(IsPowerOf2(align));
+			assert(is_power_of_2(align));
 
 			// Same as (offset % align) but faster as 'align' is a power of two
 			vk::DeviceSize modulo = offset & (align-1);
@@ -362,7 +362,7 @@ void vulkan_allocate(
 		{
 			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
 			{
-				memory_offset = AlignForward(memory_offset, buffer_allocation.align);
+				memory_offset = align_forward(memory_offset, buffer_allocation.align);
 
 				vk::BindBufferMemoryInfo bind_buffer_memory_info;
 				bind_buffer_memory_info.buffer = buffer_allocation.buffer;
@@ -377,7 +377,7 @@ void vulkan_allocate(
 		{
 			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
 			{
-				memory_offset = AlignForward(memory_offset, image_allocation.align);
+				memory_offset = align_forward(memory_offset, image_allocation.align);
 
 				vk::BindImageMemoryInfo bind_image_memory_info;
 				bind_image_memory_info.image = image_allocation.image;
@@ -393,6 +393,20 @@ void vulkan_allocate(
 		memory_allocate_info.memoryTypeIndex = memory_type_idx;
 		vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
 
+		for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) 
+		{
+			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
+			{
+				buffer_allocation.memory = memory;
+			}
+		}
+		for (VulkanImageAllocation &image_allocation : image_allocations) 
+		{
+			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
+			{
+				image_allocation.memory = memory;
+			}
+		}
 		for (size_t i = bind_buffer_memory_infos_size; i < bind_buffer_memory_infos.size(); ++i) 
 		{
 			bind_buffer_memory_infos[i].memory = memory;

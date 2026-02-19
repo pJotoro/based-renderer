@@ -12,6 +12,7 @@
 #endif
 
 #define VK_USE_PLATFORM_WIN32_KHR
+// As far as I can tell, VULKAN_HPP_TYPESAFE_CONVERSION is needed in order to allow assigning certain vulkan handles.
 #include <vulkan/vulkan.hpp>
 
 #include <slang/slang.h>
