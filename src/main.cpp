@@ -223,8 +223,6 @@ struct VulkanImageAllocation
 	bool dedicated_allocation;
 };
 
-// TODO: I just read through vulkan_allocate, and I'm pretty sure I made some huge mistakes, specifically in the second half. I'm pretty sure I forgot to set the memory field in the case where the allocation is not a dedicated allocation.
-
 // How to use:
 // 1. Create all the buffers and images you want.
 // 2. Decide which memory properties you want each of them to have (or not). 
