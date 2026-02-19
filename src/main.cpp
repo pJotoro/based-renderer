@@ -440,19 +440,117 @@ int WINAPI WinMain(
 	{
 		based_renderer_main();
 	}
-	catch (vk::FeatureNotPresentError feature_not_present_error)
+	catch (vk::OutOfHostMemoryError err)
 	{
 		// TODO
 	}
-	catch (vk::SystemError system_error)
+	catch (vk::OutOfDeviceMemoryError err)
 	{
 		// TODO
 	}
-	catch (vk::LogicError logic_error)
+	catch (vk::InitializationFailedError err)
 	{
 		// TODO
 	}
-	// TODO: The above errors are only the ones I throw myself. Eventually, you should also list whichever other ones might also happen.
+	catch (vk::DeviceLostError err)
+	{
+		// TODO
+	}
+	catch (vk::MemoryMapFailedError err)
+	{
+		// TODO
+	}
+	catch (vk::LayerNotPresentError err)
+	{
+		// TODO
+	}
+	catch (vk::ExtensionNotPresentError err)
+	{
+		// TODO
+	}
+	catch (vk::FeatureNotPresentError err)
+	{
+		// TODO
+	}
+	catch (vk::IncompatibleDriverError err)
+	{
+		// TODO
+	}
+	catch (vk::TooManyObjectsError err)
+	{
+		// TODO
+	}
+	catch (vk::FormatNotSupportedError err)
+	{
+		// TODO
+	}
+	catch (vk::FragmentedPoolError err)
+	{
+		// TODO
+	}
+	catch (vk::UnknownError err)
+	{
+		// TODO
+	}
+	catch (vk::ValidationFailedError err)
+	{
+		// TODO
+	}
+	catch (vk::OutOfPoolMemoryError err)
+	{
+		// TODO
+	}
+	catch (vk::InvalidExternalHandleError err)
+	{
+		// TODO
+	}
+	catch (vk::InvalidOpaqueCaptureAddressError err)
+	{
+		// TODO
+	}
+	catch (vk::FragmentationError err)
+	{
+		// TODO
+	}
+	catch (vk::NotPermittedError err)
+	{
+		// TODO
+	}
+	catch (vk::SurfaceLostKHRError err)
+	{
+		// TODO
+	}
+	catch (vk::NativeWindowInUseKHRError err)
+	{
+		// TODO
+	}
+	catch (vk::OutOfDateKHRError err)
+	{
+		// TODO
+	}
+	catch (vk::InvalidShaderNVError err)
+	{
+		// TODO
+	}
+	catch (vk::FullScreenExclusiveModeLostEXTError err)
+	{
+		// TODO
+
+		// NOTE: We are not actually using this
+		// extension yet, but will be soon.
+	}
+	catch (vk::LogicError err)
+	{
+		// TODO
+	}
+	catch (vk::SystemError err)
+	{
+		// TODO
+	}
+	catch (...)
+	{
+		// TODO
+	}
 
 	return 0;
 }
