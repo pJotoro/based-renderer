@@ -14,6 +14,8 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.hpp>
 
+#include <slang/slang.h>
+
 // #include <glm/glm.hpp>
 
 #include <algorithm>
