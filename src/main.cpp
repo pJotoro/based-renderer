@@ -19,6 +19,9 @@
 #define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
+#define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_DEBUG
+#define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
+
 #define BASED_RENDERER_FULLSCREEN !BASED_RENDERER_DEBUG
 
 // TODO: What about other systems?
@@ -327,7 +330,7 @@ void vulkan_allocate(
 	for (
 		uint32_t memory_type_idx = 0; 
 		memory_type_idx < physical_device_memory_properties.memoryProperties.memoryTypeCount; 
-		++memory_type_idx) 
+		++memory_type_idx)
 	{
 		size_t bind_buffer_memory_infos_size = bind_buffer_memory_infos.size();
 		size_t bind_image_memory_infos_size = bind_image_memory_infos.size();
@@ -420,6 +423,53 @@ void vulkan_allocate(
 
 	device.bindBufferMemory2(bind_buffer_memory_infos);
 	device.bindImageMemory2(bind_image_memory_infos);
+}
+
+struct SlangContext
+{
+	Slang::ComPtr<slang::IGlobalSession> global_session;
+	Slang::ComPtr<slang::ISession> session;
+	Slang::ComPtr<ISlangFileSystem> file_system;
+};
+
+static void slang_init(SlangContext &ctx)
+{
+	using namespace Slang;
+	using namespace slang;
+
+	SlangGlobalSessionDesc global_session_desc{};
+	createGlobalSession(&global_session_desc, ctx.global_session.writeRef());
+
+	// TODO: Init file system.
+
+	TargetDesc target_desc{
+		.format = SLANG_SPIRV,
+		.profile = ctx.global_session->findProfile("glsl_450"),
+		.compilerOptionEntries = nullptr,
+		.compilerOptionEntryCount = 0,
+	};
+
+	std::array<char const*, 1> const search_paths{
+		"src",
+	};
+
+	SessionDesc session_desc{
+		.targets = &target_desc,
+		.targetCount = 1,
+		.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+		.searchPaths = search_paths.data(),
+		.searchPathCount = search_paths.size(),
+		.preprocessorMacros = nullptr,
+		.preprocessorMacroCount = 0,
+		.fileSystem = ctx.file_system.get(), // TODO: Should I be calling get() or addRef()?
+		.enableEffectAnnotations = false,
+		.compilerOptionEntries = nullptr,
+		.compilerOptionEntryCount = 0,
+#if BASED_RENDERER_SLANG_SPIRV_VALIDATION
+		.skipSPIRVValidation = true,
+#endif
+	};
+	ctx.global_session->createSession(session_desc, ctx.session.writeRef());
 }
 
 // TODO: Remove global variable.
@@ -947,6 +997,9 @@ static void based_renderer_main()
 	{
 		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
 	}
+
+	SlangContext slang_ctx;
+	slang_init(slang_ctx);
 
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
