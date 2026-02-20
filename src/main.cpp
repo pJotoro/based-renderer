@@ -68,23 +68,23 @@ static std::string to_string(std::vector<std::string> const &v) noexcept
 	return res;
 }
 
-static std::string read_entire_file(std::string const &path)
-{
-	std::string res;
+// static std::string read_entire_file(std::string const &path)
+// {
+// 	std::string res;
 
-	std::ifstream file(path);
-	if (!file)
-	{
-		std::string error = "Failed to load " + path + ".";
-		throw std::runtime_error{error};
-	}
+// 	std::ifstream file(path);
+// 	if (!file)
+// 	{
+// 		std::string error = "Failed to load " + path + ".";
+// 		throw std::runtime_error{error};
+// 	}
 
-	std::ostringstream buffer;
-	buffer << file.rdbuf();
-	res = buffer.str();
+// 	std::ostringstream buffer;
+// 	buffer << file.rdbuf();
+// 	res = buffer.str();
 
-	return res;
-}
+// 	return res;
+// }
 
 // TODO: What about system errors on other systems?
 // TODO: Is there a cross-platform way to get the last error?
@@ -229,13 +229,13 @@ struct VulkanImageAllocation
 // How to use:
 // 1. Create all the buffers and images you want.
 // 2. Decide which memory properties you want each of them to have (or not). 
-//    For example, a vertex buffer should probably be device local, while a
-//    staging buffer should be host visible.
+//	For example, a vertex buffer should probably be device local, while a
+//	staging buffer should be host visible.
 // 3. Now you can call vulkan_allocate. When passing the buffers and images,
-//    you should only fill out the fields under the "in" comment.
+//	you should only fill out the fields under the "in" comment.
 // 4. For each buffer and image, the "out" fields will be filled. In all
-//    likelihood, you will only ever need to use the "memory" and "offset"
-//    fields, but the others are there as well just in case.
+//	likelihood, you will only ever need to use the "memory" and "offset"
+//	fields, but the others are there as well just in case.
 void vulkan_allocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
@@ -425,51 +425,39 @@ void vulkan_allocate(
 	device.bindImageMemory2(bind_image_memory_infos);
 }
 
-struct SlangContext
-{
-	Slang::ComPtr<slang::IGlobalSession> global_session;
-	Slang::ComPtr<slang::ISession> session;
-	Slang::ComPtr<ISlangFileSystem> file_system;
-};
-
-static void slang_init(SlangContext &ctx)
+static void slang_load_spirv_code(
+	slang::ISession *slang_session,
+	char const *entry_point_name,
+	Slang::ComPtr<slang::IBlob> &slang_spirv_code)
 {
 	using namespace Slang;
 	using namespace slang;
 
-	SlangGlobalSessionDesc global_session_desc{};
-	createGlobalSession(&global_session_desc, ctx.global_session.writeRef());
+	ComPtr<IModule> module;
+	module = slang_session->loadModule("shader");
 
-	// TODO: Init file system.
+	ComPtr<IEntryPoint> entry_point;
+	module->findEntryPointByName(entry_point_name, entry_point.writeRef());
 
-	TargetDesc target_desc{
-		.format = SLANG_SPIRV,
-		.profile = ctx.global_session->findProfile("glsl_450"),
-		.compilerOptionEntries = nullptr,
-		.compilerOptionEntryCount = 0,
+	std::array<IComponentType *, 2> component_types{
+		module,
+		entry_point,
 	};
+	ComPtr<IComponentType> composed_program;
+	slang_session->createCompositeComponentType(
+		component_types.data(),
+		component_types.size(),
+		composed_program.writeRef()
+	);
 
-	std::array<char const*, 1> const search_paths{
-		"src",
-	};
+	ComPtr<IComponentType> linked_program;
+	composed_program->link(linked_program.writeRef());
 
-	SessionDesc session_desc{
-		.targets = &target_desc,
-		.targetCount = 1,
-		.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-		.searchPaths = search_paths.data(),
-		.searchPathCount = search_paths.size(),
-		.preprocessorMacros = nullptr,
-		.preprocessorMacroCount = 0,
-		.fileSystem = ctx.file_system.get(), // TODO: Should I be calling get() or addRef()?
-		.enableEffectAnnotations = false,
-		.compilerOptionEntries = nullptr,
-		.compilerOptionEntryCount = 0,
-#if BASED_RENDERER_SLANG_SPIRV_VALIDATION
-		.skipSPIRVValidation = true,
-#endif
-	};
-	ctx.global_session->createSession(session_desc, ctx.session.writeRef());
+	linked_program->getEntryPointCode(
+		0, // entryPointIndex
+		0, // targetIndex
+		slang_spirv_code.writeRef()
+	);
 }
 
 // TODO: Remove global variable.
@@ -480,8 +468,8 @@ static void based_renderer_main();
 int WINAPI WinMain(
 	HINSTANCE instance,
 	HINSTANCE prev_instance,
-	LPSTR     command_line,
-	int       show_command)
+	LPSTR	 command_line,
+	int	   show_command)
 {
 	UNUSED(prev_instance);
 	UNUSED(command_line);
@@ -998,14 +986,11 @@ static void based_renderer_main()
 		vulkan_transfer_command_pool = vulkan_graphics_command_pool;
 	}
 
-	SlangContext slang_ctx;
-	slang_init(slang_ctx);
-
 	HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
 	MONITORINFO monitor_info {sizeof(MONITORINFO)};
 	if (!GetMonitorInfoW(win32_monitor, &monitor_info)) 
 	{
-	    throw win32_system_error();
+		throw win32_system_error();
 	}
 	int32_t monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
 	int32_t monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
@@ -1196,6 +1181,45 @@ static void based_renderer_main()
 		vulkan_semaphores_signal[i] = vulkan_device.createSemaphore({});
 	}
 
+	// slang_init
+	Slang::ComPtr<slang::IGlobalSession> slang_global_session;
+	Slang::ComPtr<slang::ISession> slang_session;
+	{
+		using namespace Slang;
+		using namespace slang;
+
+		SlangGlobalSessionDesc global_session_desc{};
+		createGlobalSession(&global_session_desc, slang_global_session.writeRef());
+
+		TargetDesc target_desc{
+			.format = SLANG_SPIRV,
+			.profile = slang_global_session->findProfile("glsl_450"),
+			.compilerOptionEntries = nullptr,
+			.compilerOptionEntryCount = 0,
+		};
+
+		std::array<char const*, 1> const search_paths{
+			"src",
+		};
+
+		SessionDesc session_desc{
+			.targets = &target_desc,
+			.targetCount = 1,
+			.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+			.searchPaths = search_paths.data(),
+			.searchPathCount = search_paths.size(),
+			.preprocessorMacros = nullptr,
+			.preprocessorMacroCount = 0,
+			.enableEffectAnnotations = false,
+			.compilerOptionEntries = nullptr,
+			.compilerOptionEntryCount = 0,
+#if BASED_RENDERER_SLANG_SPIRV_VALIDATION
+			.skipSPIRVValidation = true,
+#endif
+		};
+		slang_global_session->createSession(session_desc, slang_session.writeRef());
+	}
+
 	vk::PipelineCacheCreateFlagBits vulkan_pipeline_cache_flag_bits{};
 	if (std::get<3>(vulkan_physical_device_features).pipelineCreationCacheControl)
 	{
@@ -1207,35 +1231,32 @@ static void based_renderer_main()
 
 	vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout({});
 
-	// VulkanShader vulkan_shader{vulkan_device, "shader"};
-
-	std::string vertex_shader_code{read_entire_file("shader_vs.spv")};
-	std::string fragment_shader_code{read_entire_file("shader_fs.spv")};
-
+	Slang::ComPtr<slang::IBlob> slang_spirv_code_vs;
+	slang_load_spirv_code(slang_session, "vs", slang_spirv_code_vs);
 	vk::ShaderModule vulkan_vertex_shader_module = vulkan_device.createShaderModule({
 		{},
-		static_cast<uint32_t>(vertex_shader_code.size()),
-		reinterpret_cast<uint32_t *>(vertex_shader_code.data()),
+		static_cast<uint32_t>(slang_spirv_code_vs->getBufferSize()),
+		reinterpret_cast<uint32_t const *>(slang_spirv_code_vs->getBufferPointer()),
 	});
-
-	vk::ShaderModule vulkan_fragment_shader_module = vulkan_device.createShaderModule({
-		{},
-		static_cast<uint32_t>(fragment_shader_code.size()),
-		reinterpret_cast<uint32_t *>(fragment_shader_code.data()),
-	});
-
 	vk::PipelineShaderStageCreateInfo vulkan_vertex_shader_stage_create_info{
 		{},
 		vk::ShaderStageFlagBits::eVertex,
 		vulkan_vertex_shader_module,
-		"main",
+		"vs",
 	};
 
+	Slang::ComPtr<slang::IBlob> slang_spirv_code_fs;
+	slang_load_spirv_code(slang_session, "fs", slang_spirv_code_fs);
+	vk::ShaderModule vulkan_fragment_shader_module = vulkan_device.createShaderModule({
+		{},
+		static_cast<uint32_t>(slang_spirv_code_fs->getBufferSize()),
+		reinterpret_cast<uint32_t const *>(slang_spirv_code_fs->getBufferPointer()),
+	});
 	vk::PipelineShaderStageCreateInfo vulkan_fragment_shader_stage_create_info{
 		{},
 		vk::ShaderStageFlagBits::eFragment,
 		vulkan_fragment_shader_module,
-		"main",
+		"fs",
 	};
 
 	std::array<vk::PipelineShaderStageCreateInfo, 2> vulkan_shader_stage_create_infos{
@@ -1325,19 +1346,19 @@ static void based_renderer_main()
 		// We only show the window once we've arrived back at the first frame.
 		// This only makes sense if there are just two frames, that is, one backbuffer
 		// and one frontbuffer. Which is to say, it is to be thrown away!
-        if (vulkan_image_idx == 0) 
-        {
-            static int win32_window_ready = -1;
-            if (win32_window_ready == -1) 
-            {
-                win32_window_ready += 1;
-            } 
-            else if (win32_window_ready == 0) 
-            {
-                win32_window_ready += 1;
-                ShowWindow(win32_window, SW_SHOW);
-            }
-        }
+		if (vulkan_image_idx == 0) 
+		{
+			static int win32_window_ready = -1;
+			if (win32_window_ready == -1) 
+			{
+				win32_window_ready += 1;
+			} 
+			else if (win32_window_ready == 0) 
+			{
+				win32_window_ready += 1;
+				ShowWindow(win32_window, SW_SHOW);
+			}
+		}
 
 		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
 		cb.begin({
