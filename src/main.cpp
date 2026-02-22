@@ -717,6 +717,8 @@ static void based_renderer_main()
 	// features I might want to use, none of them are missing.
 	#define VULKAN_ALLOW_FEATURE(FEATURE)
 
+	// TODO: Should we say why we require or allow certain features? Right now it's pretty self-explanatory because there are so few, but eventually that might change.
+
 	{
 		auto &features = std::get<0>(vulkan_physical_device_features).features;
 		VULKAN_ALLOW_FEATURE(robustBufferAccess);
@@ -788,7 +790,7 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(variablePointers);
 		VULKAN_DISABLE_FEATURE(protectedMemory);
 		VULKAN_DISABLE_FEATURE(samplerYcbcrConversion);
-		VULKAN_DISABLE_FEATURE(shaderDrawParameters);
+		VULKAN_REQUIRE_FEATURE(shaderDrawParameters);
 	}
 	{
 		auto &features = std::get<2>(vulkan_physical_device_features);
@@ -1230,7 +1232,7 @@ static void based_renderer_main()
 	vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout({});
 
 	Slang::ComPtr<slang::IModule> slang_module;
-	slang_module = slang_session->loadModule("shader");
+	slang_module = slang_session->loadModule("src/shader");
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_vs;
 	slang_load_spirv_code(slang_session, slang_module, "vs", slang_spirv_code_vs);
