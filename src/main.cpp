@@ -427,20 +427,18 @@ void vulkan_allocate(
 
 static void slang_load_spirv_code(
 	slang::ISession *slang_session,
+	slang::IModule *slang_module,
 	char const *entry_point_name,
 	Slang::ComPtr<slang::IBlob> &slang_spirv_code)
 {
 	using namespace Slang;
 	using namespace slang;
 
-	ComPtr<IModule> module;
-	module = slang_session->loadModule("shader");
-
 	ComPtr<IEntryPoint> entry_point;
-	module->findEntryPointByName(entry_point_name, entry_point.writeRef());
+	slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef());
 
 	std::array<IComponentType *, 2> component_types{
-		module,
+		slang_module,
 		entry_point,
 	};
 	ComPtr<IComponentType> composed_program;
@@ -1231,8 +1229,11 @@ static void based_renderer_main()
 
 	vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout({});
 
+	Slang::ComPtr<slang::IModule> slang_module;
+	slang_module = slang_session->loadModule("shader");
+
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_vs;
-	slang_load_spirv_code(slang_session, "vs", slang_spirv_code_vs);
+	slang_load_spirv_code(slang_session, slang_module, "vs", slang_spirv_code_vs);
 	vk::ShaderModule vulkan_vertex_shader_module = vulkan_device.createShaderModule({
 		{},
 		static_cast<uint32_t>(slang_spirv_code_vs->getBufferSize()),
@@ -1246,7 +1247,7 @@ static void based_renderer_main()
 	};
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_fs;
-	slang_load_spirv_code(slang_session, "fs", slang_spirv_code_fs);
+	slang_load_spirv_code(slang_session, slang_module, "fs", slang_spirv_code_fs);
 	vk::ShaderModule vulkan_fragment_shader_module = vulkan_device.createShaderModule({
 		{},
 		static_cast<uint32_t>(slang_spirv_code_fs->getBufferSize()),
