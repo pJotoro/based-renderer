@@ -1523,7 +1523,7 @@ static void based_renderer_main()
 				vk::Extent2D{static_cast<uint32_t>(client_width), static_cast<uint32_t>(client_height)},
 			},
 			1,
-			1,
+			0,
 			vulkan_rendering_attachment_infos,
 		});
 
