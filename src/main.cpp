@@ -1431,7 +1431,7 @@ static void based_renderer_main()
 	};
 
 	vk::PipelineRenderingCreateInfo vulkan_pipeline_rendering_create_info{
-		1,
+		0,
 		vulkan_pipeline_rendering_formats,
 	};
 
