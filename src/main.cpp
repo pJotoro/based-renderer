@@ -437,6 +437,8 @@ void vulkan_allocate(
 	device.bindImageMemory2(bind_image_memory_infos);
 }
 
+// TODO: Find a way to not have to write std::format("{}, {}, {}", __FUNCTION__, __LINE__, over and over again.
+// TODO: Change the formatting to make it look more like a compile error.
 #define SLANG_CHECK(RESULT) STMT( \
 	switch (RESULT) \
 	{ \
@@ -1310,6 +1312,7 @@ static void based_renderer_main()
 	slang_module = slang_session->loadModule("src/shader", slang_module_diagnostics.writeRef());
 	if (slang_module_diagnostics->getBufferPointer())
 	{
+		// TODO: Find a way to get shader compile errors in the Sublime Text console.
 		throw std::runtime_error{
 			std::string{
 				static_cast<char const *>(slang_module_diagnostics->getBufferPointer()),
