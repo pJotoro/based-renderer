@@ -241,13 +241,13 @@ struct VulkanImageAllocation
 // How to use:
 // 1. Create all the buffers and images you want.
 // 2. Decide which memory properties you want each of them to have (or not). 
-//	For example, a vertex buffer should probably be device local, while a
-//	staging buffer should be host visible.
+//    For example, a vertex buffer should probably be device local, while a
+//	  staging buffer should be host visible.
 // 3. Now you can call vulkan_allocate. When passing the buffers and images,
-//	you should only fill out the fields under the "in" comment.
+//	  you should only fill out the fields under the "in" comment.
 // 4. For each buffer and image, the "out" fields will be filled. In all
-//	likelihood, you will only ever need to use the "memory" and "offset"
-//	fields, but the others are there as well just in case.
+//	  likelihood, you will only ever need to use the "memory" and "offset"
+//	  fields, but the others are there as well just in case.
 void vulkan_allocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
