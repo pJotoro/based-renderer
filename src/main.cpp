@@ -1351,6 +1351,20 @@ static void based_renderer_main()
 		vulkan_fragment_shader_stage_create_info,
 	};
 
+	// std::array<vk::VertexInputBindingDescription, 1> vulkan_vertex_input_binding_descriptions{
+
+	// };
+
+	// std::array<vk::VertexInputAttributeDescription, 1> vulkan_vertex_input_attribute_descriptions{
+
+	// };
+
+	vk::PipelineVertexInputStateCreateInfo vulkan_vertex_input_state{
+		vk::PipelineVertexInputStateCreateFlags{},
+		// vulkan_vertex_input_binding_descriptions,
+		// vulkan_vertex_input_attribute_descriptions,
+	};
+
 	vk::PipelineInputAssemblyStateCreateInfo vulkan_pipeline_input_assembly_state_create_info{
 		{},
 		vk::PrimitiveTopology::eTriangleList,
@@ -1408,7 +1422,7 @@ static void based_renderer_main()
 		{},
 #endif
 		vulkan_shader_stage_create_infos,
-		nullptr,
+		&vulkan_vertex_input_state,
 		&vulkan_pipeline_input_assembly_state_create_info,
 		nullptr,
 		&vulkan_pipeline_viewport_state_create_info,
