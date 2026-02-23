@@ -1469,6 +1469,7 @@ static void based_renderer_main()
 
 	size_t vulkan_frame_idx = 0;
 
+	win32_running = true;
 	while (win32_running) 
 	{
 		MSG win32_message;
