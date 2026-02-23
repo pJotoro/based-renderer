@@ -425,6 +425,28 @@ void vulkan_allocate(
 	device.bindImageMemory2(bind_image_memory_infos);
 }
 
+#define SLANG_CHECK(RESULT) STMT( \
+	switch (RESULT) \
+	{ \
+		case SLANG_OK: \
+			break; \
+		case SLANG_FAIL: \
+			throw std::runtime_error{"Slang: failed for unknown reason."}; \
+		case SLANG_E_NOT_IMPLEMENTED: \
+			throw std::logic_error{"Slang: function not implemented."}; \
+		case SLANG_E_NO_INTERFACE: \
+			throw std::logic_error{"Slang: no interface."}; \
+		case SLANG_E_ABORT: \
+			throw std::runtime_error{"Slang: error was aborted."}; \
+		case SLANG_E_INVALID_HANDLE: \
+			throw std::logic_error{"Slang: invalid handle"}; \
+		case SLANG_E_INVALID_ARG: \
+			throw std::invalid_argument{"Slang: invalid argument."}; \
+		case SLANG_E_OUT_OF_MEMORY: \
+			throw std::runtime_error{"Slang: ran out of memory."}; \
+	} \
+)
+
 static void slang_load_spirv_code(
 	slang::ISession *slang_session,
 	slang::IModule *slang_module,
@@ -435,27 +457,27 @@ static void slang_load_spirv_code(
 	using namespace slang;
 
 	ComPtr<IEntryPoint> entry_point;
-	slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef());
+	SLANG_CHECK(slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef()));
 
 	std::array<IComponentType *, 2> component_types{
 		slang_module,
 		entry_point,
 	};
 	ComPtr<IComponentType> composed_program;
-	slang_session->createCompositeComponentType(
+	SLANG_CHECK(slang_session->createCompositeComponentType(
 		component_types.data(),
 		component_types.size(),
 		composed_program.writeRef()
-	);
+	));
 
 	ComPtr<IComponentType> linked_program;
-	composed_program->link(linked_program.writeRef());
+	SLANG_CHECK(composed_program->link(linked_program.writeRef()));
 
-	linked_program->getEntryPointCode(
+	SLANG_CHECK(linked_program->getEntryPointCode(
 		0, // entryPointIndex
 		0, // targetIndex
 		slang_spirv_code.writeRef()
-	);
+	));
 }
 
 // TODO: Remove global variable.
@@ -583,6 +605,44 @@ int WINAPI WinMain(
 		// TODO
 	}
 	catch (vk::SystemError err)
+	{
+		// TODO
+	}
+
+	catch (std::invalid_argument err)
+	{
+		// TODO
+	}
+	catch (std::domain_error err)
+	{
+		// TODO
+	}
+	catch (std::length_error err)
+	{
+		// TODO
+	}
+	catch (std::out_of_range err)
+	{
+		// TODO
+	}
+
+	catch (std::range_error err)
+	{
+		// TODO
+	}
+	catch (std::overflow_error err)
+	{
+		// TODO
+	}
+	catch (std::underflow_error err)
+	{
+		// TODO
+	}
+	catch (std::logic_error err)
+	{
+		// TODO
+	}
+	catch (std::runtime_error err)
 	{
 		// TODO
 	}
@@ -1189,7 +1249,7 @@ static void based_renderer_main()
 		using namespace slang;
 
 		SlangGlobalSessionDesc global_session_desc{};
-		createGlobalSession(&global_session_desc, slang_global_session.writeRef());
+		SLANG_CHECK(createGlobalSession(&global_session_desc, slang_global_session.writeRef()));
 
 		TargetDesc target_desc{
 			.format = SLANG_SPIRV,
@@ -1217,7 +1277,7 @@ static void based_renderer_main()
 			.skipSPIRVValidation = true,
 #endif
 		};
-		slang_global_session->createSession(session_desc, slang_session.writeRef());
+		SLANG_CHECK(slang_global_session->createSession(session_desc, slang_session.writeRef()));
 	}
 
 	vk::PipelineCacheCreateFlagBits vulkan_pipeline_cache_flag_bits{};
@@ -1233,6 +1293,10 @@ static void based_renderer_main()
 
 	Slang::ComPtr<slang::IModule> slang_module;
 	slang_module = slang_session->loadModule("src/shader");
+	if (!slang_module)
+	{
+		throw std::runtime_error{"Slang: failed to load src/shader."};
+	}
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_vs;
 	slang_load_spirv_code(slang_session, slang_module, "vs", slang_spirv_code_vs);
