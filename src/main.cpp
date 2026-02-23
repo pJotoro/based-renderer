@@ -122,6 +122,18 @@ LRESULT WINAPI win32_event_callback(
 	return res;
 }
 
+static void win32_message_box(
+	char const *message,
+	char const *title) noexcept
+{
+	MessageBoxA(
+		nullptr,
+		message,
+		title,
+		MB_OK
+	);
+}
+
 vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	vk::DebugUtilsMessageSeverityFlagBitsEXT message_severity,
 	vk::DebugUtilsMessageTypeFlagsEXT message_types,
@@ -503,152 +515,151 @@ int WINAPI WinMain(
 	}
 	catch (vk::OutOfHostMemoryError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::OutOfHostMemoryError");
 	}
 	catch (vk::OutOfDeviceMemoryError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::OutOfDeviceMemoryError");
 	}
 	catch (vk::InitializationFailedError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::InitializationFailedError");
 	}
 	catch (vk::DeviceLostError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::DeviceLostError");
 	}
 	catch (vk::MemoryMapFailedError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::MemoryMapFailedError");
 	}
 	catch (vk::LayerNotPresentError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::LayerNotPresentError");
 	}
 	catch (vk::ExtensionNotPresentError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::ExtensionNotPresentError");
 	}
 	catch (vk::FeatureNotPresentError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::FeatureNotPresentError");
 	}
 	catch (vk::IncompatibleDriverError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::IncompatibleDriverError");
 	}
 	catch (vk::TooManyObjectsError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::TooManyObjectsError");
 	}
 	catch (vk::FormatNotSupportedError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::FormatNotSupportedError");
 	}
 	catch (vk::FragmentedPoolError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::FragmentedPoolError");
 	}
 	catch (vk::UnknownError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::UnknownError");
 	}
 	catch (vk::ValidationFailedError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::ValidationFailedError");
 	}
 	catch (vk::OutOfPoolMemoryError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::OutOfPoolMemoryError");
 	}
 	catch (vk::InvalidExternalHandleError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::InvalidExternalHandleError");
 	}
 	catch (vk::InvalidOpaqueCaptureAddressError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::InvalidOpaqueCaptureAddressError");
 	}
 	catch (vk::FragmentationError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::FragmentationError");
 	}
 	catch (vk::NotPermittedError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::NotPermittedError");
 	}
 	catch (vk::SurfaceLostKHRError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::SurfaceLostKHRError");
 	}
 	catch (vk::NativeWindowInUseKHRError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::NativeWindowInUseKHRError");
 	}
 	catch (vk::OutOfDateKHRError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::OutOfDateKHRError");
 	}
 	catch (vk::InvalidShaderNVError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::InvalidShaderNVError");
 	}
 	catch (vk::FullScreenExclusiveModeLostEXTError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::FullScreenExclusiveModeLostEXTError");
 
 		// NOTE: We are not actually using this
 		// extension yet, but will be soon.
 	}
 	catch (vk::LogicError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::LogicError");
 	}
 	catch (vk::SystemError err)
 	{
-		// TODO
+		win32_message_box(err.what(), "vk::SystemError");
 	}
 
 	catch (std::invalid_argument err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::invalid_argument");
 	}
 	catch (std::domain_error err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::domain_error");
 	}
 	catch (std::length_error err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::length_error");
 	}
 	catch (std::out_of_range err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::out_of_range");
 	}
-
 	catch (std::range_error err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::range_error");
 	}
 	catch (std::overflow_error err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::overflow_error");
 	}
 	catch (std::underflow_error err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::underflow_error");
 	}
 	catch (std::logic_error err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::logic_error");
 	}
 	catch (std::runtime_error err)
 	{
-		// TODO
+		win32_message_box(err.what(), "std::runtime_error");
 	}
 	catch (...)
 	{
-		// TODO
+		win32_message_box("Failed for unknown reason.", "Error");
 	}
 
 	return 0;
