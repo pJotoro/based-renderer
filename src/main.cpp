@@ -1383,7 +1383,19 @@ static void based_renderer_main()
 		vulkan_scissors,
 	};
 
-	vk::PipelineRasterizationStateCreateInfo vulkan_pipeline_rasterization_state_create_info{};
+	vk::PipelineRasterizationStateCreateInfo vulkan_pipeline_rasterization_state_create_info{
+		{},
+		{},
+		{},
+		vk::PolygonMode::eFill,
+		{},
+		vk::FrontFace::eCounterClockwise,
+		{},
+		{},
+		{},
+		{},
+		1.0f,
+	};
 	vk::PipelineMultisampleStateCreateInfo vulkan_pipeline_multisample_state_create_info{};
 	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{};
 	vk::PipelineColorBlendStateCreateInfo vulkan_pipeline_color_blend_state_create_info{};
