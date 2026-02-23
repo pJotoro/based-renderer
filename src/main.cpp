@@ -926,7 +926,7 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(shaderTerminateInvocation);
 		VULKAN_DISABLE_FEATURE(subgroupSizeControl);
 		VULKAN_DISABLE_FEATURE(computeFullSubgroups);
-		VULKAN_DISABLE_FEATURE(synchronization2);
+		VULKAN_REQUIRE_FEATURE(synchronization2);
 		VULKAN_DISABLE_FEATURE(textureCompressionASTC_HDR);
 		VULKAN_ALLOW_FEATURE(shaderZeroInitializeWorkgroupMemory);
 		VULKAN_REQUIRE_FEATURE(dynamicRendering);
