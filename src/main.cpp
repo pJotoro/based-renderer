@@ -443,19 +443,19 @@ void vulkan_allocate(
 		case SLANG_OK: \
 			break; \
 		case SLANG_FAIL: \
-			throw std::runtime_error{"Slang: failed for unknown reason."}; \
+			throw std::runtime_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: failed for unknown reason.")}; \
 		case SLANG_E_NOT_IMPLEMENTED: \
-			throw std::logic_error{"Slang: function not implemented."}; \
+			throw std::logic_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: function not implemented.")}; \
 		case SLANG_E_NO_INTERFACE: \
-			throw std::logic_error{"Slang: no interface."}; \
+			throw std::logic_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: no interface.")}; \
 		case SLANG_E_ABORT: \
-			throw std::runtime_error{"Slang: error was aborted."}; \
+			throw std::runtime_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: error was aborted.")}; \
 		case SLANG_E_INVALID_HANDLE: \
-			throw std::logic_error{"Slang: invalid handle"}; \
+			throw std::logic_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: invalid handle")}; \
 		case SLANG_E_INVALID_ARG: \
-			throw std::invalid_argument{"Slang: invalid argument."}; \
+			throw std::invalid_argument{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: invalid argument.")}; \
 		case SLANG_E_OUT_OF_MEMORY: \
-			throw std::runtime_error{"Slang: ran out of memory."}; \
+			throw std::runtime_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: ran out of memory.")}; \
 	} \
 )
 
