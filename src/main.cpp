@@ -471,10 +471,7 @@ static void slang_load_spirv_code(
 	using namespace slang;
 
 	ComPtr<IEntryPoint> entry_point;
-	if (SLANG_FAILED(slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef())))
-	{
-
-	}
+	SLANG_CHECK(slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef()));
 
 	std::array<IComponentType *, 2> component_types{
 		slang_module,
@@ -1310,14 +1307,14 @@ static void based_renderer_main()
 	Slang::ComPtr<slang::IModule> slang_module;
 	Slang::ComPtr<slang::IBlob> slang_module_diagnostics;
 	slang_module = slang_session->loadModule("src/shader", slang_module_diagnostics.writeRef());
-	if (slang_module_diagnostics->getBufferPointer())
+	if (slang_module_diagnostics.get())
 	{
 		// TODO: Find a way to get shader compile errors in the Sublime Text console.
 		throw std::runtime_error{
-			std::string{
+			std::string{std::string_view{
 				static_cast<char const *>(slang_module_diagnostics->getBufferPointer()),
 				static_cast<size_t>(slang_module_diagnostics->getBufferSize())
-			}
+			}}
 		};
 	}
 
@@ -1335,18 +1332,18 @@ static void based_renderer_main()
 		"vs",
 	};
 
-	Slang::ComPtr<slang::IBlob> slang_spirv_code_fs;
-	slang_load_spirv_code(slang_session, slang_module, "fs", slang_spirv_code_fs);
+	Slang::ComPtr<slang::IBlob> slang_spirv_code_ps;
+	slang_load_spirv_code(slang_session, slang_module, "ps", slang_spirv_code_ps);
 	vk::ShaderModule vulkan_fragment_shader_module = vulkan_device.createShaderModule({
 		{},
-		static_cast<uint32_t>(slang_spirv_code_fs->getBufferSize()),
-		reinterpret_cast<uint32_t const *>(slang_spirv_code_fs->getBufferPointer()),
+		static_cast<uint32_t>(slang_spirv_code_ps->getBufferSize()),
+		reinterpret_cast<uint32_t const *>(slang_spirv_code_ps->getBufferPointer()),
 	});
 	vk::PipelineShaderStageCreateInfo vulkan_fragment_shader_stage_create_info{
 		{},
 		vk::ShaderStageFlagBits::eFragment,
 		vulkan_fragment_shader_module,
-		"fs",
+		"ps",
 	};
 
 	std::array<vk::PipelineShaderStageCreateInfo, 2> vulkan_shader_stage_create_infos{
