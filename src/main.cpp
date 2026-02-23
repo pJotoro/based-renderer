@@ -1367,9 +1367,20 @@ static void based_renderer_main()
 		},
 	};
 
+	std::array<vk::Rect2D, 1> vulkan_scissors{
+		vk::Rect2D{
+			vk::Offset2D{0, 0},
+			vk::Extent2D{
+				static_cast<uint32_t>(client_width), 
+				static_cast<uint32_t>(client_height)
+			},
+		},
+	};
+
 	vk::PipelineViewportStateCreateInfo vulkan_pipeline_viewport_state_create_info{
 		vk::PipelineViewportStateCreateFlags{},
 		vulkan_viewports,
+		vulkan_scissors,
 	};
 
 	vk::PipelineRasterizationStateCreateInfo vulkan_pipeline_rasterization_state_create_info{};
