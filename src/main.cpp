@@ -1323,7 +1323,7 @@ static void based_renderer_main()
 	vk::ShaderModule vulkan_vertex_shader_module = vulkan_device.createShaderModule({
 		{},
 		static_cast<uint32_t>(slang_spirv_code_vs->getBufferSize()),
-		reinterpret_cast<uint32_t const *>(slang_spirv_code_vs->getBufferPointer()),
+		static_cast<uint32_t const *>(slang_spirv_code_vs->getBufferPointer()),
 	});
 	vk::PipelineShaderStageCreateInfo vulkan_vertex_shader_stage_create_info{
 		{},
@@ -1337,7 +1337,7 @@ static void based_renderer_main()
 	vk::ShaderModule vulkan_fragment_shader_module = vulkan_device.createShaderModule({
 		{},
 		static_cast<uint32_t>(slang_spirv_code_ps->getBufferSize()),
-		reinterpret_cast<uint32_t const *>(slang_spirv_code_ps->getBufferPointer()),
+		static_cast<uint32_t const *>(slang_spirv_code_ps->getBufferPointer()),
 	});
 	vk::PipelineShaderStageCreateInfo vulkan_fragment_shader_stage_create_info{
 		{},
@@ -1359,7 +1359,7 @@ static void based_renderer_main()
 
 	// };
 
-	vk::PipelineVertexInputStateCreateInfo vulkan_vertex_input_state{
+	vk::PipelineVertexInputStateCreateInfo vulkan_vertex_input_state_create_info{
 		vk::PipelineVertexInputStateCreateFlags{},
 		// vulkan_vertex_input_binding_descriptions,
 		// vulkan_vertex_input_attribute_descriptions,
@@ -1415,14 +1415,23 @@ static void based_renderer_main()
 	vk::PipelineColorBlendStateCreateInfo vulkan_pipeline_color_blend_state_create_info{};
 	vk::PipelineDynamicStateCreateInfo vulkan_pipeline_dynamic_state_create_info{};
 
-	vk::GraphicsPipelineCreateInfo vulkan_graphics_pipeline_create_info(
+	std::array<vk::Format const, 1> const vulkan_pipeline_rendering_formats{
+		vulkan_format,
+	};
+
+	vk::PipelineRenderingCreateInfo vulkan_pipeline_rendering_create_info{
+		1,
+		vulkan_pipeline_rendering_formats,
+	};
+
+	vk::GraphicsPipelineCreateInfo vulkan_graphics_pipeline_create_info{
 #if BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION
 		vk::PipelineCreateFlagBits::eDisableOptimization,
 #else
 		{},
 #endif
 		vulkan_shader_stage_create_infos,
-		&vulkan_vertex_input_state,
+		&vulkan_vertex_input_state_create_info,
 		&vulkan_pipeline_input_assembly_state_create_info,
 		nullptr,
 		&vulkan_pipeline_viewport_state_create_info,
@@ -1431,8 +1440,13 @@ static void based_renderer_main()
 		&vulkan_pipeline_depth_stencil_state_create_info,
 		&vulkan_pipeline_color_blend_state_create_info,
 		&vulkan_pipeline_dynamic_state_create_info,
-		vulkan_pipeline_layout
-	);
+		vulkan_pipeline_layout,
+		{},
+		{},
+		{},
+		{},
+		&vulkan_pipeline_rendering_create_info,
+	};
 
 
 	auto vulkan_pipelines = *vulkan_device.createGraphicsPipelines(
