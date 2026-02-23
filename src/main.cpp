@@ -1329,7 +1329,7 @@ static void based_renderer_main()
 		{},
 		vk::ShaderStageFlagBits::eVertex,
 		vulkan_vertex_shader_module,
-		"vs",
+		"main",
 	};
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_ps;
@@ -1343,7 +1343,7 @@ static void based_renderer_main()
 		{},
 		vk::ShaderStageFlagBits::eFragment,
 		vulkan_fragment_shader_module,
-		"ps",
+		"main",
 	};
 
 	std::array<vk::PipelineShaderStageCreateInfo, 2> vulkan_shader_stage_create_infos{
