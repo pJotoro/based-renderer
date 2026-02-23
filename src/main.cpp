@@ -1479,15 +1479,10 @@ static void based_renderer_main()
 			continue;
 		}
 
-		// TODO: Do something better than just break.
-		if (vulkan_device.waitForFences(
+		vk::detail::resultCheck(vulkan_device.waitForFences(
 			{vulkan_fences[vulkan_frame_idx]}, 
 			vk::True, 
-			std::numeric_limits<uint64_t>::max())
-			!= vk::Result::eSuccess)
-		{
-			break;
-		}
+			std::numeric_limits<uint64_t>::max()), "Failed to wait for fence.");
 		vulkan_device.resetFences({vulkan_fences[vulkan_frame_idx]});
 
 		uint32_t vulkan_image_idx = *vulkan_device.acquireNextImageKHR(vulkan_swapchain, std::numeric_limits<uint64_t>::max(), vulkan_semaphores_wait[vulkan_frame_idx]);
@@ -1573,15 +1568,12 @@ static void based_renderer_main()
 		std::array<uint32_t, 1> vulkan_image_indices{vulkan_image_idx};
 		std::array<vk::Result, 1> vulkan_present_results;
 		// TODO: Use the present queue.
-		if (vulkan_graphics_queue.presentKHR({
+		vk::detail::resultCheck(vulkan_graphics_queue.presentKHR({
 			vulkan_signal_semaphores,
 			vulkan_swapchains,
 			vulkan_image_indices,
 			vulkan_present_results
-		}) != vk::Result::eSuccess)
-		{
-			break; // TODO: Do something better than just break.
-		}
+		}), "Failed to present.");
 
 		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
