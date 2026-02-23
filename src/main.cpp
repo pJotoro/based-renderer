@@ -469,7 +469,10 @@ static void slang_load_spirv_code(
 	using namespace slang;
 
 	ComPtr<IEntryPoint> entry_point;
-	SLANG_CHECK(slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef()));
+	if (SLANG_FAILED(slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef())))
+	{
+
+	}
 
 	std::array<IComponentType *, 2> component_types{
 		slang_module,
@@ -1303,10 +1306,16 @@ static void based_renderer_main()
 	vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout({});
 
 	Slang::ComPtr<slang::IModule> slang_module;
-	slang_module = slang_session->loadModule("src/shader");
-	if (!slang_module)
+	Slang::ComPtr<slang::IBlob> slang_module_diagnostics;
+	slang_module = slang_session->loadModule("src/shader", slang_module_diagnostics.writeRef());
+	if (slang_module_diagnostics->getBufferPointer())
 	{
-		throw std::runtime_error{"Slang: failed to load src/shader."};
+		throw std::runtime_error{
+			std::string{
+				static_cast<char const *>(slang_module_diagnostics->getBufferPointer()),
+				static_cast<size_t>(slang_module_diagnostics->getBufferSize())
+			}
+		};
 	}
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_vs;
