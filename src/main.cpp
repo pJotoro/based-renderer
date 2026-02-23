@@ -1412,7 +1412,18 @@ static void based_renderer_main()
 	};
 	vk::PipelineMultisampleStateCreateInfo vulkan_pipeline_multisample_state_create_info{};
 	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{};
-	vk::PipelineColorBlendStateCreateInfo vulkan_pipeline_color_blend_state_create_info{};
+
+	std::array<vk::PipelineColorBlendAttachmentState, 1> vulkan_pipeline_color_blend_attachment_states{
+		vk::PipelineColorBlendAttachmentState{},
+	};
+
+	vk::PipelineColorBlendStateCreateInfo vulkan_pipeline_color_blend_state_create_info{
+		vk::PipelineColorBlendStateCreateFlags{},
+		{},
+		vk::LogicOp::eClear,
+		vulkan_pipeline_color_blend_attachment_states,
+	};
+
 	vk::PipelineDynamicStateCreateInfo vulkan_pipeline_dynamic_state_create_info{};
 
 	std::array<vk::Format const, 1> const vulkan_pipeline_rendering_formats{
