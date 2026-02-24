@@ -908,9 +908,9 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(bufferDeviceAddress);
 		VULKAN_DISABLE_FEATURE(bufferDeviceAddressCaptureReplay);
 		VULKAN_DISABLE_FEATURE(bufferDeviceAddressMultiDevice);
-		VULKAN_DISABLE_FEATURE(vulkanMemoryModel);
-		VULKAN_DISABLE_FEATURE(vulkanMemoryModelDeviceScope);
-		VULKAN_DISABLE_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
+		VULKAN_REQUIRE_FEATURE(vulkanMemoryModel); // TODO: Do we necessarily need these?
+		VULKAN_REQUIRE_FEATURE(vulkanMemoryModelDeviceScope);
+		VULKAN_REQUIRE_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
 		VULKAN_DISABLE_FEATURE(shaderOutputViewportIndex);
 		VULKAN_DISABLE_FEATURE(shaderOutputLayer);
 		VULKAN_DISABLE_FEATURE(subgroupBroadcastDynamicId);
