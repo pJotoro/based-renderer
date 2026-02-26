@@ -1628,7 +1628,7 @@ static void based_renderer_main()
 			vk::SemaphoreSubmitInfo{
 				vulkan_semaphores_signal[vulkan_frame_idx],
 				0,
-				vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+				vk::PipelineStageFlagBits2::eAllCommands, // This is needed, or else the present will start before all commands have finished.
 			},
 		};
 
