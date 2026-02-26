@@ -1,15 +1,12 @@
 module shader;
 
 [shader("vertex")]
-float4 vs(float3 in_pos : POSITION, uint vertex_id : SV_VertexID) : SV_Position
+float4 vs(uint vertex_id : SV_VertexID) : SV_Position
 {
-    float2 vertices[6] = {
-        float2(0.5, 0.5),
-        float2(0.5, -0.5),
-        float2(-0.5, 0.5),
-        float2(0.5, -0.5),
-        float2(-0.5, -0.5),
-        float2(-0.5, 0.5)
+    float2 vertices[3] = {
+        float2(-0.5f, -0.5f),
+        float2(0.5f, -0.5f),
+        float2(0.0f,  0.5f)
     };
 
     return float4(vertices[vertex_id], 0.0, 1.0);
