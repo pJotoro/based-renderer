@@ -1581,7 +1581,7 @@ static void based_renderer_main()
 				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
 				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eBottomOfPipe},
-				vk::AccessFlags2{},
+				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentRead},
 				vk::ImageLayout::eColorAttachmentOptimal,
 				vk::ImageLayout::ePresentSrcKHR,
 				0, // TODO
@@ -1614,7 +1614,7 @@ static void based_renderer_main()
 			vk::SemaphoreSubmitInfo{
 				vulkan_semaphores_wait[vulkan_frame_idx],
 				0,
-				vk::PipelineStageFlagBits2::eBottomOfPipe,
+				vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 			},
 		};
 
