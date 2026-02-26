@@ -1511,9 +1511,9 @@ static void based_renderer_main()
 
 		static size_t staged = 0;
 
-		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers{
+		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers_render{
 			vk::ImageMemoryBarrier2{
-				vk::PipelineStageFlags2{},
+				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 				vk::AccessFlags2{},
 				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
@@ -1532,27 +1532,28 @@ static void based_renderer_main()
 			},
 		};
 
-		if (staged == vulkan_swapchain_images.size())
-		{
-			vulkan_image_memory_barriers[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
-		}
+		// if (staged == vulkan_swapchain_images.size())
+		// {
+		// 	vulkan_image_memory_barriers[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
+		// }
 
 		cb.pipelineBarrier2({
 			vk::DependencyFlags{},
 			{},
 			{},
-			vulkan_image_memory_barriers,
+			vulkan_image_memory_barriers_render,
 		});
 
 		std::array<vk::RenderingAttachmentInfo, 1> vulkan_rendering_attachment_infos{
 			vk::RenderingAttachmentInfo{
 				vulkan_swapchain_image_views[vulkan_image_idx],
-				vulkan_image_memory_barriers[0].newLayout,
+				vk::ImageLayout::eColorAttachmentOptimal,
 				vk::ResolveModeFlagBits::eNone,
-				{},
+				vk::ImageView{},
 				vk::ImageLayout::eUndefined,
-				vk::AttachmentLoadOp::eDontCare,
+				vk::AttachmentLoadOp::eClear,
 				vk::AttachmentStoreOp::eStore,
+				vk::ClearValue{},
 			},
 		};
 
@@ -1575,17 +1576,32 @@ static void based_renderer_main()
 
 		cb.endRendering();
 
-		vulkan_image_memory_barriers[0].srcStageMask = vulkan_image_memory_barriers[0].dstStageMask;
-		vulkan_image_memory_barriers[0].srcAccessMask = vulkan_image_memory_barriers[0].dstAccessMask;
-		vulkan_image_memory_barriers[0].oldLayout = vulkan_image_memory_barriers[0].newLayout;
-		vulkan_image_memory_barriers[0].dstStageMask = vk::PipelineStageFlags2{};
-		vulkan_image_memory_barriers[0].dstAccessMask = vk::AccessFlags2{};
-		vulkan_image_memory_barriers[0].newLayout = vk::ImageLayout::ePresentSrcKHR;
+		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers_present{
+			vk::ImageMemoryBarrier2{
+				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eBottomOfPipe},
+				vk::AccessFlags2{},
+				vk::ImageLayout::eColorAttachmentOptimal,
+				vk::ImageLayout::ePresentSrcKHR,
+				0, // TODO
+				0, // TODO
+				vulkan_swapchain_images[vulkan_image_idx],
+				vk::ImageSubresourceRange{
+					vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+					0,
+					1,
+					0,
+					1,
+				},
+			},
+		};
+
 		cb.pipelineBarrier2({
 			vk::DependencyFlags{},
 			{},
 			{},
-			vulkan_image_memory_barriers,
+			vulkan_image_memory_barriers_present,
 		});
 		if (staged < vulkan_swapchain_images.size())
 		{
