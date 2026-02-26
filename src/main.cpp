@@ -1580,8 +1580,8 @@ static void based_renderer_main()
 			vk::ImageMemoryBarrier2{
 				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
-				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eBottomOfPipe},
-				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentRead},
+				vk::PipelineStageFlags2{},
+				vk::AccessFlags2{},
 				vk::ImageLayout::eColorAttachmentOptimal,
 				vk::ImageLayout::ePresentSrcKHR,
 				0, // TODO
