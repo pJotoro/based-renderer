@@ -460,39 +460,6 @@ void vulkan_allocate(
 	} \
 )
 
-static void slang_load_spirv_code(
-	slang::ISession *slang_session,
-	slang::IModule *slang_module,
-	char const *entry_point_name,
-	Slang::ComPtr<slang::IBlob> &slang_spirv_code)
-{
-	using namespace Slang;
-	using namespace slang;
-
-	ComPtr<IEntryPoint> entry_point;
-	SLANG_CHECK(slang_module->findEntryPointByName(entry_point_name, entry_point.writeRef()));
-
-	std::array<IComponentType *, 2> component_types{
-		slang_module,
-		entry_point,
-	};
-	ComPtr<IComponentType> composed_program;
-	SLANG_CHECK(slang_session->createCompositeComponentType(
-		component_types.data(),
-		component_types.size(),
-		composed_program.writeRef()
-	));
-
-	ComPtr<IComponentType> linked_program;
-	SLANG_CHECK(composed_program->link(linked_program.writeRef()));
-
-	SLANG_CHECK(linked_program->getEntryPointCode(
-		0, // entryPointIndex
-		0, // targetIndex
-		slang_spirv_code.writeRef()
-	));
-}
-
 // TODO: Remove global variable.
 static HINSTANCE win32_instance;
 
@@ -1318,7 +1285,33 @@ static void based_renderer_main()
 	}
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_vs;
-	slang_load_spirv_code(slang_session, slang_module, "vs", slang_spirv_code_vs);
+	Slang::ComPtr<slang::IEntryPoint> slang_entry_point_vs;
+	Slang::ComPtr<slang::IComponentType> slang_composed_program_vs;
+	Slang::ComPtr<slang::IComponentType> slang_linked_program_vs;
+	{
+		using namespace Slang;
+		using namespace slang;
+
+		SLANG_CHECK(slang_module->findEntryPointByName("vs", slang_entry_point_vs.writeRef()));
+
+		std::array<IComponentType *, 2> component_types{
+			slang_module,
+			slang_entry_point_vs,
+		};
+		SLANG_CHECK(slang_session->createCompositeComponentType(
+			component_types.data(),
+			component_types.size(),
+			slang_composed_program_vs.writeRef()
+		));
+
+		SLANG_CHECK(slang_composed_program_vs->link(slang_linked_program_vs.writeRef()));
+
+		SLANG_CHECK(slang_linked_program_vs->getEntryPointCode(
+			0, // entryPointIndex
+			0, // targetIndex
+			slang_spirv_code_vs.writeRef()
+		));
+	}
 	vk::ShaderModule vulkan_vertex_shader_module = vulkan_device.createShaderModule({
 		{},
 		static_cast<uint32_t>(slang_spirv_code_vs->getBufferSize()),
@@ -1332,7 +1325,33 @@ static void based_renderer_main()
 	};
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_ps;
-	slang_load_spirv_code(slang_session, slang_module, "ps", slang_spirv_code_ps);
+	Slang::ComPtr<slang::IEntryPoint> slang_entry_point_ps;
+	Slang::ComPtr<slang::IComponentType> slang_composed_program_ps;
+	Slang::ComPtr<slang::IComponentType> slang_linked_program_ps;
+	{
+		using namespace Slang;
+		using namespace slang;
+
+		SLANG_CHECK(slang_module->findEntryPointByName("ps", slang_entry_point_ps.writeRef()));
+
+		std::array<IComponentType *, 2> component_types{
+			slang_module,
+			slang_entry_point_ps,
+		};
+		SLANG_CHECK(slang_session->createCompositeComponentType(
+			component_types.data(),
+			component_types.size(),
+			slang_composed_program_ps.writeRef()
+		));
+
+		SLANG_CHECK(slang_composed_program_ps->link(slang_linked_program_ps.writeRef()));
+
+		SLANG_CHECK(slang_linked_program_ps->getEntryPointCode(
+			0, // entryPointIndex
+			0, // targetIndex
+			slang_spirv_code_ps.writeRef()
+		));
+	}
 	vk::ShaderModule vulkan_fragment_shader_module = vulkan_device.createShaderModule({
 		{},
 		static_cast<uint32_t>(slang_spirv_code_ps->getBufferSize()),
