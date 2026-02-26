@@ -202,7 +202,6 @@ static uint32_t vulkan_find_memory_type_idx(
 		}
 	}
 
-	// TODO: Is there a more specific type of error we could use? Would it make sense to inherit from vk::LogicError?
 	throw vk::LogicError{"Failed to find a memory type index with the required memory properties."};
 }
 
