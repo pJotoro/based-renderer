@@ -1397,16 +1397,16 @@ static void based_renderer_main()
 	};
 
 	vk::PipelineRasterizationStateCreateInfo vulkan_pipeline_rasterization_state_create_info{
-		{},
-		{},
-		{},
+		vk::PipelineRasterizationStateCreateFlags{},
+		vk::False,
+		vk::False,
 		vk::PolygonMode::eFill,
-		{},
+		vk::CullModeFlagBits::eNone,
 		vk::FrontFace::eCounterClockwise,
-		{},
-		{},
-		{},
-		{},
+		vk::False,
+		0.0f,
+		0.0f,
+		0.0f,
 		1.0f,
 	};
 	vk::PipelineMultisampleStateCreateInfo vulkan_pipeline_multisample_state_create_info{};
