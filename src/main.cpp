@@ -645,27 +645,17 @@ static void based_renderer_main()
 #if BASED_RENDERER_VULKAN_LAYERS
 	std::vector<vk::LayerProperties> vulkan_layer_properties = vk::enumerateInstanceLayerProperties();
 	std::vector<char const *> vulkan_instance_layers;
-	bool vulkan_validation_enabled = false;
 	for (vk::LayerProperties const &layer_properties : vulkan_layer_properties)
 	{
-		if (std::strcmp(layer_properties.layerName,"VK_LAYER_LUNARG_monitor") == 0)
+		if (std::strcmp(layer_properties.layerName, "VK_LAYER_LUNARG_monitor") == 0)
 		{
 			vulkan_instance_layers.push_back("VK_LAYER_LUNARG_monitor");
 		}
 		else if (std::strcmp(layer_properties.layerName, "VK_LAYER_KHRONOS_validation") == 0)
 		{
 			vulkan_instance_layers.push_back("VK_LAYER_KHRONOS_validation");
-			vulkan_validation_enabled = true;
 		}
 	}
-
-	std::array<vk::ValidationFeatureEnableEXT, 2> vulkan_enabled_validation_features{
-		vk::ValidationFeatureEnableEXT::eBestPractices,
-		vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
-	};
-	vk::ValidationFeaturesEXT vulkan_validation_features{
-		vulkan_enabled_validation_features,
-	};
 #endif // BASED_RENDERER_VULKAN_LAYERS
 
 #if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
@@ -685,17 +675,34 @@ static void based_renderer_main()
 	};
 #endif
 
-	// TODO: Query instance extension support.
-
 	std::vector<char const *> vulkan_instance_extensions;
 	vulkan_instance_extensions.push_back("VK_KHR_surface");
 	vulkan_instance_extensions.push_back(VK_KHR_platform_surface);
-#if BASED_RENDERER_VULKAN_LAYERS
-	vulkan_instance_extensions.push_back("VK_EXT_layer_settings");
-#endif
 #if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
 	vulkan_instance_extensions.push_back("VK_EXT_debug_utils");
 #endif
+	std::vector<vk::ExtensionProperties> vulkan_instance_extension_properties = vk::enumerateInstanceExtensionProperties();
+	std::vector<std::string> vulkan_missing_instance_extensions;
+	for (char const *instance_extension : vulkan_instance_extensions)
+	{
+		bool found = false;
+		for (vk::ExtensionProperties const &extension_properties : vulkan_instance_extension_properties)
+		{
+			if (std::strcmp(extension_properties.extensionName, instance_extension) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			vulkan_missing_instance_extensions.push_back(instance_extension);
+		}
+	}
+	if (vulkan_missing_instance_extensions.size() > 0)
+	{
+		throw vk::ExtensionNotPresentError{to_string(vulkan_missing_instance_extensions)};
+	}
 
 	vk::InstanceCreateInfo vulkan_instance_create_info{
 		{},
@@ -711,19 +718,9 @@ static void based_renderer_main()
 		vulkan_instance_extensions.data(),
 	};
 
-	if (vulkan_validation_enabled && BASED_RENDERER_VULKAN_DEBUG_OUTPUT)
-	{
-		vulkan_instance_create_info.pNext = &vulkan_validation_features;
-		vulkan_validation_features.pNext = &vulkan_debug_output_info;
-	}
-	else if (vulkan_validation_enabled)
-	{
-		vulkan_instance_create_info.pNext = &vulkan_validation_features;
-	}
-	else if (BASED_RENDERER_VULKAN_DEBUG_OUTPUT)
-	{	
-		vulkan_instance_create_info.pNext = &vulkan_debug_output_info;
-	}
+#if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
+	vulkan_instance_create_info.pNext = &vulkan_debug_output_info;
+#endif
 
 	vk::Instance vulkan_instance = vk::createInstance(vulkan_instance_create_info);
 
