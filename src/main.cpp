@@ -966,10 +966,30 @@ static void based_renderer_main()
 		}
 	}
 
-	// TODO: Query device extension support.
-
 	std::vector<char const *> vulkan_device_extensions;
 	vulkan_device_extensions.push_back("VK_KHR_swapchain");
+	std::vector<vk::ExtensionProperties> vulkan_device_extension_properties = vulkan_physical_device.enumerateDeviceExtensionProperties();
+	std::vector<std::string> vulkan_missing_device_extensions;
+	for (char const *device_extension : vulkan_device_extensions)
+	{
+		bool found = false;
+		for (vk::ExtensionProperties const &extension_properties : vulkan_device_extension_properties)
+		{
+			if (std::strcmp(extension_properties.extensionName, device_extension) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			vulkan_missing_device_extensions.push_back(device_extension);
+		}
+	}
+	if (vulkan_missing_device_extensions.size() > 0)
+	{
+		throw vk::ExtensionNotPresentError{to_string(vulkan_missing_device_extensions)};
+	}
 
 	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo{
 		{}, 
