@@ -1532,10 +1532,10 @@ static void based_renderer_main()
 			},
 		};
 
-		// if (staged == vulkan_swapchain_images.size())
-		// {
-		// 	vulkan_image_memory_barriers[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
-		// }
+		if (staged == vulkan_swapchain_images.size())
+		{
+			vulkan_image_memory_barriers_render[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
+		}
 
 		cb.pipelineBarrier2({
 			vk::DependencyFlags{},
@@ -1614,7 +1614,7 @@ static void based_renderer_main()
 			vk::SemaphoreSubmitInfo{
 				vulkan_semaphores_wait[vulkan_frame_idx],
 				0,
-				vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+				vk::PipelineStageFlagBits2::eBottomOfPipe,
 			},
 		};
 
