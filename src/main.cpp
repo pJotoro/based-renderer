@@ -14,9 +14,8 @@
 #endif
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VULKAN_VALIDATION BASED_RENDERER_VULKAN_DEBUG
+#define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
-#define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
 #define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_DEBUG
@@ -643,15 +642,23 @@ static void based_renderer_main()
 		VK_API_VERSION_1_4,
 	};
 
-	// TODO: Query instance layer support.
-
 #if BASED_RENDERER_VULKAN_LAYERS
+	std::vector<vk::LayerProperties> vulkan_layer_properties = vk::enumerateInstanceLayerProperties();
 	std::vector<char const *> vulkan_instance_layers;
-#if BASED_RENDERER_VULKAN_DEBUG
-	vulkan_instance_layers.push_back("VK_LAYER_LUNARG_monitor");
-#endif
-#if BASED_RENDERER_VULKAN_VALIDATION
-	vulkan_instance_layers.push_back("VK_LAYER_KHRONOS_validation");
+	bool vulkan_validation_enabled = false;
+	for (vk::LayerProperties const &layer_properties : vulkan_layer_properties)
+	{
+		if (std::strcmp(layer_properties.layerName,"VK_LAYER_LUNARG_monitor") == 0)
+		{
+			vulkan_instance_layers.push_back("VK_LAYER_LUNARG_monitor");
+		}
+		else if (std::strcmp(layer_properties.layerName, "VK_LAYER_KHRONOS_validation") == 0)
+		{
+			vulkan_instance_layers.push_back("VK_LAYER_KHRONOS_validation");
+			vulkan_validation_enabled = true;
+		}
+	}
+
 	std::array<vk::ValidationFeatureEnableEXT, 2> vulkan_enabled_validation_features{
 		vk::ValidationFeatureEnableEXT::eBestPractices,
 		vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
@@ -659,7 +666,6 @@ static void based_renderer_main()
 	vk::ValidationFeaturesEXT vulkan_validation_features{
 		vulkan_enabled_validation_features,
 	};
-#endif
 #endif // BASED_RENDERER_VULKAN_LAYERS
 
 #if BASED_RENDERER_VULKAN_DEBUG_OUTPUT
@@ -705,14 +711,19 @@ static void based_renderer_main()
 		vulkan_instance_extensions.data(),
 	};
 
-#if BASED_RENDERER_VULKAN_VALIDATION && BASED_RENDERER_VULKAN_DEBUG_OUTPUT
-	vulkan_instance_create_info.pNext = &vulkan_validation_features;
-	vulkan_validation_features.pNext = &vulkan_debug_output_info;
-#elif BASED_RENDERER_VULKAN_VALIDATION
-	vulkan_instance_create_info.pNext = &vulkan_validation_features;
-#elif BASED_RENDERER_VULKAN_DEBUG_OUTPUT
-	vulkan_instance_create_info.pNext = &vulkan_debug_output_info;
-#endif
+	if (vulkan_validation_enabled && BASED_RENDERER_VULKAN_DEBUG_OUTPUT)
+	{
+		vulkan_instance_create_info.pNext = &vulkan_validation_features;
+		vulkan_validation_features.pNext = &vulkan_debug_output_info;
+	}
+	else if (vulkan_validation_enabled)
+	{
+		vulkan_instance_create_info.pNext = &vulkan_validation_features;
+	}
+	else if (BASED_RENDERER_VULKAN_DEBUG_OUTPUT)
+	{	
+		vulkan_instance_create_info.pNext = &vulkan_debug_output_info;
+	}
 
 	vk::Instance vulkan_instance = vk::createInstance(vulkan_instance_create_info);
 
