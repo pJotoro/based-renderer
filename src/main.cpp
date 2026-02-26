@@ -367,7 +367,7 @@ void vulkan_allocate(
 			if (modulo != 0) 
 			{
 				// If 'offset' is not aligned, push it to the
-				// next value which is aligned
+				// next value that is aligned
 				offset += align - modulo;
 			}
 			return offset;

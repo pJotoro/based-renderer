@@ -13,7 +13,7 @@ float4 vs(uint vertex_id : SV_VertexID) : SV_Position
 }
 
 [shader("pixel")]
-float4 ps(float4 in_pos : SV_POSITION) : SV_TARGET
+float4 ps() : SV_TARGET
 {
     return float4(0.1, 0.2, 0.3, 1.0);
 }
