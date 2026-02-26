@@ -18,7 +18,7 @@
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
-#define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_DEBUG
+#define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
 
 #define BASED_RENDERER_FULLSCREEN !BASED_RENDERER_DEBUG
@@ -1693,15 +1693,15 @@ static void based_renderer_main()
 		};
 		vulkan_graphics_queue.submit2(vulkan_submit_infos, vulkan_fences[vulkan_frame_idx]);
 
-		std::array<vk::Semaphore, 1> vulkan_signal_semaphores{vulkan_semaphores_signal[vulkan_frame_idx]};
-		std::array<vk::SwapchainKHR, 1> vulkan_swapchains{vulkan_swapchain};
-		std::array<uint32_t, 1> vulkan_image_indices{vulkan_image_idx};
+		std::array<vk::Semaphore, 1> vulkan_present_wait_semaphores{vulkan_semaphores_signal[vulkan_frame_idx]};
+		std::array<vk::SwapchainKHR, 1> vulkan_present_swapchains{vulkan_swapchain};
+		std::array<uint32_t, 1> vulkan_present_image_indices{vulkan_image_idx};
 		std::array<vk::Result, 1> vulkan_present_results;
 		// TODO: Use the present queue.
 		vk::detail::resultCheck(vulkan_graphics_queue.presentKHR({
-			vulkan_signal_semaphores,
-			vulkan_swapchains,
-			vulkan_image_indices,
+			vulkan_present_wait_semaphores,
+			vulkan_present_swapchains,
+			vulkan_present_image_indices,
 			vulkan_present_results
 		}), "Failed to present.");
 		vk::detail::resultCheck(vulkan_present_results[0], "Failed to present.");
