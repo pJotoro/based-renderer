@@ -13,7 +13,7 @@
 #define BASED_RENDERER_DEBUG 0
 #endif
 
-#define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
+#define BASED_RENDERER_VULKAN_DEBUG 0
 #define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
@@ -1095,6 +1095,7 @@ static void based_renderer_main()
 		L"based_renderer",
 #if !BASED_RENDERER_FULLSCREEN
 		WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
+		// TODO: Convert from client coordinates to window coordinates.
 		monitor_width/4,
 		monitor_height/4,
 		monitor_width/2,
@@ -1144,16 +1145,8 @@ static void based_renderer_main()
 	vk::SurfaceCapabilitiesKHR vulkan_surface_capabilities = vulkan_physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
 
 	vk::Extent2D vulkan_swapchain_extent;
-	if (vulkan_surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max() || 
-		vulkan_surface_capabilities.currentExtent.height == std::numeric_limits<uint32_t>::max())
-	{
-		vulkan_swapchain_extent.width  = std::clamp(static_cast<uint32_t>(client_width), vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
-		vulkan_swapchain_extent.height = std::clamp(static_cast<uint32_t>(client_height), vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
-	}
-	else
-	{
-		vulkan_swapchain_extent = vulkan_surface_capabilities.currentExtent;
-	}
+	vulkan_swapchain_extent.width  = std::clamp(static_cast<uint32_t>(client_width), vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
+	vulkan_swapchain_extent.height = std::clamp(static_cast<uint32_t>(client_height), vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
 
 	vk::PresentModeKHR vulkan_swapchain_present_mode = vk::PresentModeKHR::eFifo; // TODO
 
@@ -1424,8 +1417,8 @@ static void based_renderer_main()
 		vk::Viewport{
 			0.0f,
 			0.0f,
-			static_cast<float>(client_width),
-			static_cast<float>(client_height),
+			static_cast<float>(vulkan_swapchain_extent.width),
+			static_cast<float>(vulkan_swapchain_extent.height),
 			0.0f,
 			1.0f,
 		},
@@ -1434,10 +1427,7 @@ static void based_renderer_main()
 	std::array<vk::Rect2D, 1> vulkan_scissors{
 		vk::Rect2D{
 			vk::Offset2D{0, 0},
-			vk::Extent2D{
-				static_cast<uint32_t>(client_width), 
-				static_cast<uint32_t>(client_height)
-			},
+			vulkan_swapchain_extent,
 		},
 	};
 
@@ -1612,7 +1602,7 @@ static void based_renderer_main()
 			vk::RenderingFlags{},
 			vk::Rect2D{
 				vk::Offset2D{0, 0},
-				vk::Extent2D{static_cast<uint32_t>(client_width), static_cast<uint32_t>(client_height)},
+				vulkan_swapchain_extent,
 			},
 			1,
 			0,
