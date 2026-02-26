@@ -13,7 +13,7 @@
 #define BASED_RENDERER_DEBUG 0
 #endif
 
-#define BASED_RENDERER_VULKAN_DEBUG 0
+#define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
 #define BASED_RENDERER_VULKAN_VALIDATION BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_LAYERS (BASED_RENDERER_VULKAN_DEBUG || BASED_RENDERER_VULKAN_VALIDATION)
@@ -1033,6 +1033,10 @@ static void based_renderer_main()
 	}
 	int32_t monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
 	int32_t monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+
+	// TODO: For some ridiculous reason, monitor_width and monitor_height are not equal to 1920 and 1080 respectively, even thoug that is the resolution of my laptop. Until I figure out why that is, I'll just set them manually.
+	monitor_width = 1920;
+	monitor_height = 1080;
 
 	WNDCLASSEXW win32_window_class{
 		.cbSize = sizeof(WNDCLASSEXW),
