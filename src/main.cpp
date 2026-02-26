@@ -13,7 +13,7 @@
 #define BASED_RENDERER_DEBUG 0
 #endif
 
-#define BASED_RENDERER_VULKAN_DEBUG 0
+#define BASED_RENDERER_VULKAN_DEBUG 1
 #define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
@@ -1297,7 +1297,7 @@ static void based_renderer_main()
 
 	Slang::ComPtr<slang::IModule> slang_module;
 	Slang::ComPtr<slang::IBlob> slang_module_diagnostics;
-	slang_module = slang_session->loadModule("src/shader", slang_module_diagnostics.writeRef());
+	slang_module = slang_session->loadModule("shader", slang_module_diagnostics.writeRef());
 	if (slang_module_diagnostics.get())
 	{
 		// TODO: Find a way to get shader compile errors in the Sublime Text console.
@@ -1454,7 +1454,16 @@ static void based_renderer_main()
 	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{};
 
 	std::array<vk::PipelineColorBlendAttachmentState, 1> vulkan_pipeline_color_blend_attachment_states{
-		vk::PipelineColorBlendAttachmentState{},
+		vk::PipelineColorBlendAttachmentState{
+			{},
+			vk::BlendFactor::eZero,
+			vk::BlendFactor::eZero,
+			vk::BlendOp::eAdd,
+			vk::BlendFactor::eZero,
+			vk::BlendFactor::eZero,
+			vk::BlendOp::eAdd,
+			vk::ColorComponentFlagBits::eR|vk::ColorComponentFlagBits::eG|vk::ColorComponentFlagBits::eB|vk::ColorComponentFlagBits::eA,
+		},
 	};
 
 	vk::PipelineColorBlendStateCreateInfo vulkan_pipeline_color_blend_state_create_info{
