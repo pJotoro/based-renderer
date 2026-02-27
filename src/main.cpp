@@ -1062,10 +1062,6 @@ static void based_renderer_main()
 	int32_t monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
 	int32_t monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
 
-	// TODO: For some ridiculous reason, monitor_width and monitor_height are not equal to 1920 and 1080 respectively, even thoug that is the resolution of my laptop. Until I figure out why that is, I'll just set them manually.
-	monitor_width = 1920;
-	monitor_height = 1080;
-
 	WNDCLASSEXW win32_window_class{
 		.cbSize = sizeof(WNDCLASSEXW),
 		.style = 0,
@@ -1085,28 +1081,43 @@ static void based_renderer_main()
 		throw win32_system_error();
 	}
 
+	RECT win32_client_rect;
+	DWORD win32_window_styles;
+	DWORD win32_window_styles_ex;
+#if !BASED_RENDERER_FULLSCREEN
+	win32_client_rect = RECT{
+		.left = monitor_width/4,
+		.top = monitor_height/4,
+		.right = monitor_width*3/4,
+		.bottom = monitor_height*3/4,
+	};
+	win32_window_styles = WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU;
+	win32_window_styles_ex = 0;
+#else
+	win32_window_styles = WS_POPUP;
+	win32_client_rect = (RECT){
+		.left = 0,
+		.top = 0,
+		.right = monitor_width,
+		.bottom = monitor_height,
+	};
+	win32_window_styles_ex = WS_EX_TOPMOST;
+#endif
+	RECT win32_window_rect = win32_client_rect;
+	if (!AdjustWindowRectEx(&win32_window_rect, win32_window_styles, false, win32_window_styles_ex))
+	{
+		throw win32_system_error();
+	}
+
 	HWND win32_window = CreateWindowExW(
-#if !BASED_RENDERER_FULLSCREEN
-		0,
-#else
-		WS_EX_TOPMOST,
-#endif
+		win32_window_styles_ex,
 		L"based_renderer",
 		L"based_renderer",
-#if !BASED_RENDERER_FULLSCREEN
-		WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
-		// TODO: Convert from client coordinates to window coordinates.
-		monitor_width/4,
-		monitor_height/4,
-		monitor_width/2,
-		monitor_height/2,
-#else
-		WS_POPUP,
-		0,
-		0,
-		monitor_width,
-		monitor_height,
-#endif
+		win32_window_styles,
+		win32_window_rect.left,
+		win32_window_rect.top,
+		win32_window_rect.right - win32_window_rect.left,
+		win32_window_rect.bottom - win32_window_rect.top,
 		nullptr,
 		nullptr,
 		win32_instance,
@@ -1117,10 +1128,8 @@ static void based_renderer_main()
 		throw win32_system_error();
 	}
 
-	RECT win32_client_rect;
-	GetClientRect(win32_window, &win32_client_rect);
-	int32_t client_width = win32_client_rect.right - win32_client_rect.left;
-	int32_t client_height = win32_client_rect.bottom - win32_client_rect.top;
+	uint32_t client_width = static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left);
+	uint32_t client_height = static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top);
 
 	vk::SurfaceKHR vulkan_surface = vulkan_instance.createWin32SurfaceKHR({
 		{},
@@ -1145,8 +1154,8 @@ static void based_renderer_main()
 	vk::SurfaceCapabilitiesKHR vulkan_surface_capabilities = vulkan_physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
 
 	vk::Extent2D vulkan_swapchain_extent;
-	vulkan_swapchain_extent.width  = std::clamp(static_cast<uint32_t>(client_width), vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
-	vulkan_swapchain_extent.height = std::clamp(static_cast<uint32_t>(client_height), vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
+	vulkan_swapchain_extent.width  = std::clamp(client_width, vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
+	vulkan_swapchain_extent.height = std::clamp(client_height, vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
 
 	vk::PresentModeKHR vulkan_swapchain_present_mode = vk::PresentModeKHR::eFifo; // TODO
 
