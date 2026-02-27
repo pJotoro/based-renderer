@@ -1,9 +1,13 @@
 #include "pch.hpp"
+// TODO: Use import instead of #include.
+// Information on how to do this can be found here: https://docs.vulkan.org/tutorial/latest/02_Development_environment.html#_cmake
 
 // TODO: Would it make sense to add BASED_RENDERER_ to these macro names?
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
 #define STMT(X) do {X} while (0)
+
+#define FORMAT_ERROR(MESSAGE) std::format("{}({}): {}", __FUNCTION__, __LINE__, (MESSAGE))
 
 // TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
@@ -13,7 +17,7 @@
 #define BASED_RENDERER_DEBUG 0
 #endif
 
-#define BASED_RENDERER_VULKAN_DEBUG 1
+#define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
 #define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
@@ -201,7 +205,7 @@ static uint32_t vulkan_find_memory_type_idx(
 		}
 	}
 
-	throw vk::LogicError{"Failed to find a memory type index with the required memory properties."};
+	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index with the required memory properties.")};
 }
 
 struct VulkanBufferAllocation 
@@ -357,7 +361,7 @@ void vulkan_allocate(
 			if (!is_power_of_2(align))
 			{
 				std::string message{std::format("{} is not a power of 2.", align)};
-				throw vk::LogicError{message};
+				throw vk::LogicError{FORMAT_ERROR(message)};
 			}
 
 			// Same as (offset % align) but faster as 'align' is a power of two
@@ -435,27 +439,25 @@ void vulkan_allocate(
 	device.bindImageMemory2(bind_image_memory_infos);
 }
 
-// TODO: Find a way to not have to write std::format("{}, {}, {}", __FUNCTION__, __LINE__, over and over again.
-// TODO: Change the formatting to make it look more like a compile error.
 #define SLANG_CHECK(RESULT) STMT( \
 	switch (RESULT) \
 	{ \
 		case SLANG_OK: \
 			break; \
 		case SLANG_FAIL: \
-			throw std::runtime_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: failed for unknown reason.")}; \
+			throw std::runtime_error{FORMAT_ERROR("Slang: failed for unknown reason.")}; \
 		case SLANG_E_NOT_IMPLEMENTED: \
-			throw std::logic_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: function not implemented.")}; \
+			throw std::logic_error{FORMAT_ERROR("Slang: function not implemented.")}; \
 		case SLANG_E_NO_INTERFACE: \
-			throw std::logic_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: no interface.")}; \
+			throw std::logic_error{FORMAT_ERROR("Slang: no interface.")}; \
 		case SLANG_E_ABORT: \
-			throw std::runtime_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: error was aborted.")}; \
+			throw std::runtime_error{FORMAT_ERROR("Slang: error was aborted.")}; \
 		case SLANG_E_INVALID_HANDLE: \
-			throw std::logic_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: invalid handle")}; \
+			throw std::logic_error{FORMAT_ERROR("Slang: invalid handle")}; \
 		case SLANG_E_INVALID_ARG: \
-			throw std::invalid_argument{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: invalid argument.")}; \
+			throw std::invalid_argument{FORMAT_ERROR("Slang: invalid argument.")}; \
 		case SLANG_E_OUT_OF_MEMORY: \
-			throw std::runtime_error{std::format("{}, {}, {}", __FUNCTION__, __LINE__, "Slang: ran out of memory.")}; \
+			throw std::runtime_error{FORMAT_ERROR("Slang: ran out of memory.")}; \
 	} \
 )
 
@@ -701,7 +703,7 @@ static void based_renderer_main()
 	}
 	if (vulkan_missing_instance_extensions.size() > 0)
 	{
-		throw vk::ExtensionNotPresentError{to_string(vulkan_missing_instance_extensions)};
+		throw vk::ExtensionNotPresentError{FORMAT_ERROR(to_string(vulkan_missing_instance_extensions))};
 	}
 
 	vk::InstanceCreateInfo vulkan_instance_create_info{
@@ -764,7 +766,8 @@ static void based_renderer_main()
 	// features I might want to use, none of them are missing.
 	#define VULKAN_ALLOW_FEATURE(FEATURE)
 
-	// TODO: Should we say why we require or allow certain features? Right now it's pretty self-explanatory because there are so few, but eventually that might change.
+	// TODO: Should we say why we require or allow certain features? 
+	// Right now it's pretty self-explanatory because there are so few, but eventually that might change.
 
 	{
 		auto &features = std::get<0>(vulkan_physical_device_features).features;
@@ -934,7 +937,7 @@ static void based_renderer_main()
 
 	if (vulkan_missing_features.size() > 0)
 	{
-		throw vk::FeatureNotPresentError{to_string(vulkan_missing_features)};
+		throw vk::FeatureNotPresentError{FORMAT_ERROR(to_string(vulkan_missing_features))};
 	}
 
 	std::vector<vk::QueueFamilyProperties> vulkan_queue_family_properties = vulkan_physical_device.getQueueFamilyProperties();
@@ -968,7 +971,7 @@ static void based_renderer_main()
 
 	std::vector<char const *> vulkan_device_extensions;
 	vulkan_device_extensions.push_back("VK_KHR_swapchain");
-	std::vector<vk::ExtensionProperties> vulkan_device_extension_properties = vulkan_physical_device.enumerateDeviceExtensionProperties();
+	auto vulkan_device_extension_properties = vulkan_physical_device.enumerateDeviceExtensionProperties();
 	std::vector<std::string> vulkan_missing_device_extensions;
 	for (char const *device_extension : vulkan_device_extensions)
 	{
@@ -988,7 +991,7 @@ static void based_renderer_main()
 	}
 	if (vulkan_missing_device_extensions.size() > 0)
 	{
-		throw vk::ExtensionNotPresentError{to_string(vulkan_missing_device_extensions)};
+		throw vk::ExtensionNotPresentError{FORMAT_ERROR(to_string(vulkan_missing_device_extensions))};
 	}
 
 	vk::Device vulkan_device = vulkan_physical_device.createDevice(vk::DeviceCreateInfo{
@@ -1148,23 +1151,38 @@ static void based_renderer_main()
 	}
 	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx.value()][0];
 
-	std::vector<vk::SurfaceFormatKHR> vulkan_surface_formats = vulkan_physical_device.getSurfaceFormatsKHR(vulkan_surface);
+	auto vulkan_surface_formats = vulkan_physical_device.getSurfaceFormatsKHR(vulkan_surface);
 	vk::Format vulkan_format = vulkan_surface_formats.front().format; // TODO
 
-	vk::SurfaceCapabilitiesKHR vulkan_surface_capabilities = vulkan_physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
+	auto vulkan_surface_capabilities = vulkan_physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
 
 	vk::Extent2D vulkan_swapchain_extent;
-	vulkan_swapchain_extent.width  = std::clamp(client_width, vulkan_surface_capabilities.minImageExtent.width, vulkan_surface_capabilities.maxImageExtent.width);
-	vulkan_swapchain_extent.height = std::clamp(client_height, vulkan_surface_capabilities.minImageExtent.height, vulkan_surface_capabilities.maxImageExtent.height);
+	vulkan_swapchain_extent.width  = std::clamp(
+		client_width, 
+		vulkan_surface_capabilities.minImageExtent.width, 
+		vulkan_surface_capabilities.maxImageExtent.width
+	);
+	vulkan_swapchain_extent.height = std::clamp(
+		client_height, 
+		vulkan_surface_capabilities.minImageExtent.height, 
+		vulkan_surface_capabilities.maxImageExtent.height
+	);
 
 	vk::PresentModeKHR vulkan_swapchain_present_mode = vk::PresentModeKHR::eFifo; // TODO
 
 	vk::SurfaceTransformFlagBitsKHR vulkan_pre_transform = 
-		(vulkan_surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity) 
-		? vk::SurfaceTransformFlagBitsKHR::eIdentity 
-		: vulkan_surface_capabilities.currentTransform;
+		(vulkan_surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity) ? 
+		vk::SurfaceTransformFlagBitsKHR::eIdentity : 
+		vulkan_surface_capabilities.currentTransform;
 
-	vk::CompositeAlphaFlagBitsKHR vulkan_composite_alpha = (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePreMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePreMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePostMultiplied) ? vk::CompositeAlphaFlagBitsKHR::ePostMultiplied : (vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::eInherit) ? vk::CompositeAlphaFlagBitsKHR::eInherit : vk::CompositeAlphaFlagBitsKHR::eOpaque;
+	vk::CompositeAlphaFlagBitsKHR vulkan_composite_alpha = 
+		(vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePreMultiplied) ? 
+			vk::CompositeAlphaFlagBitsKHR::ePreMultiplied : 
+			(vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePostMultiplied) ? 
+				vk::CompositeAlphaFlagBitsKHR::ePostMultiplied : 
+				(vulkan_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::eInherit) ? 
+					vk::CompositeAlphaFlagBitsKHR::eInherit : 
+					vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
 	vk::SwapchainCreateInfoKHR vulkan_swapchain_create_info{
 		vk::SwapchainCreateFlagsKHR(),
@@ -1310,12 +1328,12 @@ static void based_renderer_main()
 	if (slang_module_diagnostics.get())
 	{
 		// TODO: Find a way to get shader compile errors in the Sublime Text console.
-		throw std::runtime_error{
-			std::string{std::string_view{
+		throw std::runtime_error(
+			FORMAT_ERROR(std::string_view(
 				static_cast<char const *>(slang_module_diagnostics->getBufferPointer()),
 				static_cast<size_t>(slang_module_diagnostics->getBufferSize())
-			}}
-		};
+			))
+		);
 	}
 
 	Slang::ComPtr<slang::IBlob> slang_spirv_code_vs;
@@ -1471,7 +1489,10 @@ static void based_renderer_main()
 			vk::BlendFactor::eZero,
 			vk::BlendFactor::eZero,
 			vk::BlendOp::eAdd,
-			vk::ColorComponentFlagBits::eR|vk::ColorComponentFlagBits::eG|vk::ColorComponentFlagBits::eB|vk::ColorComponentFlagBits::eA,
+			vk::ColorComponentFlagBits::eR|
+			vk::ColorComponentFlagBits::eG|
+			vk::ColorComponentFlagBits::eB|
+			vk::ColorComponentFlagBits::eA,
 		},
 	};
 
@@ -1544,7 +1565,11 @@ static void based_renderer_main()
 			std::numeric_limits<uint64_t>::max()), "Failed to wait for fence.");
 		vulkan_device.resetFences({vulkan_fences[vulkan_frame_idx]});
 
-		uint32_t vulkan_image_idx = *vulkan_device.acquireNextImageKHR(vulkan_swapchain, std::numeric_limits<uint64_t>::max(), vulkan_semaphores_wait[vulkan_frame_idx]);
+		uint32_t vulkan_image_idx = *vulkan_device.acquireNextImageKHR(
+			vulkan_swapchain, 
+			std::numeric_limits<uint64_t>::max(), 
+			vulkan_semaphores_wait[vulkan_frame_idx]
+		);
 
 		// We only show the window once we've arrived back at the first frame.
 		// This only makes sense if there are just two frames, that is, one backbuffer
