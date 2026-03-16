@@ -7,12 +7,6 @@
       "binaryDir": "${sourceDir}/build/ninja",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-      },
-      "environment": {
-        "CMAKE_CXX_STANDARD": "23",
-        "CMAKE_CXX_MODULE_STD": "1",
-        "CMAKE_CXX_SCAN_FOR_MODULES": "1",
-        "CMAKE_EXPERIMENTAL_CXX_IMPORT_STD": "451f2fe2-a8a2-47c3-bc32-94786d8fc91b"
       }
     }
   ]

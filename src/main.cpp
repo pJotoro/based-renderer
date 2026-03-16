@@ -14,8 +14,6 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 import vulkan;
 
-// import glm;
-
 // TODO: Would it make sense to add BASED_RENDERER_ to these macro names?
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
