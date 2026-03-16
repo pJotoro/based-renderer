@@ -1,6 +1,20 @@
-#include "pch.hpp"
-// TODO: Use import instead of #include.
-// Information on how to do this can be found here: https://docs.vulkan.org/tutorial/latest/02_Development_environment.html#_cmake
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+// Windows.h defines these macros, which screw with certain things in the C++ standard library.
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+
+#include <slang/slang-com-ptr.h>
+
+#define VK_USE_PLATFORM_WIN32_KHR
+import vulkan;
+
+// import glm;
 
 // TODO: Would it make sense to add BASED_RENDERER_ to these macro names?
 #define UNUSED(X) (void)(X)
@@ -1014,7 +1028,8 @@ static void based_renderer_main()
 		}
 	}
 
-	// Why use C for loops here? Why not std::find_if? I tried that, and it came out uglier and harder to understand. However, in other cases, like selecting which physical device to use, std::find_if is actually pretty convenient.
+	// Why use C for loops here? Why not std::find_if? I tried that, and it came out uglier and harder to understand. 
+	// However, in other cases, like selecting which physical device to use, std::find_if is actually pretty convenient.
 
 	std::optional<size_t> vulkan_graphics_queue_family_idx;
 	for (size_t i = 0; i < vulkan_queue_family_properties.size(); ++i)
@@ -1098,7 +1113,7 @@ static void based_renderer_main()
 	win32_window_styles_ex = 0;
 #else
 	win32_window_styles = WS_POPUP;
-	win32_client_rect = (RECT){
+	win32_client_rect = RECT{
 		.left = 0,
 		.top = 0,
 		.right = monitor_width,

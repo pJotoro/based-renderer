@@ -3,7 +3,7 @@
   "configurePresets": [
     {
       "name": "debug",
-      "inherits": "vcpkg",
+      "inherits": "default",
       "binaryDir": "${sourceDir}/build/ninja/debug",
       "environment": {
         "CMAKE_BUILD_TYPE": "Debug"
@@ -11,7 +11,7 @@
     },
     {
       "name": "release",
-      "inherits": "vcpkg",
+      "inherits": "default",
       "binaryDir": "${sourceDir}/build/ninja/release",
       "environment": {
         "CMAKE_BUILD_TYPE": "Release"
