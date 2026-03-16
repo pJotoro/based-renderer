@@ -1,24 +1,25 @@
 # TODO: Once the project is done, lower the minimum required version to the lowest possible number that doesn't cause anything to break.
 cmake_minimum_required(VERSION 4.2 FATAL_ERROR)
 
-project(based_renderer CXX)
-
-# I got a lot of help from this:
-# https://github.com/KhronosGroup/Vulkan-Tutorial/blob/main/attachments/CMakeLists.txt
+# HACK: For some reason, CMake thinks Windows doesn't support shared libraries. I have no idea why this is.
+set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 
 find_package(Vulkan 1.4.0 REQUIRED)
 
+set(VULKAN_SDK "$ENV{VULKAN_SDK}")
+
 add_library(slang SHARED IMPORTED)
 set_target_properties(slang PROPERTIES
-    IMPORTED_LOCATION "$ENV{VULKAN_SDK}/Lib/slang.lib"
-    INTERFACE_INCLUDE_DIRECTORIES "$ENV{VULKAN_SDK}/include")
+    IMPORTED_LOCATION "${VULKAN_SDK}/Lib/slang.lib"
+    INTERFACE_INCLUDE_DIRECTORIES "$ENV{VULKAN_SDK}/Include")
 
 add_library(slang_compiler SHARED IMPORTED)
 set_target_properties(slang_compiler PROPERTIES
-    IMPORTED_LOCATION "$ENV{VULKAN_SDK}/Lib/slang-compiler.lib")
+    IMPORTED_LOCATION "${VULKAN_SDK}/Lib/slang-compiler.lib")
 
+project(based_renderer CXX)
 add_executable(based_renderer src/main.cpp)
 target_compile_features(based_renderer PRIVATE cxx_std_20)
 target_precompile_headers(based_renderer PRIVATE src/pch.hpp)
