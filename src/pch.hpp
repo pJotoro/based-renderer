@@ -17,7 +17,7 @@
 
 #include <slang/slang-com-ptr.h>
 
-// #include <glm/glm.hpp>
+#include <glm/glm.hpp>
 
 #include <algorithm>
 #include <format>

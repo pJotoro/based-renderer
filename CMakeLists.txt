@@ -19,12 +19,14 @@ add_library(slang_compiler SHARED IMPORTED)
 set_target_properties(slang_compiler PROPERTIES
     IMPORTED_LOCATION "${VULKAN_SDK}/Lib/slang-compiler.lib")
 
+find_package(glm REQUIRED)
+
 project(based_renderer CXX)
 add_executable(based_renderer src/main.cpp)
 target_compile_features(based_renderer PRIVATE cxx_std_20)
 target_precompile_headers(based_renderer PRIVATE src/pch.hpp)
 target_link_libraries(slang INTERFACE slang_compiler)
-target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang)
+target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang glm::glm)
 
 # TODO: Is this the only way to set these options? Or is there a cross-platform way?
 # TODO: What about other compilers? I know you can also use clang and mingw on Windows.

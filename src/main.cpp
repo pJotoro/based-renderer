@@ -150,93 +150,144 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	return vk::False;
 }
 
-struct VulkanMemoryProperties 
-{
-	vk::MemoryPropertyFlags required;
-	vk::MemoryPropertyFlags preferred;
-};
+// You might be wondering: why are we looping in reverse order when the buffer/image is host visible and host coherent? The reason is because memory type indices are generally ordered so that memory type indices with the most memory properties appear last. For example, on my laptop, the last memory type index is device local, host visible and host coherent, which happens to be the most efficient possible case for a staging buffer.
 
 static uint32_t vulkan_find_memory_type_idx(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
-	VulkanMemoryProperties const memory_properties_include,
-	VulkanMemoryProperties const memory_properties_exclude) 
+	vk::BufferUsageFlags usage) 
 {
-	// We first attempt to find a perfect match, that is, matching not only the
-	// required memory properties, but also the preferred ones.
-	// If that doesn't work, we then try again, but this time without the
-	// preferred ones. If that doesn't work, we throw an exception.
-
-	for (
-		uint32_t memory_type_idx = 0; 
-		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
-		++memory_type_idx) 
+	vk::MemoryPropertyFlags desired_memory_properties;
+	if (usage & vk::BufferUsageFlagBits::eTransferSrc)
 	{
-		uint32_t memory_type_bit = 1 << memory_type_idx;
-		
-		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-		
-		if ((memory_type_bits & memory_type_bit) &&
-			(memory_properties_include.required & memory_properties) &&
-			(memory_properties_exclude.required & memory_properties) &&
-			(memory_properties_include.preferred & memory_properties) &&
-			(memory_properties_exclude.preferred & memory_properties)) 
+		desired_memory_properties = vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
+
+		uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
+		for (;;)
 		{
-			return memory_type_idx;
+			uint32_t memory_type_bit = 1 << memory_type_idx;		
+			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
+			{
+				return memory_type_idx;
+			}
+
+			if (memory_type_idx == 0) break;
+			--memory_type_idx;
+		}
+	}
+	else
+	{
+		desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+
+		for (
+			uint32_t memory_type_idx = 0; 
+			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+			++memory_type_idx) 
+		{
+			uint32_t memory_type_bit = 1 << memory_type_idx;		
+			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
+			{
+				return memory_type_idx;
+			}
 		}
 	}
 
-	for (
-		uint32_t memory_type_idx = 0; 
-		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
-		++memory_type_idx) 
-	{
-		uint32_t memory_type_bit = 1 << memory_type_idx;
-		
-		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-		
-		if (((memory_type_bits & memory_type_bit) != 0) &&
-			((memory_properties_include.required & memory_properties) != vk::MemoryPropertyFlags{}) &&
-			((memory_properties_exclude.required & memory_properties) == vk::MemoryPropertyFlags{})) 
-		{
-			return memory_type_idx;
-		}
-	}
-
-	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index with the required memory properties.")};
+	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index.")};
 }
 
-struct VulkanBufferAllocation 
+static uint32_t vulkan_find_memory_type_idx(
+	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
+	uint32_t const memory_type_bits,
+	vk::ImageUsageFlags usage) 
 {
-	// in
-	VulkanMemoryProperties memory_properties_include;
-	VulkanMemoryProperties memory_properties_exclude;
+	vk::MemoryPropertyFlags desired_memory_properties;
+	if (usage & vk::ImageUsageFlagBits::eTransferSrc)
+	{
+		desired_memory_properties = vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
+
+		uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
+		for (;;)
+		{
+			uint32_t memory_type_bit = 1 << memory_type_idx;		
+			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
+			{
+				return memory_type_idx;
+			}
+
+			if (memory_type_idx == 0) break;
+			--memory_type_idx;
+		}
+	}
+	else
+	{
+		desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+
+		for (
+			uint32_t memory_type_idx = 0; 
+			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+			++memory_type_idx) 
+		{
+			uint32_t memory_type_bit = 1 << memory_type_idx;		
+			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
+			{
+				return memory_type_idx;
+			}
+		}
+	}
+
+	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index.")};
+}
+
+struct VulkanAllocation
+{
+	vk::MemoryPropertyFlags memory_properties;
+	vk::DeviceMemory memory;
+	vk::DeviceSize offset;
+	vk::DeviceSize size;
+	vk::DeviceSize align;
+	uint32_t memory_type_idx;
+	bool dedicated_allocation;
+};
+
+struct VulkanBufferAllocation : VulkanAllocation
+{
 	vk::Buffer buffer;
-
-	 // out
-	vk::DeviceMemory memory;
-	vk::DeviceSize offset;
-	vk::DeviceSize size;
-	vk::DeviceSize align;
-	uint32_t memory_type_idx;
-	bool dedicated_allocation;
 };
 
-struct VulkanImageAllocation 
+struct VulkanImageAllocation : VulkanAllocation
 {
-	// in
-	VulkanMemoryProperties memory_properties_include;
-	VulkanMemoryProperties memory_properties_exclude;
 	vk::Image image;
-
-	// out
-	vk::DeviceMemory memory;
-	vk::DeviceSize offset;
-	vk::DeviceSize size;
-	vk::DeviceSize align;
-	uint32_t memory_type_idx;
-	bool dedicated_allocation;
 };
+
+// https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
+static bool is_power_of_2(vk::DeviceSize const x) 
+{
+	return (x & (x-1)) == 0;
+}
+
+static vk::DeviceSize align_forward(vk::DeviceSize offset, vk::DeviceSize const align) 
+{
+	if (!is_power_of_2(align))
+	{
+		std::string message{std::format("{} is not a power of 2.", align)};
+		throw vk::LogicError{FORMAT_ERROR(message)};
+	}
+
+	// Same as (offset % align) but faster as 'align' is a power of two
+	vk::DeviceSize modulo = offset & (align-1);
+
+	if (modulo != 0) 
+	{
+		// If 'offset' is not aligned, push it to the
+		// next value that is aligned
+		offset += align - modulo;
+	}
+	return offset;
+}
 
 // How to use:
 // 1. Create all the buffers and images you want.
@@ -244,23 +295,32 @@ struct VulkanImageAllocation
 //    For example, a vertex buffer should probably be device local, while a
 //	  staging buffer should be host visible.
 // 3. Now you can call vulkan_allocate. When passing the buffers and images,
-//	  you should only fill out the fields under the "in" comment.
-// 4. For each buffer and image, the "out" fields will be filled. In all
-//	  likelihood, you will only ever need to use the "memory" and "offset"
-//	  fields, but the others are there as well just in case.
+//	  you should only fill out the fields within the anonymous "in" struct.
+// 4. For each buffer and image, the fields within the "out" struct will be 
+//    filled. In all likelihood, you will only ever need to use the "memory" 
+//    and "offset" fields, but the others are there as well just in case.
 void vulkan_allocate(
 	vk::Device const device,
 	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
+	std::span<vk::BufferCreateInfo> buffer_create_infos,
+	std::span<vk::ImageCreateInfo> image_create_infos,
 	std::span<VulkanBufferAllocation> buffer_allocations,
 	std::span<VulkanImageAllocation> image_allocations) 
 {
-	std::vector<vk::BindBufferMemoryInfo> bind_buffer_memory_infos;
-	bind_buffer_memory_infos.reserve(buffer_allocations.size());
-	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos;
-	bind_image_memory_infos.reserve(image_allocations.size());
+	// TODO: Should I do a warning here?
+	size_t buffer_count = std::min(buffer_create_infos.size(), buffer_allocations.size());
+	size_t image_count = std::min(image_create_infos.size(), image_allocations.size());
 
-	for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) 
+	std::vector<vk::BindBufferMemoryInfo> bind_buffer_memory_infos;
+	bind_buffer_memory_infos.reserve(buffer_count);
+	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos;
+	bind_image_memory_infos.reserve(image_count);
+
+	for (size_t i = 0; i < buffer_count; ++i) 
 	{
+		VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
+		buffer_allocation.buffer = device.createBuffer(buffer_create_infos[i]);
+
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::BufferMemoryRequirementsInfo2 memory_requirements_info;
@@ -271,11 +331,11 @@ void vulkan_allocate(
 
 		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
 		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
+
 		buffer_allocation.memory_type_idx = vulkan_find_memory_type_idx(
 			physical_device_memory_properties.memoryProperties,
 			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
-			buffer_allocation.memory_properties_include,
-			buffer_allocation.memory_properties_exclude);
+			buffer_create_infos[i].usage);
 
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
 		{
@@ -299,8 +359,11 @@ void vulkan_allocate(
 		}
 	}
 
-	for (VulkanImageAllocation &image_allocation : image_allocations) 
+	for (size_t i = 0; i < image_count; ++i) 
 	{
+		VulkanImageAllocation &image_allocation = image_allocations[i];
+		image_allocation.image = device.createImage(image_create_infos[i]);
+
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::ImageMemoryRequirementsInfo2 memory_requirements_info;
@@ -314,8 +377,7 @@ void vulkan_allocate(
 		image_allocation.memory_type_idx = vulkan_find_memory_type_idx(
 			physical_device_memory_properties.memoryProperties,
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
-			image_allocation.memory_properties_include,
-			image_allocation.memory_properties_exclude);
+			image_create_infos[i].usage);
 
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
 		{
@@ -349,33 +411,10 @@ void vulkan_allocate(
 
 		vk::DeviceSize memory_offset = 0;
 
-		// https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
-		auto is_power_of_2 = [](vk::DeviceSize const x) 
+		for (size_t i = 0; i < buffer_count; ++i) 
 		{
-			return (x & (x-1)) == 0;
-		};
-		auto align_forward = [is_power_of_2](vk::DeviceSize offset, vk::DeviceSize const align) 
-		{
-			if (!is_power_of_2(align))
-			{
-				std::string message{std::format("{} is not a power of 2.", align)};
-				throw vk::LogicError{FORMAT_ERROR(message)};
-			}
+			VulkanBufferAllocation const &buffer_allocation = buffer_allocations[i];
 
-			// Same as (offset % align) but faster as 'align' is a power of two
-			vk::DeviceSize modulo = offset & (align-1);
-
-			if (modulo != 0) 
-			{
-				// If 'offset' is not aligned, push it to the
-				// next value that is aligned
-				offset += align - modulo;
-			}
-			return offset;
-		};
-
-		for (VulkanBufferAllocation const &buffer_allocation : buffer_allocations) 
-		{
 			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
 			{
 				memory_offset = align_forward(memory_offset, buffer_allocation.align);
@@ -389,8 +428,10 @@ void vulkan_allocate(
 			}
 		}
 
-		for (VulkanImageAllocation const &image_allocation : image_allocations) 
+		for (size_t i = 0; i < image_count; ++i)
 		{
+			VulkanImageAllocation const &image_allocation = image_allocations[i];
+
 			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
 			{
 				memory_offset = align_forward(memory_offset, image_allocation.align);
@@ -409,15 +450,17 @@ void vulkan_allocate(
 		memory_allocate_info.memoryTypeIndex = memory_type_idx;
 		vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
 
-		for (VulkanBufferAllocation &buffer_allocation : buffer_allocations) 
+		for (size_t i = 0; i < buffer_count; ++i) 
 		{
+			VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
 			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
 			{
 				buffer_allocation.memory = memory;
 			}
 		}
-		for (VulkanImageAllocation &image_allocation : image_allocations) 
+		for (size_t i = 0; i < image_count; ++i)
 		{
+			VulkanImageAllocation &image_allocation = image_allocations[i];
 			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
 			{
 				image_allocation.memory = memory;
@@ -631,6 +674,13 @@ int WINAPI WinMain(
 
 	return 0;
 }
+
+struct Uniforms
+{
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+};
 
 static void based_renderer_main()
 {
@@ -851,7 +901,7 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(shaderSharedInt64Atomics);
 		VULKAN_DISABLE_FEATURE(shaderFloat16);
 		VULKAN_DISABLE_FEATURE(shaderInt8);
-		VULKAN_DISABLE_FEATURE(descriptorIndexing);
+		VULKAN_REQUIRE_FEATURE(descriptorIndexing);
 		VULKAN_DISABLE_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
 		VULKAN_DISABLE_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
 		VULKAN_DISABLE_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
@@ -862,16 +912,16 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
 		VULKAN_DISABLE_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
 		VULKAN_DISABLE_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
-		VULKAN_DISABLE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
+		VULKAN_REQUIRE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
-		VULKAN_DISABLE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
-		VULKAN_DISABLE_FEATURE(descriptorBindingPartiallyBound);
-		VULKAN_DISABLE_FEATURE(descriptorBindingVariableDescriptorCount);
-		VULKAN_DISABLE_FEATURE(runtimeDescriptorArray);
+		VULKAN_REQUIRE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
+		VULKAN_REQUIRE_FEATURE(descriptorBindingPartiallyBound);
+		VULKAN_REQUIRE_FEATURE(descriptorBindingVariableDescriptorCount);
+		VULKAN_REQUIRE_FEATURE(runtimeDescriptorArray);
 		VULKAN_DISABLE_FEATURE(samplerFilterMinmax);
 		VULKAN_DISABLE_FEATURE(scalarBlockLayout);
 		VULKAN_DISABLE_FEATURE(imagelessFramebuffer);
@@ -1208,13 +1258,16 @@ static void based_renderer_main()
 		static_cast<uint32_t>(vulkan_graphics_queue_family_idx.value()),
 		static_cast<uint32_t>(vulkan_transfer_queue_family_idx.value())
 	};
+
+// TODO: Could this ever be a good idea?
+#if 0
 	if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
 	{
-		// TODO: Is this really necessary? I would have thought that using transfer queue operations is enough.
 		vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
 		vulkan_swapchain_create_info.queueFamilyIndexCount = static_cast<uint32_t>(vulkan_queue_family_indices.size());
 		vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
 	}
+#endif
 
 	vk::SwapchainKHR vulkan_swapchain = vulkan_device.createSwapchainKHR(vulkan_swapchain_create_info);
 
@@ -1271,6 +1324,106 @@ static void based_renderer_main()
 		vulkan_semaphores_signal[i] = vulkan_device.createSemaphore({});
 	}
 
+	// TODO: Get rid of all this Odin code!
+
+	// vk::Buffer vulkan_uniform_buffer = vulkan_device.createBuffer({
+	// 	vk::BufferCreateFlags{},
+	// 	sizeof(Uniforms),
+	// 	vk::BufferUsageFlag::eTransferDst|vk::BufferUsageFlags::eUniformBuffer,
+	// });
+	// VulkanBufferAllocation vulkan_uniform_buffer_allocation{
+	// 	vulkan_uniform_buffer,
+	// 	VulkanMemoryProperties{
+	// 		.required = vk::MemoryPropertyFlags::eDeviceLocal,
+	// 		.preferred = vk::MemoryPropertyFlags::eDeviceLocal|vk::MemoryPropertyFlags::eHostVisible,
+	// 	},
+	// 	VulkanMemoryProperties{
+	// 		.required = vk::MemoryPropertyFlags::eHostVisible,
+	// 		.preferred = vk::MemoryPropertyFlags::eDeviceLocal|
+	// 	},
+	// };
+    // uniform_buffer = vulkan_create_buffer(vulkan, vulkan_allocator, 
+    //     size_of(Cube_Uniforms), {.TRANSFER_DST, .UNIFORM_BUFFER}, {.DEVICE_LOCAL}, {.HOST_VISIBLE}) or_return
+
+    // staging_buffer = vulkan_create_buffer(vulkan, vulkan_allocator, 
+    //     size_of(Cube_Uniforms), {.TRANSFER_SRC}, {.HOST_VISIBLE, .HOST_COHERENT}, {.DEVICE_LOCAL}) or_return
+
+    // vulkan_alloc(vulkan, vulkan_allocator) or_return
+
+    // descriptor_set_layout: vk.DescriptorSetLayout
+    // descriptor_set_layout_binding := vk.DescriptorSetLayoutBinding {
+    //     binding = 0,
+    //     descriptorType = .UNIFORM_BUFFER,
+    //     descriptorCount = 1,
+    //     stageFlags = {.VERTEX},
+    // }
+    // descriptor_set_layout_info := vk.DescriptorSetLayoutCreateInfo {
+    //     sType = .DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+    //     bindingCount = 1,
+    //     pBindings = &descriptor_set_layout_binding,
+    // }
+    // vk.CreateDescriptorSetLayout(
+    //     vulkan.device,
+    //     &descriptor_set_layout_info,
+    //     nil,
+    //     &descriptor_set_layout) or_return
+
+    // descriptor_pool_size := vk.DescriptorPoolSize {
+    //     type = .UNIFORM_BUFFER,
+    //     descriptorCount = u32(len(vulkan.frames)),
+    // }
+
+    // descriptor_pool_info := vk.DescriptorPoolCreateInfo {
+    //     sType = .DESCRIPTOR_POOL_CREATE_INFO,
+    //     maxSets = u32(len(vulkan.frames)),
+    //     poolSizeCount = 1,
+    //     pPoolSizes = &descriptor_pool_size,
+    // }
+
+    // descriptor_pool: vk.DescriptorPool
+    // vk.CreateDescriptorPool(
+    //     vulkan.device,
+    //     &descriptor_pool_info,
+    //     nil,
+    //     &descriptor_pool) or_return
+
+    // descriptor_set_allocate_info := vk.DescriptorSetAllocateInfo {
+    //     sType = .DESCRIPTOR_SET_ALLOCATE_INFO,
+    //     descriptorPool = descriptor_pool,
+    //     descriptorSetCount = 1,
+    //     pSetLayouts = &descriptor_set_layout,
+    // }
+
+    // vk.AllocateDescriptorSets(
+    //     vulkan.device,
+    //     &descriptor_set_allocate_info,
+    //     &descriptor_set) or_return
+
+    // descriptor_buffer_info := vk.DescriptorBufferInfo {
+    //     buffer = uniform_buffer,
+    //     offset = 0,
+    //     range = size_of(Cube_Uniforms),
+    // }
+
+    // write_descriptor_set := vk.WriteDescriptorSet {
+    //     sType = .WRITE_DESCRIPTOR_SET,
+    //     dstSet = descriptor_set,
+    //     dstBinding = 0,
+    //     descriptorCount = 1,
+    //     descriptorType = .UNIFORM_BUFFER,
+    //     pBufferInfo = &descriptor_buffer_info,
+    // }
+
+    // vk.UpdateDescriptorSets(vulkan.device, 1, &write_descriptor_set, 0, nil)
+
+    // pipeline_layout_info := vk.PipelineLayoutCreateInfo {
+    //     sType = .PIPELINE_LAYOUT_CREATE_INFO,
+    //     setLayoutCount = 1,
+    //     pSetLayouts = &descriptor_set_layout,
+    // }
+
+    // vk.CreatePipelineLayout(vulkan.device, &pipeline_layout_info, nil, &pipeline_layout) or_return
+
 	// slang_init
 	Slang::ComPtr<slang::IGlobalSession> slang_global_session;
 	Slang::ComPtr<slang::ISession> slang_session;
@@ -1323,7 +1476,7 @@ static void based_renderer_main()
 
 	Slang::ComPtr<slang::IModule> slang_module;
 	Slang::ComPtr<slang::IBlob> slang_module_diagnostics;
-	slang_module = slang_session->loadModule("shader", slang_module_diagnostics.writeRef());
+	slang_module = slang_session->loadModule("cube", slang_module_diagnostics.writeRef());
 	if (slang_module_diagnostics.get())
 	{
 		// TODO: Find a way to get shader compile errors in the Sublime Text console.
