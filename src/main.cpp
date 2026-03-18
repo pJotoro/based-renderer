@@ -1388,79 +1388,63 @@ static void based_renderer_main()
 		},
 	});
 
-    // descriptor_set_layout: vk.DescriptorSetLayout
-    // descriptor_set_layout_binding := vk.DescriptorSetLayoutBinding {
-    //     binding = 0,
-    //     descriptorType = .UNIFORM_BUFFER,
-    //     descriptorCount = 1,
-    //     stageFlags = {.VERTEX},
-    // }
-    // descriptor_set_layout_info := vk.DescriptorSetLayoutCreateInfo {
-    //     sType = .DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-    //     bindingCount = 1,
-    //     pBindings = &descriptor_set_layout_binding,
-    // }
-    // vk.CreateDescriptorSetLayout(
-    //     vulkan.device,
-    //     &descriptor_set_layout_info,
-    //     nil,
-    //     &descriptor_set_layout) or_return
+	std::array<vk::DescriptorSetLayoutBinding, 1> vulkan_descriptor_set_layout_bindings{
+		vk::DescriptorSetLayoutBinding{
+			0,
+			vk::DescriptorType::eUniformBuffer,
+			1,
+			vk::ShaderStageFlagBits::eVertex,
+		},
+	};
 
-    // descriptor_pool_size := vk.DescriptorPoolSize {
-    //     type = .UNIFORM_BUFFER,
-    //     descriptorCount = u32(len(vulkan.frames)),
-    // }
+	std::array<vk::DescriptorSetLayout, 1> vulkan_descriptor_set_layouts{};
+    vulkan_descriptor_set_layouts[0] = vulkan_device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{
+    	vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
+    	vulkan_descriptor_set_layout_bindings,
+    });
 
-    // descriptor_pool_info := vk.DescriptorPoolCreateInfo {
-    //     sType = .DESCRIPTOR_POOL_CREATE_INFO,
-    //     maxSets = u32(len(vulkan.frames)),
-    //     poolSizeCount = 1,
-    //     pPoolSizes = &descriptor_pool_size,
-    // }
+    std::array<vk::DescriptorPoolSize, 1> vulkan_descriptor_pool_sizes{
+    	vk::DescriptorPoolSize{
+    		vk::DescriptorType::eUniformBuffer,
+    		static_cast<uint32_t>(vulkan_swapchain_images.size()),
+    	},
+    };
 
-    // descriptor_pool: vk.DescriptorPool
-    // vk.CreateDescriptorPool(
-    //     vulkan.device,
-    //     &descriptor_pool_info,
-    //     nil,
-    //     &descriptor_pool) or_return
+    vk::DescriptorPool vulkan_descriptor_pool = vulkan_device.createDescriptorPool(vk::DescriptorPoolCreateInfo{
+    	vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+    	static_cast<uint32_t>(vulkan_swapchain_images.size()),
+    	vulkan_descriptor_pool_sizes,
+    });
 
-    // descriptor_set_allocate_info := vk.DescriptorSetAllocateInfo {
-    //     sType = .DESCRIPTOR_SET_ALLOCATE_INFO,
-    //     descriptorPool = descriptor_pool,
-    //     descriptorSetCount = 1,
-    //     pSetLayouts = &descriptor_set_layout,
-    // }
+    std::vector<vk::DescriptorSet> vulkan_descriptor_sets = vulkan_device.allocateDescriptorSets({
+    	vulkan_descriptor_pool,
+    	vulkan_descriptor_set_layouts,
+    });
 
-    // vk.AllocateDescriptorSets(
-    //     vulkan.device,
-    //     &descriptor_set_allocate_info,
-    //     &descriptor_set) or_return
+    std::array<vk::DescriptorBufferInfo, 1> vulkan_descriptor_buffer_infos{
+    	vk::DescriptorBufferInfo{
+    		vulkan_uniform_buffer,
+    		0,
+    		sizeof(Uniforms),
+    	},
+    };
 
-    // descriptor_buffer_info := vk.DescriptorBufferInfo {
-    //     buffer = uniform_buffer,
-    //     offset = 0,
-    //     range = size_of(Cube_Uniforms),
-    // }
+    std::array<vk::WriteDescriptorSet, 1> vulkan_descriptor_writes{
+    	vk::WriteDescriptorSet{
+    		vulkan_descriptor_sets[0],
+    		0, 0,
+    		vk::DescriptorType::eUniformBuffer,
+    		{},
+    		vulkan_descriptor_buffer_infos,
+    	},
+    };
 
-    // write_descriptor_set := vk.WriteDescriptorSet {
-    //     sType = .WRITE_DESCRIPTOR_SET,
-    //     dstSet = descriptor_set,
-    //     dstBinding = 0,
-    //     descriptorCount = 1,
-    //     descriptorType = .UNIFORM_BUFFER,
-    //     pBufferInfo = &descriptor_buffer_info,
-    // }
+    vulkan_device.updateDescriptorSets(vulkan_descriptor_writes, {});
 
-    // vk.UpdateDescriptorSets(vulkan.device, 1, &write_descriptor_set, 0, nil)
-
-    // pipeline_layout_info := vk.PipelineLayoutCreateInfo {
-    //     sType = .PIPELINE_LAYOUT_CREATE_INFO,
-    //     setLayoutCount = 1,
-    //     pSetLayouts = &descriptor_set_layout,
-    // }
-
-    // vk.CreatePipelineLayout(vulkan.device, &pipeline_layout_info, nil, &pipeline_layout) or_return
+    vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout(vk::PipelineLayoutCreateInfo{
+    	vk::PipelineLayoutCreateFlags{},
+    	vulkan_descriptor_set_layouts,
+    });
 
 	// slang_init
 	Slang::ComPtr<slang::IGlobalSession> slang_global_session;
@@ -1509,8 +1493,6 @@ static void based_renderer_main()
 	vk::PipelineCache vulkan_pipeline_cache = vulkan_device.createPipelineCache(
 		{vulkan_pipeline_cache_flag_bits}
 	);
-
-	vk::PipelineLayout vulkan_pipeline_layout = vulkan_device.createPipelineLayout({});
 
 	Slang::ComPtr<slang::IModule> slang_module;
 	Slang::ComPtr<slang::IBlob> slang_module_diagnostics;
@@ -1913,7 +1895,7 @@ static void based_renderer_main()
 			vk::PipelineBindPoint::eGraphics,
 			vulkan_pipelines[0]
 		);
-		cb.draw(3, 1, 0, 0);
+		cb.draw(6, 1, 0, 0);
 
 		cb.endRendering();
 

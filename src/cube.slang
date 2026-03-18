@@ -55,7 +55,9 @@ float4 vs(uint vertex_id : SV_VertexID) : SV_Position
         float3(-0.5, 0.5, -0.5),
     };
 
-    return float4(vertices[vertex_id], 1.0);
+    float4 pos = float4(vertices[vertex_id], 1.0);
+
+    return mul(u.proj, mul(u.view, mul(u.model, pos)));
 }
 
 [shader("pixel")]
