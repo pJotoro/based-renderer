@@ -301,7 +301,7 @@ static vk::DeviceSize align_forward(vk::DeviceSize offset, vk::DeviceSize const 
 //    and "offset" fields, but the others are there as well just in case.
 void vulkan_allocate(
 	vk::Device const device,
-	vk::PhysicalDeviceMemoryProperties2 const &physical_device_memory_properties,
+	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	std::span<vk::BufferCreateInfo> buffer_create_infos,
 	std::span<vk::ImageCreateInfo> image_create_infos,
 	std::span<VulkanBufferAllocation> buffer_allocations,
@@ -333,7 +333,7 @@ void vulkan_allocate(
 		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
 
 		buffer_allocation.memory_type_idx = vulkan_find_memory_type_idx(
-			physical_device_memory_properties.memoryProperties,
+			physical_device_memory_properties,
 			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
 			buffer_create_infos[i].usage);
 
@@ -375,7 +375,7 @@ void vulkan_allocate(
 		image_allocation.size = image_memory_requirements.memoryRequirements.size;
 		image_allocation.align = image_memory_requirements.memoryRequirements.alignment;
 		image_allocation.memory_type_idx = vulkan_find_memory_type_idx(
-			physical_device_memory_properties.memoryProperties,
+			physical_device_memory_properties,
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
 			image_create_infos[i].usage);
 
@@ -403,7 +403,7 @@ void vulkan_allocate(
 
 	for (
 		uint32_t memory_type_idx = 0; 
-		memory_type_idx < physical_device_memory_properties.memoryProperties.memoryTypeCount; 
+		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
 		++memory_type_idx)
 	{
 		size_t bind_buffer_memory_infos_size = bind_buffer_memory_infos.size();
@@ -791,6 +791,8 @@ static void based_renderer_main()
 		vk::PhysicalDeviceVulkan12Properties,
 		vk::PhysicalDeviceVulkan13Properties,
 		vk::PhysicalDeviceVulkan14Properties>();
+
+	vk::PhysicalDeviceMemoryProperties const vulkan_physical_device_memory_properties = vulkan_physical_device.getMemoryProperties();
 
 	auto vulkan_physical_device_features = vulkan_physical_device.getFeatures2<
 		vk::PhysicalDeviceFeatures2,
@@ -1324,31 +1326,35 @@ static void based_renderer_main()
 		vulkan_semaphores_signal[i] = vulkan_device.createSemaphore({});
 	}
 
-	// TODO: Get rid of all this Odin code!
+	std::array<vk::BufferCreateInfo, 2> vulkan_buffer_create_infos{
+		vk::BufferCreateInfo{
+			vk::BufferCreateFlags{},
+			sizeof(Uniforms),
+			vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eUniformBuffer,
+		},
+		vk::BufferCreateInfo{
+			vk::BufferCreateFlags{},
+			sizeof(Uniforms), 
+			vk::BufferUsageFlagBits::eTransferSrc,
+		},
+	};
+	std::array<vk::ImageCreateInfo, 1> vulkan_image_create_infos{
+		vk::ImageCreateInfo{
+			vk::ImageCreateFlags{},
+			vk::ImageType::e2D,
 
-	// vk::Buffer vulkan_uniform_buffer = vulkan_device.createBuffer({
-	// 	vk::BufferCreateFlags{},
-	// 	sizeof(Uniforms),
-	// 	vk::BufferUsageFlag::eTransferDst|vk::BufferUsageFlags::eUniformBuffer,
-	// });
-	// VulkanBufferAllocation vulkan_uniform_buffer_allocation{
-	// 	vulkan_uniform_buffer,
-	// 	VulkanMemoryProperties{
-	// 		.required = vk::MemoryPropertyFlags::eDeviceLocal,
-	// 		.preferred = vk::MemoryPropertyFlags::eDeviceLocal|vk::MemoryPropertyFlags::eHostVisible,
-	// 	},
-	// 	VulkanMemoryProperties{
-	// 		.required = vk::MemoryPropertyFlags::eHostVisible,
-	// 		.preferred = vk::MemoryPropertyFlags::eDeviceLocal|
-	// 	},
-	// };
-    // uniform_buffer = vulkan_create_buffer(vulkan, vulkan_allocator, 
-    //     size_of(Cube_Uniforms), {.TRANSFER_DST, .UNIFORM_BUFFER}, {.DEVICE_LOCAL}, {.HOST_VISIBLE}) or_return
-
-    // staging_buffer = vulkan_create_buffer(vulkan, vulkan_allocator, 
-    //     size_of(Cube_Uniforms), {.TRANSFER_SRC}, {.HOST_VISIBLE, .HOST_COHERENT}, {.DEVICE_LOCAL}) or_return
-
-    // vulkan_alloc(vulkan, vulkan_allocator) or_return
+		}
+	};
+	std::array<VulkanBufferAllocation, vulkan_buffer_create_infos.size()> vulkan_buffer_allocations{};
+	std::array<VulkanImageAllocation, vulkan_image_create_infos.size()> vulkan_image_allocations{};
+	vulkan_allocate(
+		vulkan_device, 
+		vulkan_physical_device_memory_properties,
+		vulkan_buffer_create_infos,
+		vulkan_image_create_infos,
+		vulkan_buffer_allocations,
+		vulkan_image_allocations
+	);
 
     // descriptor_set_layout: vk.DescriptorSetLayout
     // descriptor_set_layout_binding := vk.DescriptorSetLayoutBinding {
