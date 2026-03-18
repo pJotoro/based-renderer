@@ -55,7 +55,7 @@ float4 vs(uint vertex_id : SV_VertexID) : SV_Position
         float3(-0.5, 0.5, -0.5),
     };
 
-    return float4(vertices[vertex_id], 0.0, 1.0);
+    return float4(vertices[vertex_id], 1.0);
 }
 
 [shader("pixel")]

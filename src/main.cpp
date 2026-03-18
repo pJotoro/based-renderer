@@ -325,9 +325,10 @@ void vulkan_allocate(
 		
 		vk::BufferMemoryRequirementsInfo2 memory_requirements_info;
 		memory_requirements_info.buffer = buffer_allocation.buffer;
-		memory_requirements_info.pNext = &memory_dedicated_requirements;
 		
-		vk::MemoryRequirements2 buffer_memory_requirements = device.getBufferMemoryRequirements2(memory_requirements_info);
+		vk::MemoryRequirements2 buffer_memory_requirements;
+		buffer_memory_requirements.pNext = &memory_dedicated_requirements;
+		device.getBufferMemoryRequirements2(&memory_requirements_info, &buffer_memory_requirements);
 
 		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
 		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
@@ -368,9 +369,10 @@ void vulkan_allocate(
 		
 		vk::ImageMemoryRequirementsInfo2 memory_requirements_info;
 		memory_requirements_info.image = image_allocation.image;
-		memory_requirements_info.pNext = &memory_dedicated_requirements;
 		
-		vk::MemoryRequirements2 image_memory_requirements = device.getImageMemoryRequirements2(memory_requirements_info);
+		vk::MemoryRequirements2 image_memory_requirements;
+		image_memory_requirements.pNext = &memory_dedicated_requirements;
+		device.getImageMemoryRequirements2(&memory_requirements_info, &image_memory_requirements);
 
 		image_allocation.size = image_memory_requirements.memoryRequirements.size;
 		image_allocation.align = image_memory_requirements.memoryRequirements.alignment;
@@ -445,34 +447,37 @@ void vulkan_allocate(
 			}
 		}
 
-		vk::MemoryAllocateInfo memory_allocate_info;
-		memory_allocate_info.allocationSize = memory_offset;
-		memory_allocate_info.memoryTypeIndex = memory_type_idx;
-		vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
+		if (memory_offset > 0)
+		{
+			vk::MemoryAllocateInfo memory_allocate_info;
+			memory_allocate_info.allocationSize = memory_offset;
+			memory_allocate_info.memoryTypeIndex = memory_type_idx;
+			vk::DeviceMemory memory = device.allocateMemory(memory_allocate_info);
 
-		for (size_t i = 0; i < buffer_count; ++i) 
-		{
-			VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
-			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
+			for (size_t i = 0; i < buffer_count; ++i) 
 			{
-				buffer_allocation.memory = memory;
+				VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
+				if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
+				{
+					buffer_allocation.memory = memory;
+				}
 			}
-		}
-		for (size_t i = 0; i < image_count; ++i)
-		{
-			VulkanImageAllocation &image_allocation = image_allocations[i];
-			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
+			for (size_t i = 0; i < image_count; ++i)
 			{
-				image_allocation.memory = memory;
+				VulkanImageAllocation &image_allocation = image_allocations[i];
+				if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
+				{
+					image_allocation.memory = memory;
+				}
 			}
-		}
-		for (size_t i = bind_buffer_memory_infos_size; i < bind_buffer_memory_infos.size(); ++i) 
-		{
-			bind_buffer_memory_infos[i].memory = memory;
-		}
-		for (size_t i = bind_image_memory_infos_size; i < bind_image_memory_infos.size(); ++i) 
-		{
-			bind_image_memory_infos[i].memory = memory;
+			for (size_t i = bind_buffer_memory_infos_size; i < bind_buffer_memory_infos.size(); ++i) 
+			{
+				bind_buffer_memory_infos[i].memory = memory;
+			}
+			for (size_t i = bind_image_memory_infos_size; i < bind_image_memory_infos.size(); ++i) 
+			{
+				bind_image_memory_infos[i].memory = memory;
+			}
 		}
 	}
 
@@ -914,7 +919,7 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
 		VULKAN_DISABLE_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
 		VULKAN_DISABLE_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
-		VULKAN_REQUIRE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
@@ -1338,12 +1343,19 @@ static void based_renderer_main()
 			vk::BufferUsageFlagBits::eTransferSrc,
 		},
 	};
+	vk::Format vulkan_depth_stencil_format = vk::Format::eD24UnormS8Uint; // TODO: Check for different formats.
 	std::array<vk::ImageCreateInfo, 1> vulkan_image_create_infos{
 		vk::ImageCreateInfo{
 			vk::ImageCreateFlags{},
 			vk::ImageType::e2D,
-
-		}
+			vulkan_depth_stencil_format, 
+			vk::Extent3D{client_width, client_height, 1},
+			1,
+			1,
+			vk::SampleCountFlagBits::e1,
+			vk::ImageTiling::eOptimal,
+			vk::ImageUsageFlagBits::eDepthStencilAttachment,
+		},
 	};
 	std::array<VulkanBufferAllocation, vulkan_buffer_create_infos.size()> vulkan_buffer_allocations{};
 	std::array<VulkanImageAllocation, vulkan_image_create_infos.size()> vulkan_image_allocations{};
@@ -1355,6 +1367,26 @@ static void based_renderer_main()
 		vulkan_buffer_allocations,
 		vulkan_image_allocations
 	);
+
+	vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[0].buffer;
+	vk::Buffer vulkan_staging_buffer = vulkan_buffer_allocations[1].buffer;
+	
+	vk::Image vulkan_depth_stencil_image = vulkan_image_allocations[0].image;
+
+	vk::ImageView vulkan_depth_stencil_image_view = vulkan_device.createImageView({
+		vk::ImageViewCreateFlags{},
+		vulkan_depth_stencil_image,
+		vk::ImageViewType::e2D,
+		vulkan_depth_stencil_format,
+		vk::ComponentMapping{},
+		vk::ImageSubresourceRange{
+			vk::ImageAspectFlagBits::eDepth|vk::ImageAspectFlagBits::eStencil,
+			0,
+			1,
+			0,
+			1
+		},
+	});
 
     // descriptor_set_layout: vk.DescriptorSetLayout
     // descriptor_set_layout_binding := vk.DescriptorSetLayoutBinding {
@@ -1636,7 +1668,19 @@ static void based_renderer_main()
 		1.0f,
 	};
 	vk::PipelineMultisampleStateCreateInfo vulkan_pipeline_multisample_state_create_info{};
-	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{};
+
+	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{
+		vk::PipelineDepthStencilStateCreateFlags{},
+		vk::True,
+		vk::True,
+		vk::CompareOp::eLess,
+		vk::True,
+		vk::True,
+		vk::StencilOp::eKeep, // TODO
+		vk::StencilOp::eKeep, // TODO
+		0.0f,		// TODO
+		1000.0f, 	// TODO
+	};
 
 	std::array<vk::PipelineColorBlendAttachmentState, 1> vulkan_pipeline_color_blend_attachment_states{
 		vk::PipelineColorBlendAttachmentState{
@@ -1670,6 +1714,8 @@ static void based_renderer_main()
 	vk::PipelineRenderingCreateInfo vulkan_pipeline_rendering_create_info{
 		0,
 		vulkan_pipeline_rendering_formats,
+		vulkan_depth_stencil_format,
+		vulkan_depth_stencil_format,
 	};
 
 	vk::GraphicsPipelineCreateInfo vulkan_graphics_pipeline_create_info{
@@ -1753,7 +1799,7 @@ static void based_renderer_main()
 
 		static size_t staged = 0;
 
-		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers_render{
+		std::array<vk::ImageMemoryBarrier2, 2> vulkan_image_memory_barriers_render{
 			vk::ImageMemoryBarrier2{
 				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 				vk::AccessFlags2{},
@@ -1761,11 +1807,29 @@ static void based_renderer_main()
 				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
 				vk::ImageLayout::eUndefined,
 				vk::ImageLayout::eColorAttachmentOptimal,
-				0, // TODO
-				0, // TODO
+				0, // TODO: srcQueueFamilyIdx
+				0, // TODO: dstQueueFamilyIdx
 				vulkan_swapchain_images[vulkan_image_idx],
 				vk::ImageSubresourceRange{
 					vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+					0,
+					1,
+					0,
+					1,
+				},
+			},
+			vk::ImageMemoryBarrier2{
+				vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+				vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
+				vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+				vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
+				vk::ImageLayout::eUndefined,
+				vk::ImageLayout::eDepthStencilAttachmentOptimal,
+				0, // TODO: srcQueueFamilyIdx
+				0, // TODO: dstQueueFamilyIdx
+				vulkan_depth_stencil_image,
+				vk::ImageSubresourceRange{
+					vk::ImageAspectFlags{vk::ImageAspectFlagBits::eDepth|vk::ImageAspectFlagBits::eStencil},
 					0,
 					1,
 					0,
@@ -1778,25 +1842,58 @@ static void based_renderer_main()
 		{
 			vulkan_image_memory_barriers_render[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
 		}
+		if (staged > 0)
+		{
+			cb.pipelineBarrier2({
+				vk::DependencyFlags{},
+				
+				0,
+				nullptr,
 
-		cb.pipelineBarrier2({
-			vk::DependencyFlags{},
-			{},
-			{},
-			vulkan_image_memory_barriers_render,
-		});
+				0,
+				nullptr,
+
+				// The depth stencil buffer only has to get transitioned once.
+				1,
+				&vulkan_image_memory_barriers_render[0],
+			});
+		}
+		else
+		{
+			cb.pipelineBarrier2({
+				vk::DependencyFlags{},
+				{},
+				{},
+				vulkan_image_memory_barriers_render,
+			});
+		}
 
 		std::array<vk::RenderingAttachmentInfo, 1> vulkan_rendering_attachment_infos{
 			vk::RenderingAttachmentInfo{
 				vulkan_swapchain_image_views[vulkan_image_idx],
 				vk::ImageLayout::eColorAttachmentOptimal,
+
 				vk::ResolveModeFlagBits::eNone,
 				vk::ImageView{},
 				vk::ImageLayout::eUndefined,
+
 				vk::AttachmentLoadOp::eClear,
 				vk::AttachmentStoreOp::eStore,
 				vk::ClearValue{},
 			},
+		};
+
+		vk::RenderingAttachmentInfo vulkan_depth_stencil_attachment_info{
+			vulkan_depth_stencil_image_view,
+			vk::ImageLayout::eDepthStencilAttachmentOptimal,
+
+			vk::ResolveModeFlagBits::eNone,
+			vk::ImageView{},
+			vk::ImageLayout::eUndefined,
+
+			vk::AttachmentLoadOp::eClear,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::ClearValue{},
 		};
 
 		cb.beginRendering({
@@ -1808,6 +1905,8 @@ static void based_renderer_main()
 			1,
 			0,
 			vulkan_rendering_attachment_infos,
+			&vulkan_depth_stencil_attachment_info,
+			&vulkan_depth_stencil_attachment_info,
 		});
 
 		cb.bindPipeline(
