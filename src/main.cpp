@@ -9,7 +9,7 @@
 
 // TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
-#ifdef _DEBUG
+#ifdef FUCK
 #define BASED_RENDERER_DEBUG 1
 #else
 #define BASED_RENDERER_DEBUG 0
@@ -1334,13 +1334,13 @@ static void based_renderer_main()
 	std::array<vk::BufferCreateInfo, 2> vulkan_buffer_create_infos{
 		vk::BufferCreateInfo{
 			vk::BufferCreateFlags{},
-			sizeof(Uniforms),
-			vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eUniformBuffer,
+			sizeof(Uniforms), 
+			vk::BufferUsageFlagBits::eTransferSrc,
 		},
 		vk::BufferCreateInfo{
 			vk::BufferCreateFlags{},
-			sizeof(Uniforms), 
-			vk::BufferUsageFlagBits::eTransferSrc,
+			sizeof(Uniforms),
+			vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eUniformBuffer,
 		},
 	};
 	vk::Format vulkan_depth_stencil_format = vk::Format::eD24UnormS8Uint; // TODO: Check for different formats.
@@ -1368,8 +1368,8 @@ static void based_renderer_main()
 		vulkan_image_allocations
 	);
 
-	vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[0].buffer;
-	vk::Buffer vulkan_staging_buffer = vulkan_buffer_allocations[1].buffer;
+	vk::Buffer vulkan_staging_buffer = vulkan_buffer_allocations[0].buffer;
+	vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[1].buffer;
 	
 	vk::Image vulkan_depth_stencil_image = vulkan_image_allocations[0].image;
 
@@ -1388,6 +1388,17 @@ static void based_renderer_main()
 		},
 	});
 
+	{
+		void *data;
+		vk::detail::resultCheck(vulkan_device.mapMemory(vulkan_buffer_allocations[0].memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
+		Uniforms uniforms;
+		uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
+		uniforms.view = glm::translate(uniforms.view, glm::vec3{0.0f, 0.0f, -3.0f});
+		uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
+		std::memcpy(data, &uniforms, sizeof(Uniforms));
+		vulkan_device.unmapMemory(vulkan_buffer_allocations[0].memory);
+	}
+
 	std::array<vk::DescriptorSetLayoutBinding, 1> vulkan_descriptor_set_layout_bindings{
 		vk::DescriptorSetLayoutBinding{
 			0,
@@ -1399,7 +1410,7 @@ static void based_renderer_main()
 
 	std::array<vk::DescriptorSetLayout, 1> vulkan_descriptor_set_layouts{};
     vulkan_descriptor_set_layouts[0] = vulkan_device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{
-    	vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
+    	vk::DescriptorSetLayoutCreateFlags{},
     	vulkan_descriptor_set_layout_bindings,
     });
 
@@ -1411,7 +1422,7 @@ static void based_renderer_main()
     };
 
     vk::DescriptorPool vulkan_descriptor_pool = vulkan_device.createDescriptorPool(vk::DescriptorPoolCreateInfo{
-    	vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+    	vk::DescriptorPoolCreateFlags{},
     	static_cast<uint32_t>(vulkan_swapchain_images.size()),
     	vulkan_descriptor_pool_sizes,
     });
@@ -1660,8 +1671,8 @@ static void based_renderer_main()
 		vk::True,
 		vk::StencilOp::eKeep, // TODO
 		vk::StencilOp::eKeep, // TODO
-		0.0f,		// TODO
-		1000.0f, 	// TODO
+		0.1f,		// TODO
+		100.0f, 	// TODO
 	};
 
 	std::array<vk::PipelineColorBlendAttachmentState, 1> vulkan_pipeline_color_blend_attachment_states{
@@ -1781,6 +1792,31 @@ static void based_renderer_main()
 
 		static size_t staged = 0;
 
+		std::array<vk::BufferMemoryBarrier2, 2> vulkan_buffer_memory_barriers_transfer{
+		    vk::BufferMemoryBarrier2{
+		    	vk::PipelineStageFlags2{},
+		    	vk::AccessFlags2{},
+		    	vk::PipelineStageFlagBits2::eTransfer,
+		    	vk::AccessFlagBits2::eTransferRead,
+		    	0, // TODO
+		    	0, // TODO
+		        vulkan_staging_buffer,
+		        0,
+		        sizeof(Uniforms),
+		    },
+		    vk::BufferMemoryBarrier2{
+	        	vk::PipelineStageFlags2{},
+	        	vk::AccessFlags2{},
+	        	vk::PipelineStageFlagBits2::eTransfer,
+	        	vk::AccessFlagBits2::eTransferWrite,
+	        	0, // TODO
+	        	0, // TODO
+	            vulkan_uniform_buffer,
+	            0,
+	            sizeof(Uniforms),
+		    },
+		};
+
 		std::array<vk::ImageMemoryBarrier2, 2> vulkan_image_memory_barriers_render{
 			vk::ImageMemoryBarrier2{
 				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
@@ -1845,8 +1881,39 @@ static void based_renderer_main()
 			cb.pipelineBarrier2({
 				vk::DependencyFlags{},
 				{},
-				{},
+				vulkan_buffer_memory_barriers_transfer,
 				vulkan_image_memory_barriers_render,
+			});
+
+			std::array<vk::BufferCopy, 1> buffer_copies{
+				vk::BufferCopy{
+					0,
+					0,
+					sizeof(Uniforms),
+				},
+			};
+
+			cb.copyBuffer(vulkan_staging_buffer, vulkan_uniform_buffer, buffer_copies);
+
+			std::array<vk::BufferMemoryBarrier2, 1> buffer_barriers{
+			    vk::BufferMemoryBarrier2{
+			    	vk::PipelineStageFlagBits2::eTransfer,
+			    	vk::AccessFlagBits2::eTransferWrite,
+			    	vk::PipelineStageFlagBits2::eVertexShader,
+			    	vk::AccessFlagBits2::eUniformRead,
+			    	0, // TODO
+			    	0, // TODO
+			        vulkan_uniform_buffer,
+			        0,
+			        sizeof(Uniforms),
+			    },
+			};
+
+			cb.pipelineBarrier2({
+				vk::DependencyFlags{},
+				{},
+				buffer_barriers,
+				{},
 			});
 		}
 
@@ -1895,6 +1962,12 @@ static void based_renderer_main()
 			vk::PipelineBindPoint::eGraphics,
 			vulkan_pipelines[0]
 		);
+		cb.bindDescriptorSets(
+			vk::PipelineBindPoint::eGraphics,
+			vulkan_pipeline_layout,
+			0,
+			vulkan_descriptor_sets,
+			{});
 		cb.draw(6, 1, 0, 0);
 
 		cb.endRendering();
