@@ -244,23 +244,30 @@ static uint32_t vulkan_find_memory_type_idx(
 
 struct VulkanAllocation
 {
-	vk::MemoryPropertyFlags memory_properties;
 	vk::DeviceMemory memory;
 	vk::DeviceSize offset;
 	vk::DeviceSize size;
 	vk::DeviceSize align;
+	vk::MemoryPropertyFlags memory_properties;
 	uint32_t memory_type_idx;
 	bool dedicated_allocation;
+};
+
+struct VulkanStagingBufferAllocation : VulkanAllocation
+{
+	vk::Buffer buffer;
 };
 
 struct VulkanBufferAllocation : VulkanAllocation
 {
 	vk::Buffer buffer;
+	std::optional<VulkanStagingBufferAllocation> staging_buffer;
 };
 
 struct VulkanImageAllocation : VulkanAllocation
 {
 	vk::Image image;
+	std::optional<VulkanStagingBufferAllocation> staging_buffer;
 };
 
 // https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
@@ -686,6 +693,29 @@ struct Uniforms
 	glm::mat4 view;
 	glm::mat4 proj;
 };
+
+static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt, float const aspect) {
+	static float rotation = 0.0f;
+    rotation += dt;
+
+    uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{0.0f, 1.0f, 0.0f});
+    uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
+    uniforms.proj = glm::perspective(glm::radians(180.0f), aspect, 0.1f, 100.0f);
+
+    void *data;
+	vk::detail::resultCheck(
+		device.mapMemory(
+			uniforms_memory, 
+			0, 
+			sizeof(Uniforms), 
+			vk::MemoryMapFlags{}, 
+			&data
+		), 
+		"Failed to map memory!"
+	);
+	std::memcpy(data, &uniforms, sizeof(Uniforms));
+	device.unmapMemory(uniforms_memory);
+}
 
 static void based_renderer_main()
 {
@@ -1190,6 +1220,13 @@ static void based_renderer_main()
 	uint32_t client_width = static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left);
 	uint32_t client_height = static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top);
 
+    DEVMODEW win32_dev_mode = DEVMODEW{sizeof(DEVMODEW)};
+    if (!EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &win32_dev_mode))
+    {
+    	throw win32_system_error();
+    }
+    float const fixed_dt = 1.0f/static_cast<float>(win32_dev_mode.dmDisplayFrequency);
+
 	vk::SurfaceKHR vulkan_surface = vulkan_instance.createWin32SurfaceKHR({
 		{},
 		win32_instance,
@@ -1388,14 +1425,14 @@ static void based_renderer_main()
 		},
 	});
 
+	Uniforms vulkan_uniforms;
 	{
 		void *data;
 		vk::detail::resultCheck(vulkan_device.mapMemory(vulkan_buffer_allocations[0].memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
-		Uniforms uniforms;
-		uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
-		uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
-		uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
-		std::memcpy(data, &uniforms, sizeof(Uniforms));
+		vulkan_uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
+		vulkan_uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
+		vulkan_uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
+		std::memcpy(data, &vulkan_uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(vulkan_buffer_allocations[0].memory);
 	}
 
@@ -1787,6 +1824,8 @@ static void based_renderer_main()
 				ShowWindow(win32_window, SW_SHOW);
 			}
 		}
+
+		rotate_cube(vulkan_device, vulkan_buffer_allocations[1].memory, vulkan_uniforms, fixed_dt, static_cast<float>(client_width)/static_cast<float>(client_height));
 
 		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
 		cb.begin({
