@@ -161,7 +161,7 @@ struct VulkanMemoryTypeInfo
 static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
-	vk::BufferUsageFlags usage)
+	vk::BufferUsageFlags const usage)
 {
 	vk::MemoryPropertyFlags desired_memory_properties;
 	if (usage&vk::BufferUsageFlagBits::eTransferSrc)
@@ -196,7 +196,7 @@ static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
 static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
-	vk::ImageUsageFlags usage) 
+	vk::ImageUsageFlags const usage) 
 {
 	vk::MemoryPropertyFlags desired_memory_properties;
 	if (usage&vk::ImageUsageFlagBits::eTransferSrc)
@@ -1513,16 +1513,16 @@ static void based_renderer_main()
 		},
 	});
 
-	Uniforms vulkan_uniforms;
+	Uniforms uniforms;
 	if (vulkan_buffer_allocations[vulkan_uniform_buffer_idx].has_staging_buffer()) 
 	{
 		void *data;
 		vk::DeviceMemory memory = vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.memory;
 		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
-		vulkan_uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
-		vulkan_uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
-		vulkan_uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
-		std::memcpy(data, &vulkan_uniforms, sizeof(Uniforms));
+		uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
+		uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
+		uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
+		std::memcpy(data, &uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(memory);
 	}
 
@@ -1915,7 +1915,7 @@ static void based_renderer_main()
 			}
 		}
 
-		rotate_cube(vulkan_device, vulkan_buffer_allocations[1].memory, vulkan_uniforms, fixed_dt, static_cast<float>(client_width)/static_cast<float>(client_height));
+		rotate_cube(vulkan_device, vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.memory, uniforms, fixed_dt, static_cast<float>(client_width)/static_cast<float>(client_height));
 
 		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
 		cb.begin({
