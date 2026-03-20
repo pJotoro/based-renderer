@@ -409,7 +409,7 @@ void vulkan_allocate(
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
 			image_create_infos[i].usage);
 
-		if (!(image_allocation.memory_type_info.properties&(vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible)))
+		if (!(image_allocation.memory_type_info.properties&(vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible)) && !(image_create_infos[i].usage&vk::ImageUsageFlagBits::eDepthStencilAttachment))
 		{
 			VulkanStagingBufferAllocation staging_buffer_allocation{};
 			staging_buffer_allocation.handle = device.createBuffer({
@@ -1450,11 +1450,6 @@ static void based_renderer_main()
 	}
 
 	std::array<vk::BufferCreateInfo, 2> vulkan_buffer_create_infos{
-		vk::BufferCreateInfo{
-			vk::BufferCreateFlags{},
-			sizeof(Uniforms), 
-			vk::BufferUsageFlagBits::eTransferSrc,
-		},
 		vk::BufferCreateInfo{
 			vk::BufferCreateFlags{},
 			sizeof(Uniforms),
