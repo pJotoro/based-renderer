@@ -164,46 +164,30 @@ static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
 	vk::BufferUsageFlags usage)
 {
 	vk::MemoryPropertyFlags desired_memory_properties;
-	if (usage & vk::BufferUsageFlagBits::eTransferSrc)
+	if (usage&vk::BufferUsageFlagBits::eTransferSrc)
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
-
-		uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
-		for (;;)
-		{
-			uint32_t memory_type_bit = 1 << memory_type_idx;		
-			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
-			{
-				VulkanMemoryTypeInfo res;
-				res.idx = memory_type_idx;
-				res.properties = memory_properties;
-				return res;
-			}
-
-			if (memory_type_idx == 0) break;
-			--memory_type_idx;
-		}
 	}
 	else
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+	}
 
-		for (
-			uint32_t memory_type_idx = 0; 
-			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
-			++memory_type_idx) 
+	uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
+	for (;;)
+	{
+		uint32_t memory_type_bit = 1 << memory_type_idx;		
+		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+		if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
 		{
-			uint32_t memory_type_bit = 1 << memory_type_idx;		
-			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
-			{
-				VulkanMemoryTypeInfo res;
-				res.idx = memory_type_idx;
-				res.properties = memory_properties;
-				return res;
-			}
+			VulkanMemoryTypeInfo res;
+			res.idx = memory_type_idx;
+			res.properties = memory_properties;
+			return res;
 		}
+
+		if (memory_type_idx == 0) break;
+		--memory_type_idx;
 	}
 
 	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index.")};
@@ -215,52 +199,36 @@ static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
 	vk::ImageUsageFlags usage) 
 {
 	vk::MemoryPropertyFlags desired_memory_properties;
-	if (usage & vk::ImageUsageFlagBits::eTransferSrc)
+	if (usage&vk::ImageUsageFlagBits::eTransferSrc)
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
-
-		uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
-		for (;;)
-		{
-			uint32_t memory_type_bit = 1 << memory_type_idx;		
-			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
-			{
-				VulkanMemoryTypeInfo res;
-				res.idx = memory_type_idx;
-				res.properties = memory_properties;
-				return res;
-			}
-
-			if (memory_type_idx == 0) break;
-			--memory_type_idx;
-		}
 	}
 	else
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+	}
 
-		for (
-			uint32_t memory_type_idx = 0; 
-			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
-			++memory_type_idx) 
+	uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
+	for (;;)
+	{
+		uint32_t memory_type_bit = 1 << memory_type_idx;		
+		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+		if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
 		{
-			uint32_t memory_type_bit = 1 << memory_type_idx;		
-			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
-			{
-				VulkanMemoryTypeInfo res;
-				res.idx = memory_type_idx;
-				res.properties = memory_properties;
-				return res;
-			}
+			VulkanMemoryTypeInfo res;
+			res.idx = memory_type_idx;
+			res.properties = memory_properties;
+			return res;
 		}
+
+		if (memory_type_idx == 0) break;
+		--memory_type_idx;
 	}
 
 	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index.")};
 }
 
-struct VulkanAllocation
+struct VulkanStagingBufferAllocation
 {
 	vk::DeviceMemory memory;
 	vk::DeviceSize offset;
@@ -268,23 +236,44 @@ struct VulkanAllocation
 	vk::DeviceSize align;
 	VulkanMemoryTypeInfo memory_type_info;
 	bool dedicated_allocation;
-};
 
-struct VulkanStagingBufferAllocation : VulkanAllocation
-{
 	vk::Buffer handle;
 };
 
-struct VulkanBufferAllocation : VulkanAllocation
+// You might be wondering why we are not using inheritance here, since each of these structs share so many members. The reason is simply convenience. Specifically, it's not possible to initialize staging_buffer.memory_type_info.idx using a designated initializer if memory_type_info is a member of the parent class.
+
+struct VulkanBufferAllocation
 {
+	vk::DeviceMemory memory;
+	vk::DeviceSize offset;
+	vk::DeviceSize size;
+	vk::DeviceSize align;
+	VulkanMemoryTypeInfo memory_type_info;
+	bool dedicated_allocation;
+
 	vk::Buffer handle;
-	std::optional<VulkanStagingBufferAllocation> staging_buffer;
+	VulkanStagingBufferAllocation staging_buffer{
+		.memory_type_info = VulkanMemoryTypeInfo{
+			.idx = 0xFFFFFFFF,
+		},
+	};
 };
 
-struct VulkanImageAllocation : VulkanAllocation
+struct VulkanImageAllocation
 {
+	vk::DeviceMemory memory;
+	vk::DeviceSize offset;
+	vk::DeviceSize size;
+	vk::DeviceSize align;
+	VulkanMemoryTypeInfo memory_type_info;
+	bool dedicated_allocation;
+
 	vk::Image handle;
-	std::optional<VulkanStagingBufferAllocation> staging_buffer;
+	VulkanStagingBufferAllocation staging_buffer{
+		.memory_type_info = VulkanMemoryTypeInfo{
+			.idx = 0xFFFFFFFF,
+		},
+	};
 };
 
 // https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
@@ -292,7 +281,6 @@ static bool is_power_of_2(vk::DeviceSize const x)
 {
 	return (x & (x-1)) == 0;
 }
-
 static vk::DeviceSize align_forward(vk::DeviceSize offset, vk::DeviceSize const align) 
 {
 	if (!is_power_of_2(align))
@@ -313,23 +301,13 @@ static vk::DeviceSize align_forward(vk::DeviceSize offset, vk::DeviceSize const 
 	return offset;
 }
 
-// How to use:
-// 1. Create all the buffers and images you want.
-// 2. Decide which memory properties you want each of them to have (or not). 
-//    For example, a vertex buffer should probably be device local, while a
-//	  staging buffer should be host visible.
-// 3. Now you can call vulkan_allocate. When passing the buffers and images,
-//	  you should only fill out the fields within the anonymous "in" struct.
-// 4. For each buffer and image, the fields within the "out" struct will be 
-//    filled. In all likelihood, you will only ever need to use the "memory" 
-//    and "offset" fields, but the others are there as well just in case.
 void vulkan_allocate(
-	vk::Device const device,
-	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
-	std::span<vk::BufferCreateInfo> buffer_create_infos,
-	std::span<vk::ImageCreateInfo> image_create_infos,
-	std::span<VulkanBufferAllocation> buffer_allocations,
-	std::span<VulkanImageAllocation> image_allocations) 
+	/* in */ vk::Device const device,
+	/* in */ vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
+	/* in */ std::span<vk::BufferCreateInfo> buffer_create_infos,
+	/* in */ std::span<vk::ImageCreateInfo> image_create_infos,
+	/* out */ std::span<VulkanBufferAllocation> buffer_allocations,
+	/* out */ std::span<VulkanImageAllocation> image_allocations) 
 {
 	// TODO: Should I do a warning here?
 	size_t buffer_count = std::min(buffer_create_infos.size(), buffer_allocations.size());
@@ -361,6 +339,32 @@ void vulkan_allocate(
 			physical_device_memory_properties,
 			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
 			buffer_create_infos[i].usage);
+
+		if (!(buffer_allocation.memory_type_info.properties&(vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible)))
+		{
+			VulkanStagingBufferAllocation staging_buffer_allocation{};
+			staging_buffer_allocation.handle = device.createBuffer({
+				vk::BufferCreateFlags{},
+				buffer_allocation.size,
+				vk::BufferUsageFlagBits::eTransferSrc,
+			});
+
+			vk::BufferMemoryRequirementsInfo2 staging_buffer_memory_requirements_info;
+			staging_buffer_memory_requirements_info.buffer = staging_buffer_allocation.handle;
+			
+			vk::MemoryRequirements2 staging_buffer_memory_requirements;
+			device.getBufferMemoryRequirements2(&staging_buffer_memory_requirements_info, &staging_buffer_memory_requirements);
+
+			staging_buffer_allocation.size = staging_buffer_memory_requirements.memoryRequirements.size;
+			staging_buffer_allocation.align = staging_buffer_memory_requirements.memoryRequirements.alignment;
+
+			staging_buffer_allocation.memory_type_info = vulkan_get_memory_type_info(
+				physical_device_memory_properties,
+				staging_buffer_memory_requirements.memoryRequirements.memoryTypeBits,
+				vk::BufferUsageFlagBits::eTransferSrc);
+
+			buffer_allocation.staging_buffer = staging_buffer_allocation;
+		}
 
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
 		{
@@ -404,6 +408,32 @@ void vulkan_allocate(
 			physical_device_memory_properties,
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
 			image_create_infos[i].usage);
+
+		if (!(image_allocation.memory_type_info.properties&(vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible)))
+		{
+			VulkanStagingBufferAllocation staging_buffer_allocation{};
+			staging_buffer_allocation.handle = device.createBuffer({
+				vk::BufferCreateFlags{},
+				image_allocation.size,
+				vk::BufferUsageFlagBits::eTransferSrc,
+			});
+
+			vk::BufferMemoryRequirementsInfo2 staging_buffer_memory_requirements_info;
+			staging_buffer_memory_requirements_info.buffer = staging_buffer_allocation.handle;
+			
+			vk::MemoryRequirements2 staging_buffer_memory_requirements;
+			device.getBufferMemoryRequirements2(&staging_buffer_memory_requirements_info, &staging_buffer_memory_requirements);
+
+			staging_buffer_allocation.size = staging_buffer_memory_requirements.memoryRequirements.size;
+			staging_buffer_allocation.align = staging_buffer_memory_requirements.memoryRequirements.alignment;
+
+			staging_buffer_allocation.memory_type_info = vulkan_get_memory_type_info(
+				physical_device_memory_properties,
+				staging_buffer_memory_requirements.memoryRequirements.memoryTypeBits,
+				vk::BufferUsageFlagBits::eTransferSrc);
+
+			image_allocation.staging_buffer = staging_buffer_allocation;
+		}
 
 		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
 		{
@@ -452,6 +482,18 @@ void vulkan_allocate(
 
 				memory_offset += buffer_allocation.size;
 			}
+
+			if (buffer_allocation.staging_buffer.memory_type_info.idx == memory_type_idx)
+			{
+				memory_offset = align_forward(memory_offset, buffer_allocation.staging_buffer.align);
+
+				vk::BindBufferMemoryInfo bind_buffer_memory_info;
+				bind_buffer_memory_info.buffer = buffer_allocation.staging_buffer.handle;
+				bind_buffer_memory_info.memoryOffset = memory_offset;
+				bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
+
+				memory_offset += buffer_allocation.staging_buffer.size;
+			}
 		}
 
 		for (size_t i = 0; i < image_count; ++i)
@@ -469,6 +511,18 @@ void vulkan_allocate(
 
 				memory_offset += image_allocation.size;
 			}
+
+			if (image_allocation.staging_buffer.memory_type_info.idx == memory_type_idx) 
+			{
+				memory_offset = align_forward(memory_offset, image_allocation.staging_buffer.align);
+
+				vk::BindBufferMemoryInfo bind_staging_buffer_memory_info;
+				bind_staging_buffer_memory_info.buffer = image_allocation.staging_buffer.handle;
+				bind_staging_buffer_memory_info.memoryOffset = memory_offset;
+				bind_buffer_memory_infos.push_back(bind_staging_buffer_memory_info);
+
+				memory_offset += image_allocation.staging_buffer.size;
+			}
 		}
 
 		if (memory_offset > 0)
@@ -485,6 +539,11 @@ void vulkan_allocate(
 				{
 					buffer_allocation.memory = memory;
 				}
+
+				if (buffer_allocation.staging_buffer.memory_type_info.idx == memory_type_idx) 
+				{
+					buffer_allocation.staging_buffer.memory = memory;
+				}
 			}
 			for (size_t i = 0; i < image_count; ++i)
 			{
@@ -492,6 +551,11 @@ void vulkan_allocate(
 				if (image_allocation.memory_type_info.idx == memory_type_idx && !image_allocation.memory) 
 				{
 					image_allocation.memory = memory;
+				}
+
+				if (image_allocation.staging_buffer.memory_type_info.idx == memory_type_idx) 
+				{
+					image_allocation.staging_buffer.memory = memory;
 				}
 			}
 			for (size_t i = bind_buffer_memory_infos_size; i < bind_buffer_memory_infos.size(); ++i) 
