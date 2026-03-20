@@ -257,6 +257,11 @@ struct VulkanBufferAllocation
 			.idx = 0xFFFFFFFF,
 		},
 	};
+
+	bool has_staging_buffer()
+	{
+		return staging_buffer.memory_type_info.idx != 0xFFFFFFFF;
+	}
 };
 
 struct VulkanImageAllocation
@@ -274,6 +279,11 @@ struct VulkanImageAllocation
 			.idx = 0xFFFFFFFF,
 		},
 	};
+
+	bool has_staging_buffer()
+	{
+		return staging_buffer.memory_type_info.idx != 0xFFFFFFFF;
+	}
 };
 
 // https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/#heading-2-5
@@ -1449,27 +1459,30 @@ static void based_renderer_main()
 		vulkan_semaphores_signal[i] = vulkan_device.createSemaphore({});
 	}
 
-	std::array<vk::BufferCreateInfo, 2> vulkan_buffer_create_infos{
-		vk::BufferCreateInfo{
-			vk::BufferCreateFlags{},
-			sizeof(Uniforms),
-			vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eUniformBuffer,
-		},
-	};
 	vk::Format vulkan_depth_stencil_format = vk::Format::eD24UnormS8Uint; // TODO: Check for different formats.
-	std::array<vk::ImageCreateInfo, 1> vulkan_image_create_infos{
-		vk::ImageCreateInfo{
-			vk::ImageCreateFlags{},
-			vk::ImageType::e2D,
-			vulkan_depth_stencil_format, 
-			vk::Extent3D{client_width, client_height, 1},
-			1,
-			1,
-			vk::SampleCountFlagBits::e1,
-			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eDepthStencilAttachment,
-		},
+
+	size_t vulkan_uniform_buffer_idx = 0;
+	std::array<vk::BufferCreateInfo, 1> vulkan_buffer_create_infos;
+	vulkan_buffer_create_infos[vulkan_uniform_buffer_idx] = vk::BufferCreateInfo{
+		vk::BufferCreateFlags{},
+		sizeof(Uniforms),
+		vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eUniformBuffer,
 	};
+
+	size_t vulkan_depth_stencil_image_idx = 0;
+	std::array<vk::ImageCreateInfo, 1> vulkan_image_create_infos;
+	vulkan_image_create_infos[0] = vk::ImageCreateInfo{
+		vk::ImageCreateFlags{},
+		vk::ImageType::e2D,
+		vulkan_depth_stencil_format, 
+		vk::Extent3D{client_width, client_height, 1},
+		1,
+		1,
+		vk::SampleCountFlagBits::e1,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eDepthStencilAttachment,
+	};
+
 	std::array<VulkanBufferAllocation, vulkan_buffer_create_infos.size()> vulkan_buffer_allocations{};
 	std::array<VulkanImageAllocation, vulkan_image_create_infos.size()> vulkan_image_allocations{};
 	vulkan_allocate(
@@ -1481,10 +1494,9 @@ static void based_renderer_main()
 		vulkan_image_allocations
 	);
 
-	vk::Buffer vulkan_staging_buffer = vulkan_buffer_allocations[0].handle;
-	vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[1].handle;
-	
-	vk::Image vulkan_depth_stencil_image = vulkan_image_allocations[0].handle;
+	vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[vulkan_uniform_buffer_idx].handle;
+
+	vk::Image vulkan_depth_stencil_image = vulkan_image_allocations[vulkan_depth_stencil_image_idx].handle;
 
 	vk::ImageView vulkan_depth_stencil_image_view = vulkan_device.createImageView({
 		vk::ImageViewCreateFlags{},
@@ -1502,14 +1514,16 @@ static void based_renderer_main()
 	});
 
 	Uniforms vulkan_uniforms;
+	if (vulkan_buffer_allocations[vulkan_uniform_buffer_idx].has_staging_buffer()) 
 	{
 		void *data;
-		vk::detail::resultCheck(vulkan_device.mapMemory(vulkan_buffer_allocations[0].memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
+		vk::DeviceMemory memory = vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.memory;
+		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
 		vulkan_uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
 		vulkan_uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
 		vulkan_uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
 		std::memcpy(data, &vulkan_uniforms, sizeof(Uniforms));
-		vulkan_device.unmapMemory(vulkan_buffer_allocations[0].memory);
+		vulkan_device.unmapMemory(memory);
 	}
 
 	std::array<vk::DescriptorSetLayoutBinding, 1> vulkan_descriptor_set_layout_bindings{
@@ -1918,7 +1932,7 @@ static void based_renderer_main()
 		    	vk::AccessFlagBits2::eTransferRead,
 		    	0, // TODO
 		    	0, // TODO
-		        vulkan_staging_buffer,
+		        vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.handle,
 		        0,
 		        sizeof(Uniforms),
 		    },
@@ -2011,7 +2025,7 @@ static void based_renderer_main()
 				},
 			};
 
-			cb.copyBuffer(vulkan_staging_buffer, vulkan_uniform_buffer, buffer_copies);
+			cb.copyBuffer(vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.handle, vulkan_buffer_allocations[vulkan_uniform_buffer_idx].handle, buffer_copies);
 
 			std::array<vk::BufferMemoryBarrier2, 1> buffer_barriers{
 			    vk::BufferMemoryBarrier2{
