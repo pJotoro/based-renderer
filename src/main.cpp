@@ -9,7 +9,7 @@
 
 // TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
-#ifdef FUCK
+#ifdef _DEBUG
 #define BASED_RENDERER_DEBUG 1
 #else
 #define BASED_RENDERER_DEBUG 0
@@ -908,7 +908,7 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(shaderSharedInt64Atomics);
 		VULKAN_DISABLE_FEATURE(shaderFloat16);
 		VULKAN_DISABLE_FEATURE(shaderInt8);
-		VULKAN_REQUIRE_FEATURE(descriptorIndexing);
+		VULKAN_DISABLE_FEATURE(descriptorIndexing);
 		VULKAN_DISABLE_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
 		VULKAN_DISABLE_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
 		VULKAN_DISABLE_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
@@ -925,10 +925,10 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
-		VULKAN_REQUIRE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
-		VULKAN_REQUIRE_FEATURE(descriptorBindingPartiallyBound);
-		VULKAN_REQUIRE_FEATURE(descriptorBindingVariableDescriptorCount);
-		VULKAN_REQUIRE_FEATURE(runtimeDescriptorArray);
+		VULKAN_DISABLE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
+		VULKAN_DISABLE_FEATURE(descriptorBindingPartiallyBound);
+		VULKAN_DISABLE_FEATURE(descriptorBindingVariableDescriptorCount);
+		VULKAN_DISABLE_FEATURE(runtimeDescriptorArray);
 		VULKAN_DISABLE_FEATURE(samplerFilterMinmax);
 		VULKAN_DISABLE_FEATURE(scalarBlockLayout);
 		VULKAN_DISABLE_FEATURE(imagelessFramebuffer);
@@ -1393,7 +1393,7 @@ static void based_renderer_main()
 		vk::detail::resultCheck(vulkan_device.mapMemory(vulkan_buffer_allocations[0].memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
 		Uniforms uniforms;
 		uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
-		uniforms.view = glm::translate(uniforms.view, glm::vec3{0.0f, 0.0f, -3.0f});
+		uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
 		uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
 		std::memcpy(data, &uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(vulkan_buffer_allocations[0].memory);
@@ -1662,18 +1662,19 @@ static void based_renderer_main()
 	};
 	vk::PipelineMultisampleStateCreateInfo vulkan_pipeline_multisample_state_create_info{};
 
-	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{
-		vk::PipelineDepthStencilStateCreateFlags{},
-		vk::True,
-		vk::True,
-		vk::CompareOp::eLess,
-		vk::True,
-		vk::True,
-		vk::StencilOp::eKeep, // TODO
-		vk::StencilOp::eKeep, // TODO
-		0.1f,		// TODO
-		100.0f, 	// TODO
-	};
+	// vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{
+	// 	vk::PipelineDepthStencilStateCreateFlags{},
+	// 	vk::True,
+	// 	vk::True,
+	// 	vk::CompareOp::eLess,
+	// 	vk::True,
+	// 	vk::True,
+	// 	vk::StencilOp::eKeep, // TODO
+	// 	vk::StencilOp::eKeep, // TODO
+	// 	0.1f,		// TODO
+	// 	100.0f, 	// TODO
+	// };
+	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{};
 
 	std::array<vk::PipelineColorBlendAttachmentState, 1> vulkan_pipeline_color_blend_attachment_states{
 		vk::PipelineColorBlendAttachmentState{
@@ -1707,8 +1708,10 @@ static void based_renderer_main()
 	vk::PipelineRenderingCreateInfo vulkan_pipeline_rendering_create_info{
 		0,
 		vulkan_pipeline_rendering_formats,
-		vulkan_depth_stencil_format,
-		vulkan_depth_stencil_format,
+		vk::Format::eUndefined,
+		vk::Format::eUndefined,
+		// vulkan_depth_stencil_format,
+		// vulkan_depth_stencil_format,
 	};
 
 	vk::GraphicsPipelineCreateInfo vulkan_graphics_pipeline_create_info{
@@ -1817,7 +1820,7 @@ static void based_renderer_main()
 		    },
 		};
 
-		std::array<vk::ImageMemoryBarrier2, 2> vulkan_image_memory_barriers_render{
+		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers_render{
 			vk::ImageMemoryBarrier2{
 				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 				vk::AccessFlags2{},
@@ -1836,24 +1839,24 @@ static void based_renderer_main()
 					1,
 				},
 			},
-			vk::ImageMemoryBarrier2{
-				vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-				vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
-				vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-				vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
-				vk::ImageLayout::eUndefined,
-				vk::ImageLayout::eDepthStencilAttachmentOptimal,
-				0, // TODO: srcQueueFamilyIdx
-				0, // TODO: dstQueueFamilyIdx
-				vulkan_depth_stencil_image,
-				vk::ImageSubresourceRange{
-					vk::ImageAspectFlags{vk::ImageAspectFlagBits::eDepth|vk::ImageAspectFlagBits::eStencil},
-					0,
-					1,
-					0,
-					1,
-				},
-			},
+			// vk::ImageMemoryBarrier2{
+			// 	vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+			// 	vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
+			// 	vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+			// 	vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
+			// 	vk::ImageLayout::eUndefined,
+			// 	vk::ImageLayout::eDepthStencilAttachmentOptimal,
+			// 	0, // TODO: srcQueueFamilyIdx
+			// 	0, // TODO: dstQueueFamilyIdx
+			// 	vulkan_depth_stencil_image,
+			// 	vk::ImageSubresourceRange{
+			// 		vk::ImageAspectFlags{vk::ImageAspectFlagBits::eDepth|vk::ImageAspectFlagBits::eStencil},
+			// 		0,
+			// 		1,
+			// 		0,
+			// 		1,
+			// 	},
+			// },
 		};
 
 		if (staged == vulkan_swapchain_images.size())
@@ -1932,18 +1935,18 @@ static void based_renderer_main()
 			},
 		};
 
-		vk::RenderingAttachmentInfo vulkan_depth_stencil_attachment_info{
-			vulkan_depth_stencil_image_view,
-			vk::ImageLayout::eDepthStencilAttachmentOptimal,
+		// vk::RenderingAttachmentInfo vulkan_depth_stencil_attachment_info{
+		// 	vulkan_depth_stencil_image_view,
+		// 	vk::ImageLayout::eDepthStencilAttachmentOptimal,
 
-			vk::ResolveModeFlagBits::eNone,
-			vk::ImageView{},
-			vk::ImageLayout::eUndefined,
+		// 	vk::ResolveModeFlagBits::eNone,
+		// 	vk::ImageView{},
+		// 	vk::ImageLayout::eUndefined,
 
-			vk::AttachmentLoadOp::eClear,
-			vk::AttachmentStoreOp::eDontCare,
-			vk::ClearValue{},
-		};
+		// 	vk::AttachmentLoadOp::eClear,
+		// 	vk::AttachmentStoreOp::eDontCare,
+		// 	vk::ClearValue{},
+		// };
 
 		cb.beginRendering({
 			vk::RenderingFlags{},
@@ -1954,8 +1957,8 @@ static void based_renderer_main()
 			1,
 			0,
 			vulkan_rendering_attachment_infos,
-			&vulkan_depth_stencil_attachment_info,
-			&vulkan_depth_stencil_attachment_info,
+			// &vulkan_depth_stencil_attachment_info,
+			// &vulkan_depth_stencil_attachment_info,
 		});
 
 		cb.bindPipeline(
