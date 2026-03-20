@@ -255,18 +255,18 @@ struct VulkanAllocation
 
 struct VulkanStagingBufferAllocation : VulkanAllocation
 {
-	vk::Buffer buffer;
+	vk::Buffer handle;
 };
 
 struct VulkanBufferAllocation : VulkanAllocation
 {
-	vk::Buffer buffer;
+	vk::Buffer handle;
 	std::optional<VulkanStagingBufferAllocation> staging_buffer;
 };
 
 struct VulkanImageAllocation : VulkanAllocation
 {
-	vk::Image image;
+	vk::Image handle;
 	std::optional<VulkanStagingBufferAllocation> staging_buffer;
 };
 
@@ -326,12 +326,12 @@ void vulkan_allocate(
 	for (size_t i = 0; i < buffer_count; ++i) 
 	{
 		VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
-		buffer_allocation.buffer = device.createBuffer(buffer_create_infos[i]);
+		buffer_allocation.handle = device.createBuffer(buffer_create_infos[i]);
 
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::BufferMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.buffer = buffer_allocation.buffer;
+		memory_requirements_info.buffer = buffer_allocation.handle;
 		
 		vk::MemoryRequirements2 buffer_memory_requirements;
 		buffer_memory_requirements.pNext = &memory_dedicated_requirements;
@@ -351,7 +351,7 @@ void vulkan_allocate(
 			buffer_allocation.offset = 0;
 
 			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.buffer = buffer_allocation.buffer;
+			memory_dedicated_allocate_info.buffer = buffer_allocation.handle;
 			
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
@@ -361,7 +361,7 @@ void vulkan_allocate(
 			buffer_allocation.memory = device.allocateMemory(memory_allocate_info);
 
 			vk::BindBufferMemoryInfo bind_buffer_memory_info;
-			bind_buffer_memory_info.buffer = buffer_allocation.buffer;
+			bind_buffer_memory_info.buffer = buffer_allocation.handle;
 			bind_buffer_memory_info.memory = buffer_allocation.memory;
 			bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
 		}
@@ -370,12 +370,12 @@ void vulkan_allocate(
 	for (size_t i = 0; i < image_count; ++i) 
 	{
 		VulkanImageAllocation &image_allocation = image_allocations[i];
-		image_allocation.image = device.createImage(image_create_infos[i]);
+		image_allocation.handle = device.createImage(image_create_infos[i]);
 
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
 		
 		vk::ImageMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.image = image_allocation.image;
+		memory_requirements_info.image = image_allocation.handle;
 		
 		vk::MemoryRequirements2 image_memory_requirements;
 		image_memory_requirements.pNext = &memory_dedicated_requirements;
@@ -394,7 +394,7 @@ void vulkan_allocate(
 			image_allocation.offset = 0;
 
 			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.image = image_allocation.image;
+			memory_dedicated_allocate_info.image = image_allocation.handle;
 			
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
@@ -404,7 +404,7 @@ void vulkan_allocate(
 			image_allocation.memory = device.allocateMemory(memory_allocate_info);
 
 			vk::BindImageMemoryInfo bind_image_memory_info;
-			bind_image_memory_info.image = image_allocation.image;
+			bind_image_memory_info.image = image_allocation.handle;
 			bind_image_memory_info.memory = image_allocation.memory;
 			bind_image_memory_infos.push_back(bind_image_memory_info);
 		}
@@ -429,7 +429,7 @@ void vulkan_allocate(
 				memory_offset = align_forward(memory_offset, buffer_allocation.align);
 
 				vk::BindBufferMemoryInfo bind_buffer_memory_info;
-				bind_buffer_memory_info.buffer = buffer_allocation.buffer;
+				bind_buffer_memory_info.buffer = buffer_allocation.handle;
 				bind_buffer_memory_info.memoryOffset = memory_offset;
 				bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
 
@@ -446,7 +446,7 @@ void vulkan_allocate(
 				memory_offset = align_forward(memory_offset, image_allocation.align);
 
 				vk::BindImageMemoryInfo bind_image_memory_info;
-				bind_image_memory_info.image = image_allocation.image;
+				bind_image_memory_info.image = image_allocation.handle;
 				bind_image_memory_info.memoryOffset = memory_offset;
 				bind_image_memory_infos.push_back(bind_image_memory_info);
 
@@ -1405,10 +1405,10 @@ static void based_renderer_main()
 		vulkan_image_allocations
 	);
 
-	vk::Buffer vulkan_staging_buffer = vulkan_buffer_allocations[0].buffer;
-	vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[1].buffer;
+	vk::Buffer vulkan_staging_buffer = vulkan_buffer_allocations[0].handle;
+	vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[1].handle;
 	
-	vk::Image vulkan_depth_stencil_image = vulkan_image_allocations[0].image;
+	vk::Image vulkan_depth_stencil_image = vulkan_image_allocations[0].handle;
 
 	vk::ImageView vulkan_depth_stencil_image_view = vulkan_device.createImageView({
 		vk::ImageViewCreateFlags{},
