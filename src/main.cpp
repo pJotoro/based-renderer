@@ -152,10 +152,16 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 
 // You might be wondering: why are we looping in reverse order when the buffer/image is host visible and host coherent? The reason is because memory type indices are generally ordered so that memory type indices with the most memory properties appear last. For example, on my laptop, the last memory type index is device local, host visible and host coherent, which happens to be the most efficient possible case for a staging buffer.
 
-static uint32_t vulkan_find_memory_type_idx(
+struct VulkanMemoryTypeInfo
+{
+	uint32_t idx;
+	vk::MemoryPropertyFlags properties;
+};
+
+static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
-	vk::BufferUsageFlags usage) 
+	vk::BufferUsageFlags usage)
 {
 	vk::MemoryPropertyFlags desired_memory_properties;
 	if (usage & vk::BufferUsageFlagBits::eTransferSrc)
@@ -169,7 +175,10 @@ static uint32_t vulkan_find_memory_type_idx(
 			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
 			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
 			{
-				return memory_type_idx;
+				VulkanMemoryTypeInfo res;
+				res.idx = memory_type_idx;
+				res.properties = memory_properties;
+				return res;
 			}
 
 			if (memory_type_idx == 0) break;
@@ -189,7 +198,10 @@ static uint32_t vulkan_find_memory_type_idx(
 			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
 			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
 			{
-				return memory_type_idx;
+				VulkanMemoryTypeInfo res;
+				res.idx = memory_type_idx;
+				res.properties = memory_properties;
+				return res;
 			}
 		}
 	}
@@ -197,7 +209,7 @@ static uint32_t vulkan_find_memory_type_idx(
 	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index.")};
 }
 
-static uint32_t vulkan_find_memory_type_idx(
+static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
 	vk::ImageUsageFlags usage) 
@@ -214,7 +226,10 @@ static uint32_t vulkan_find_memory_type_idx(
 			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
 			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
 			{
-				return memory_type_idx;
+				VulkanMemoryTypeInfo res;
+				res.idx = memory_type_idx;
+				res.properties = memory_properties;
+				return res;
 			}
 
 			if (memory_type_idx == 0) break;
@@ -234,7 +249,10 @@ static uint32_t vulkan_find_memory_type_idx(
 			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
 			if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
 			{
-				return memory_type_idx;
+				VulkanMemoryTypeInfo res;
+				res.idx = memory_type_idx;
+				res.properties = memory_properties;
+				return res;
 			}
 		}
 	}
@@ -248,8 +266,7 @@ struct VulkanAllocation
 	vk::DeviceSize offset;
 	vk::DeviceSize size;
 	vk::DeviceSize align;
-	vk::MemoryPropertyFlags memory_properties;
-	uint32_t memory_type_idx;
+	VulkanMemoryTypeInfo memory_type_info;
 	bool dedicated_allocation;
 };
 
@@ -340,7 +357,7 @@ void vulkan_allocate(
 		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
 		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
 
-		buffer_allocation.memory_type_idx = vulkan_find_memory_type_idx(
+		buffer_allocation.memory_type_info = vulkan_get_memory_type_info(
 			physical_device_memory_properties,
 			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
 			buffer_create_infos[i].usage);
@@ -356,7 +373,7 @@ void vulkan_allocate(
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
 			memory_allocate_info.allocationSize = buffer_allocation.size;
-			memory_allocate_info.memoryTypeIndex = buffer_allocation.memory_type_idx;
+			memory_allocate_info.memoryTypeIndex = buffer_allocation.memory_type_info.idx;
 
 			buffer_allocation.memory = device.allocateMemory(memory_allocate_info);
 
@@ -383,7 +400,7 @@ void vulkan_allocate(
 
 		image_allocation.size = image_memory_requirements.memoryRequirements.size;
 		image_allocation.align = image_memory_requirements.memoryRequirements.alignment;
-		image_allocation.memory_type_idx = vulkan_find_memory_type_idx(
+		image_allocation.memory_type_info = vulkan_get_memory_type_info(
 			physical_device_memory_properties,
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
 			image_create_infos[i].usage);
@@ -399,7 +416,7 @@ void vulkan_allocate(
 			vk::MemoryAllocateInfo memory_allocate_info;
 			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
 			memory_allocate_info.allocationSize = image_allocation.size;
-			memory_allocate_info.memoryTypeIndex = image_allocation.memory_type_idx;
+			memory_allocate_info.memoryTypeIndex = image_allocation.memory_type_info.idx;
 
 			image_allocation.memory = device.allocateMemory(memory_allocate_info);
 
@@ -424,7 +441,7 @@ void vulkan_allocate(
 		{
 			VulkanBufferAllocation const &buffer_allocation = buffer_allocations[i];
 
-			if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
+			if (buffer_allocation.memory_type_info.idx == memory_type_idx && !buffer_allocation.memory) 
 			{
 				memory_offset = align_forward(memory_offset, buffer_allocation.align);
 
@@ -441,7 +458,7 @@ void vulkan_allocate(
 		{
 			VulkanImageAllocation const &image_allocation = image_allocations[i];
 
-			if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
+			if (image_allocation.memory_type_info.idx == memory_type_idx && !image_allocation.memory) 
 			{
 				memory_offset = align_forward(memory_offset, image_allocation.align);
 
@@ -464,7 +481,7 @@ void vulkan_allocate(
 			for (size_t i = 0; i < buffer_count; ++i) 
 			{
 				VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
-				if (buffer_allocation.memory_type_idx == memory_type_idx && !buffer_allocation.memory) 
+				if (buffer_allocation.memory_type_info.idx == memory_type_idx && !buffer_allocation.memory) 
 				{
 					buffer_allocation.memory = memory;
 				}
@@ -472,7 +489,7 @@ void vulkan_allocate(
 			for (size_t i = 0; i < image_count; ++i)
 			{
 				VulkanImageAllocation &image_allocation = image_allocations[i];
-				if (image_allocation.memory_type_idx == memory_type_idx && !image_allocation.memory) 
+				if (image_allocation.memory_type_info.idx == memory_type_idx && !image_allocation.memory) 
 				{
 					image_allocation.memory = memory;
 				}
