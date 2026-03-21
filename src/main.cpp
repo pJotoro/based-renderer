@@ -343,6 +343,19 @@ void vulkan_allocate(
 
 	for (size_t i = 0; i < buffer_count; ++i) 
 	{
+		if (buffer_create_infos[i].usage&vk::BufferUsageFlagBits::eTransferDst)
+		{
+			throw vk::LogicError{FORMAT_ERROR(
+				"Do not use vk::BufferUsageFlagBits::eTransferDst directly. Just let vulkan_allocate decide."
+			)};
+		}
+		if (buffer_create_infos[i].usage&vk::BufferUsageFlagBits::eTransferSrc)
+		{
+			throw vk::LogicError{FORMAT_ERROR(
+				"Do not use vk::BufferUsageFlagBits::eTransferSrc. vulkan_allocate already creates a staging buffer for each buffer when necessary."
+			)};
+		}
+
 		VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
 		buffer_allocation.handle = device.createBuffer(buffer_create_infos[i]);
 
@@ -413,6 +426,19 @@ void vulkan_allocate(
 
 	for (size_t i = 0; i < image_count; ++i) 
 	{
+		if (image_create_infos[i].usage&vk::ImageUsageFlagBits::eTransferDst)
+		{
+			throw vk::LogicError{FORMAT_ERROR(
+				"Do not use vk::ImageUsageFlagBits::eTransferDst directly. Just let vulkan_allocate decide."
+			)};
+		}
+		if (image_create_infos[i].usage&vk::ImageUsageFlagBits::eTransferSrc)
+		{
+			throw vk::LogicError{FORMAT_ERROR(
+				"Do not use vk::ImageUsageFlagBits::eTransferSrc. vulkan_allocate already creates a staging buffer for each buffer when necessary."
+			)};
+		}
+
 		VulkanImageAllocation &image_allocation = image_allocations[i];
 		image_allocation.handle = device.createImage(image_create_infos[i]);
 
