@@ -1479,7 +1479,7 @@ static void based_renderer_main()
 	vulkan_buffer_create_infos[vulkan_uniform_buffer_idx] = vk::BufferCreateInfo{
 		vk::BufferCreateFlags{},
 		sizeof(Uniforms),
-		vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eUniformBuffer,
+		vk::BufferUsageFlagBits::eUniformBuffer,
 	};
 
 	size_t vulkan_depth_stencil_image_idx = 0;
@@ -1927,7 +1927,7 @@ static void based_renderer_main()
 			}
 		}
 
-		rotate_cube(vulkan_device, vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.memory, uniforms, fixed_dt, static_cast<float>(client_width)/static_cast<float>(client_height));
+		rotate_cube(vulkan_device, vulkan_buffer_allocations[vulkan_uniform_buffer_idx].get_staging_buffer_memory(), uniforms, fixed_dt, static_cast<float>(client_width)/static_cast<float>(client_height));
 
 		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
 		cb.begin({
@@ -1935,6 +1935,9 @@ static void based_renderer_main()
 		});
 
 		static size_t staged = 0;
+
+		std::vector<vk::BufferMemoryBarrier2> vulkan_buffer_memory_barriers;
+		std::vector<vk::ImageMemoryBarrier2> vulkan_image_memory_barriers;
 
 		std::array<vk::BufferMemoryBarrier2, 2> vulkan_buffer_memory_barriers_transfer{
 		    vk::BufferMemoryBarrier2{
@@ -1960,6 +1963,80 @@ static void based_renderer_main()
 	            sizeof(Uniforms),
 		    },
 		};
+
+		if (staged == 0)
+		{
+
+
+			if (vulkan_buffer_allocations[vulkan_uniform_buffer_idx].has_staging_buffer())
+			{
+				cb.pipelineBarrier2({
+					vk::DependencyFlags{},
+					{},
+					vulkan_buffer_memory_barriers_transfer,
+					vulkan_image_memory_barriers_render,
+				});
+
+				std::array<vk::BufferCopy, 1> buffer_copies{
+					vk::BufferCopy{
+						0,
+						0,
+						sizeof(Uniforms),
+					},
+				};
+
+				cb.copyBuffer(vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.handle, vulkan_buffer_allocations[vulkan_uniform_buffer_idx].handle, buffer_copies);
+
+				std::array<vk::BufferMemoryBarrier2, 1> buffer_barriers{
+				    vk::BufferMemoryBarrier2{
+				    	vk::PipelineStageFlagBits2::eTransfer,
+				    	vk::AccessFlagBits2::eTransferWrite,
+				    	vk::PipelineStageFlagBits2::eVertexShader,
+				    	vk::AccessFlagBits2::eUniformRead,
+				    	0, // TODO
+				    	0, // TODO
+				        vulkan_uniform_buffer,
+				        0,
+				        sizeof(Uniforms),
+				    },
+				};
+
+				cb.pipelineBarrier2({
+					vk::DependencyFlags{},
+					{},
+					buffer_barriers,
+					{},
+				});
+			}
+
+
+
+			staged += 1;
+		}
+		else if (staged < vulkan_swapchain_images.size())
+		{
+			cb.pipelineBarrier2({
+				vk::DependencyFlags{},
+				
+				0,
+				nullptr,
+
+				0,
+				nullptr,
+
+				// The depth stencil buffer only has to get transitioned once.
+				1,
+				&vulkan_image_memory_barriers_render[0],
+			});
+
+			staged += 1;
+		}
+		else
+		{
+			vulkan_image_memory_barriers_render[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
+		}
+
+
 
 		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers_render{
 			vk::ImageMemoryBarrier2{
@@ -1999,67 +2076,6 @@ static void based_renderer_main()
 			// 	},
 			// },
 		};
-
-		if (staged == vulkan_swapchain_images.size())
-		{
-			vulkan_image_memory_barriers_render[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
-		}
-		if (staged > 0)
-		{
-			cb.pipelineBarrier2({
-				vk::DependencyFlags{},
-				
-				0,
-				nullptr,
-
-				0,
-				nullptr,
-
-				// The depth stencil buffer only has to get transitioned once.
-				1,
-				&vulkan_image_memory_barriers_render[0],
-			});
-		}
-		else
-		{
-			cb.pipelineBarrier2({
-				vk::DependencyFlags{},
-				{},
-				vulkan_buffer_memory_barriers_transfer,
-				vulkan_image_memory_barriers_render,
-			});
-
-			std::array<vk::BufferCopy, 1> buffer_copies{
-				vk::BufferCopy{
-					0,
-					0,
-					sizeof(Uniforms),
-				},
-			};
-
-			cb.copyBuffer(vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.handle, vulkan_buffer_allocations[vulkan_uniform_buffer_idx].handle, buffer_copies);
-
-			std::array<vk::BufferMemoryBarrier2, 1> buffer_barriers{
-			    vk::BufferMemoryBarrier2{
-			    	vk::PipelineStageFlagBits2::eTransfer,
-			    	vk::AccessFlagBits2::eTransferWrite,
-			    	vk::PipelineStageFlagBits2::eVertexShader,
-			    	vk::AccessFlagBits2::eUniformRead,
-			    	0, // TODO
-			    	0, // TODO
-			        vulkan_uniform_buffer,
-			        0,
-			        sizeof(Uniforms),
-			    },
-			};
-
-			cb.pipelineBarrier2({
-				vk::DependencyFlags{},
-				{},
-				buffer_barriers,
-				{},
-			});
-		}
 
 		std::array<vk::RenderingAttachmentInfo, 1> vulkan_rendering_attachment_infos{
 			vk::RenderingAttachmentInfo{
