@@ -262,6 +262,19 @@ struct VulkanBufferAllocation
 	{
 		return staging_buffer.memory_type_info.idx != 0xFFFFFFFF;
 	}
+
+	// The idea is, you can always treat a buffer as if it is a staging buffer, even if it's not.
+	vk::Memory get_staging_buffer_memory()
+	{
+		if (has_staging_buffer())
+		{
+			return staging_buffer.memory;
+		}
+		else
+		{
+			return memory;
+		}
+	}
 };
 
 struct VulkanImageAllocation
@@ -1513,11 +1526,10 @@ static void based_renderer_main()
 		},
 	});
 
-	Uniforms uniforms;
-	if (vulkan_buffer_allocations[vulkan_uniform_buffer_idx].has_staging_buffer()) 
+	Uniforms uniforms; 
 	{
 		void *data;
-		vk::DeviceMemory memory = vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer.memory;
+		vk::DeviceMemory memory = vulkan_buffer_allocations[vulkan_uniform_buffer_idx].staging_buffer_memory();
 		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
 		uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
 		uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
