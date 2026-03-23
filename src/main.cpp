@@ -150,82 +150,88 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 	return vk::False;
 }
 
-// You might be wondering: why are we looping in reverse order when the buffer/image is host visible and host coherent? The reason is because memory type indices are generally ordered so that memory type indices with the most memory properties appear last. For example, on my laptop, the last memory type index is device local, host visible and host coherent, which happens to be the most efficient possible case for a staging buffer.
-
 struct VulkanMemoryTypeInfo
 {
 	uint32_t idx;
 	vk::MemoryPropertyFlags properties;
 };
 
-static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
+static std::optional<VulkanMemoryTypeInfo> vulkan_get_memory_type_info(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
-	vk::BufferUsageFlags const usage)
+	vk::MemoryPropertyFlags desired_memory_properties) noexcept
+{
+	std::optional<VulkanMemoryTypeInfo> res;
+
+	for (
+		uint32_t memory_type_idx = 0; 
+		memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+		++memory_type_idx)
+	{
+		uint32_t memory_type_bit = 1 << memory_type_idx;		
+		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+		if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
+		{
+			res = VulkanMemoryTypeInfo{
+				.idx = memory_type_idx, 
+				.properties = memory_properties,
+			};
+			break;
+		}
+	}
+
+	return res;
+}
+
+static std::optional<VulkanMemoryTypeInfo> vulkan_get_memory_type_info(
+	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
+	uint32_t const memory_type_bits,
+	vk::BufferUsageFlags const usage) noexcept
 {
 	vk::MemoryPropertyFlags desired_memory_properties;
 	if (usage&vk::BufferUsageFlagBits::eTransferSrc)
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
 	}
-	else
+	else if (usage&vk::BufferUsageFlagBits::eTransferDst)
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
 	}
-
-	uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
-	for (;;)
+	else
 	{
-		uint32_t memory_type_bit = 1 << memory_type_idx;		
-		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-		if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
-		{
-			VulkanMemoryTypeInfo res;
-			res.idx = memory_type_idx;
-			res.properties = memory_properties;
-			return res;
-		}
-
-		if (memory_type_idx == 0) break;
-		--memory_type_idx;
+		desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
 	}
 
-	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index.")};
+	return vulkan_get_memory_type_info(physical_device_memory_properties, memory_type_bits, desired_memory_properties);
 }
 
-static VulkanMemoryTypeInfo vulkan_get_memory_type_info(
+static std::optional<VulkanMemoryTypeInfo> vulkan_get_memory_type_info(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
-	vk::ImageUsageFlags const usage) 
+	vk::ImageUsageFlags const usage) noexcept
 {
 	vk::MemoryPropertyFlags desired_memory_properties;
 	if (usage&vk::ImageUsageFlagBits::eTransferSrc)
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
 	}
-	else
+	else if (usage&vk::ImageUsageFlagBits::eTransferDst)
 	{
 		desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
 	}
-
-	uint32_t memory_type_idx = physical_device_memory_properties.memoryTypeCount - 1;
-	for (;;)
+	else
 	{
-		uint32_t memory_type_bit = 1 << memory_type_idx;		
-		vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-		if ((memory_type_bits&memory_type_bit) && (desired_memory_properties&memory_properties))
+		if (usage&vk::ImageUsageFlagBits::eDepthStencilAttachment)
 		{
-			VulkanMemoryTypeInfo res;
-			res.idx = memory_type_idx;
-			res.properties = memory_properties;
-			return res;
+			desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
 		}
-
-		if (memory_type_idx == 0) break;
-		--memory_type_idx;
+		else
+		{
+			desired_memory_properties = vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent;
+		}
 	}
 
-	throw vk::LogicError{FORMAT_ERROR("Failed to find a memory type index.")};
+	return vulkan_get_memory_type_info(physical_device_memory_properties, memory_type_bits, desired_memory_properties);
 }
 
 struct VulkanStagingBufferAllocation
@@ -329,8 +335,8 @@ void vulkan_allocate(
 	/* in */ vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	/* in */ std::span<vk::BufferCreateInfo> buffer_create_infos,
 	/* in */ std::span<vk::ImageCreateInfo> image_create_infos,
-	/* out */ std::span<VulkanBufferAllocation> buffer_allocations,
-	/* out */ std::span<VulkanImageAllocation> image_allocations) 
+	/* out */ std::span<VulkanBufferAllocation/*, buffer_create_infos.size()*/> buffer_allocations,
+	/* out */ std::span<VulkanImageAllocation/*, image_create_infos.size()*/> image_allocations) 
 {
 	// TODO: Should I do a warning here?
 	size_t buffer_count = std::min(buffer_create_infos.size(), buffer_allocations.size());
@@ -340,6 +346,8 @@ void vulkan_allocate(
 	bind_buffer_memory_infos.reserve(buffer_count);
 	std::vector<vk::BindImageMemoryInfo> bind_image_memory_infos;
 	bind_image_memory_infos.reserve(image_count);
+
+	// TODO (or possibly a mistake in the Vulkan C++ bindings?): getBufferMemoryRequirements and getImageMemoryRequirements do have enhanced versions that return a vk::StructureChain, but I can't seem to use them because C++ still thinks I'm calling the other one.
 
 	for (size_t i = 0; i < buffer_count; ++i) 
 	{
@@ -356,27 +364,44 @@ void vulkan_allocate(
 			)};
 		}
 
-		VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
-		buffer_allocation.handle = device.createBuffer(buffer_create_infos[i]);
-
+		vk::DeviceBufferMemoryRequirements buffer_memory_requirements_info{
+			&buffer_create_infos[i],
+		};
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
-		
-		vk::BufferMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.buffer = buffer_allocation.handle;
-		
 		vk::MemoryRequirements2 buffer_memory_requirements;
 		buffer_memory_requirements.pNext = &memory_dedicated_requirements;
-		device.getBufferMemoryRequirements2(&memory_requirements_info, &buffer_memory_requirements);
+		device.getBufferMemoryRequirements(
+			&buffer_memory_requirements_info,
+			&buffer_memory_requirements
+		);
 
-		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
-		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
-
-		buffer_allocation.memory_type_info = vulkan_get_memory_type_info(
+		bool needs_staging_buffer = false;
+		std::optional<VulkanMemoryTypeInfo> maybe_memory_type_info = vulkan_get_memory_type_info(
 			physical_device_memory_properties,
 			buffer_memory_requirements.memoryRequirements.memoryTypeBits,
-			buffer_create_infos[i].usage);
+			buffer_create_infos[i].usage
+		);
+		if (!maybe_memory_type_info.has_value())
+		{
+			needs_staging_buffer = true;
+			buffer_create_infos[i].usage |= vk::BufferUsageFlagBits::eTransferDst;
+			maybe_memory_type_info = vulkan_get_memory_type_info(
+				physical_device_memory_properties,
+				buffer_memory_requirements.memoryRequirements.memoryTypeBits,
+				buffer_create_infos[i].usage
+			);
+			if (!maybe_memory_type_info.has_value())
+			{
+				throw vk::LogicError{FORMAT_ERROR("Failed to find compatible memory type info.")};
+			}
+		}
+		VulkanMemoryTypeInfo memory_type_info = maybe_memory_type_info.value();
 
-		if (!(buffer_allocation.memory_type_info.properties&(vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible)))
+		VulkanBufferAllocation &buffer_allocation = buffer_allocations[i];
+		buffer_allocation.handle = device.createBuffer(buffer_create_infos[i]);
+		buffer_allocation.size = buffer_memory_requirements.memoryRequirements.size;
+		buffer_allocation.align = buffer_memory_requirements.memoryRequirements.alignment;
+		if (needs_staging_buffer)
 		{
 			VulkanStagingBufferAllocation staging_buffer_allocation{};
 			staging_buffer_allocation.handle = device.createBuffer({
@@ -387,41 +412,40 @@ void vulkan_allocate(
 
 			vk::BufferMemoryRequirementsInfo2 staging_buffer_memory_requirements_info;
 			staging_buffer_memory_requirements_info.buffer = staging_buffer_allocation.handle;
-			
 			vk::MemoryRequirements2 staging_buffer_memory_requirements;
 			device.getBufferMemoryRequirements2(&staging_buffer_memory_requirements_info, &staging_buffer_memory_requirements);
 
 			staging_buffer_allocation.size = staging_buffer_memory_requirements.memoryRequirements.size;
 			staging_buffer_allocation.align = staging_buffer_memory_requirements.memoryRequirements.alignment;
 
+			// This should always succeed, because every implementation is guaranteed to have at least one memory type that is host visible and host coherent.
 			staging_buffer_allocation.memory_type_info = vulkan_get_memory_type_info(
 				physical_device_memory_properties,
 				staging_buffer_memory_requirements.memoryRequirements.memoryTypeBits,
-				vk::BufferUsageFlagBits::eTransferSrc);
+				vk::BufferUsageFlagBits::eTransferSrc).value();
 
 			buffer_allocation.staging_buffer = staging_buffer_allocation;
 		}
 
-		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
-		{
-			buffer_allocation.dedicated_allocation = true;
-			buffer_allocation.offset = 0;
+		// if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
+		// {
+		// 	buffer_allocation.dedicated_allocation = true;
 
-			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.buffer = buffer_allocation.handle;
+		// 	vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
+		// 	memory_dedicated_allocate_info.buffer = buffer_allocation.handle;
 			
-			vk::MemoryAllocateInfo memory_allocate_info;
-			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
-			memory_allocate_info.allocationSize = buffer_allocation.size;
-			memory_allocate_info.memoryTypeIndex = buffer_allocation.memory_type_info.idx;
+		// 	vk::MemoryAllocateInfo memory_allocate_info;
+		// 	memory_allocate_info.pNext = &memory_dedicated_allocate_info;
+		// 	memory_allocate_info.allocationSize = buffer_allocation.size;
+		// 	memory_allocate_info.memoryTypeIndex = buffer_allocation.memory_type_info.idx;
 
-			buffer_allocation.memory = device.allocateMemory(memory_allocate_info);
+		// 	buffer_allocation.memory = device.allocateMemory(memory_allocate_info);
 
-			vk::BindBufferMemoryInfo bind_buffer_memory_info;
-			bind_buffer_memory_info.buffer = buffer_allocation.handle;
-			bind_buffer_memory_info.memory = buffer_allocation.memory;
-			bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
-		}
+		// 	vk::BindBufferMemoryInfo bind_buffer_memory_info;
+		// 	bind_buffer_memory_info.buffer = buffer_allocation.handle;
+		// 	bind_buffer_memory_info.memory = buffer_allocation.memory;
+		// 	bind_buffer_memory_infos.push_back(bind_buffer_memory_info);
+		// }
 	}
 
 	for (size_t i = 0; i < image_count; ++i) 
@@ -439,26 +463,46 @@ void vulkan_allocate(
 			)};
 		}
 
-		VulkanImageAllocation &image_allocation = image_allocations[i];
-		image_allocation.handle = device.createImage(image_create_infos[i]);
+		// TODO: Same problem as with getBufferMemoryRequirements.
 
+		vk::DeviceImageMemoryRequirements image_memory_requirements_info{
+			&image_create_infos[i],
+		};
 		vk::MemoryDedicatedRequirements memory_dedicated_requirements;
-		
-		vk::ImageMemoryRequirementsInfo2 memory_requirements_info;
-		memory_requirements_info.image = image_allocation.handle;
-		
 		vk::MemoryRequirements2 image_memory_requirements;
 		image_memory_requirements.pNext = &memory_dedicated_requirements;
-		device.getImageMemoryRequirements2(&memory_requirements_info, &image_memory_requirements);
+		device.getImageMemoryRequirements(
+			&image_memory_requirements_info,
+			&image_memory_requirements
+		);
 
-		image_allocation.size = image_memory_requirements.memoryRequirements.size;
-		image_allocation.align = image_memory_requirements.memoryRequirements.alignment;
-		image_allocation.memory_type_info = vulkan_get_memory_type_info(
+		bool needs_staging_buffer = false;
+		std::optional<VulkanMemoryTypeInfo> maybe_memory_type_info = vulkan_get_memory_type_info(
 			physical_device_memory_properties,
 			image_memory_requirements.memoryRequirements.memoryTypeBits,
-			image_create_infos[i].usage);
-
-		if (!(image_allocation.memory_type_info.properties&(vk::MemoryPropertyFlagBits::eDeviceLocal|vk::MemoryPropertyFlagBits::eHostVisible)) && !(image_create_infos[i].usage&vk::ImageUsageFlagBits::eDepthStencilAttachment))
+			image_create_infos[i].usage
+		);
+		if (!maybe_memory_type_info.has_value())
+		{
+			needs_staging_buffer = true;
+			image_create_infos[i].usage |= vk::ImageUsageFlagBits::eTransferDst;
+			maybe_memory_type_info = vulkan_get_memory_type_info(
+				physical_device_memory_properties,
+				image_memory_requirements.memoryRequirements.memoryTypeBits,
+				image_create_infos[i].usage
+			);
+			if (!maybe_memory_type_info.has_value())
+			{
+				throw vk::LogicError{FORMAT_ERROR("Failed to find compatible memory type info.")};
+			}
+		}
+		VulkanImageAllocation &image_allocation = image_allocations[i];
+		image_allocation.memory_type_info = maybe_memory_type_info.value();
+		image_allocation.handle = device.createImage(image_create_infos[i]);
+		image_allocation.size = image_memory_requirements.memoryRequirements.size;
+		image_allocation.align = image_memory_requirements.memoryRequirements.alignment;
+		
+		if (needs_staging_buffer)
 		{
 			VulkanStagingBufferAllocation staging_buffer_allocation{};
 			staging_buffer_allocation.handle = device.createBuffer({
@@ -484,26 +528,26 @@ void vulkan_allocate(
 			image_allocation.staging_buffer = staging_buffer_allocation;
 		}
 
-		if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
-		{
-			image_allocation.dedicated_allocation = true;
-			image_allocation.offset = 0;
+		// if (memory_dedicated_requirements.prefersDedicatedAllocation || memory_dedicated_requirements.requiresDedicatedAllocation) 
+		// {
+		// 	image_allocation.dedicated_allocation = true;
+		// 	image_allocation.offset = 0;
 
-			vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
-			memory_dedicated_allocate_info.image = image_allocation.handle;
+		// 	vk::MemoryDedicatedAllocateInfo memory_dedicated_allocate_info;
+		// 	memory_dedicated_allocate_info.image = image_allocation.handle;
 			
-			vk::MemoryAllocateInfo memory_allocate_info;
-			memory_allocate_info.pNext = &memory_dedicated_allocate_info;
-			memory_allocate_info.allocationSize = image_allocation.size;
-			memory_allocate_info.memoryTypeIndex = image_allocation.memory_type_info.idx;
+		// 	vk::MemoryAllocateInfo memory_allocate_info;
+		// 	memory_allocate_info.pNext = &memory_dedicated_allocate_info;
+		// 	memory_allocate_info.allocationSize = image_allocation.size;
+		// 	memory_allocate_info.memoryTypeIndex = image_allocation.memory_type_info.idx;
 
-			image_allocation.memory = device.allocateMemory(memory_allocate_info);
+		// 	image_allocation.memory = device.allocateMemory(memory_allocate_info);
 
-			vk::BindImageMemoryInfo bind_image_memory_info;
-			bind_image_memory_info.image = image_allocation.handle;
-			bind_image_memory_info.memory = image_allocation.memory;
-			bind_image_memory_infos.push_back(bind_image_memory_info);
-		}
+		// 	vk::BindImageMemoryInfo bind_image_memory_info;
+		// 	bind_image_memory_info.image = image_allocation.handle;
+		// 	bind_image_memory_info.memory = image_allocation.memory;
+		// 	bind_image_memory_infos.push_back(bind_image_memory_info);
+		// }
 	}
 
 	for (
@@ -520,7 +564,7 @@ void vulkan_allocate(
 		{
 			VulkanBufferAllocation const &buffer_allocation = buffer_allocations[i];
 
-			if (buffer_allocation.memory_type_info.idx == memory_type_idx && !buffer_allocation.memory) 
+			if (buffer_allocation.memory_type_info.idx == memory_type_idx /*&& !buffer_allocation.memory */) 
 			{
 				memory_offset = align_forward(memory_offset, buffer_allocation.align);
 
@@ -549,7 +593,7 @@ void vulkan_allocate(
 		{
 			VulkanImageAllocation const &image_allocation = image_allocations[i];
 
-			if (image_allocation.memory_type_info.idx == memory_type_idx && !image_allocation.memory) 
+			if (image_allocation.memory_type_info.idx == memory_type_idx /*&& !image_allocation.memory */) 
 			{
 				memory_offset = align_forward(memory_offset, image_allocation.align);
 
@@ -1427,21 +1471,6 @@ static void based_renderer_main()
 		true,
 		nullptr,
 	};
-
-	std::array<uint32_t, 2> vulkan_queue_family_indices{
-		static_cast<uint32_t>(vulkan_graphics_queue_family_idx.value()),
-		static_cast<uint32_t>(vulkan_transfer_queue_family_idx.value())
-	};
-
-// TODO: Could this ever be a good idea?
-#if 0
-	if (vulkan_graphics_queue_family_idx != vulkan_transfer_queue_family_idx)
-	{
-		vulkan_swapchain_create_info.imageSharingMode = vk::SharingMode::eConcurrent;
-		vulkan_swapchain_create_info.queueFamilyIndexCount = static_cast<uint32_t>(vulkan_queue_family_indices.size());
-		vulkan_swapchain_create_info.pQueueFamilyIndices = vulkan_queue_family_indices.data();
-	}
-#endif
 
 	vk::SwapchainKHR vulkan_swapchain = vulkan_device.createSwapchainKHR(vulkan_swapchain_create_info);
 
