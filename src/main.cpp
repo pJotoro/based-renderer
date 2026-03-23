@@ -889,34 +889,32 @@ struct Uniforms
 	glm::mat4 proj;
 };
 
-static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt, float const aspect) {
-	UNUSED(device);
-    UNUSED(uniforms_memory);
-    UNUSED(uniforms_memory);
-    UNUSED(uniforms);
-    UNUSED(dt);
-    UNUSED(aspect);
+static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
+	// UNUSED(device);
+    // UNUSED(uniforms_memory);
+    // UNUSED(uniforms_memory);
+    // UNUSED(uniforms);
+    // UNUSED(dt);
+    // UNUSED(aspect);
 
-	// static float rotation = 0.0f;
-    // rotation += dt;
+	static float rotation = 0.0f;
+    rotation += dt;
 
-    // uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{0.0f, 1.0f, 0.0f});
-    // uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
-    // uniforms.proj = glm::perspective(glm::radians(180.0f), aspect, 0.1f, 100.0f);
+    uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{1.0f, 0.5f, 0.0f});
 
-    // void *data;
-	// vk::detail::resultCheck(
-	// 	device.mapMemory(
-	// 		uniforms_memory, 
-	// 		0, 
-	// 		sizeof(Uniforms), 
-	// 		vk::MemoryMapFlags{}, 
-	// 		&data
-	// 	), 
-	// 	"Failed to map memory!"
-	// );
-	// std::memcpy(data, &uniforms, sizeof(Uniforms));
-	// device.unmapMemory(uniforms_memory);
+    void *data;
+	vk::detail::resultCheck(
+		device.mapMemory(
+			uniforms_memory, 
+			0, 
+			sizeof(uniforms.model), 
+			vk::MemoryMapFlags{}, 
+			&data
+		), 
+		"Failed to map memory!"
+	);
+	memcpy(data, &uniforms, sizeof(uniforms.model));
+	device.unmapMemory(uniforms_memory);
 }
 
 static void based_renderer_main()
@@ -2029,7 +2027,7 @@ static void based_renderer_main()
 			}
 		}
 
-		rotate_cube(vulkan_device, vulkan_uniform_buffer_memory, uniforms, fixed_dt, static_cast<float>(client_width)/static_cast<float>(client_height));
+		rotate_cube(vulkan_device, vulkan_uniform_buffer_memory, uniforms, fixed_dt);
 
 		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
 		cb.begin({
