@@ -10,7 +10,7 @@
 // TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
 #ifdef _DEBUG
-#define BASED_RENDERER_DEBUG 1
+#define BASED_RENDERER_DEBUG 0
 #else
 #define BASED_RENDERER_DEBUG 0
 #endif
@@ -23,7 +23,7 @@
 #define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
 
-#define BASED_RENDERER_FULLSCREEN !BASED_RENDERER_DEBUG
+#define BASED_RENDERER_FULLSCREEN 0
 
 // TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
@@ -890,26 +890,33 @@ struct Uniforms
 };
 
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt, float const aspect) {
-	static float rotation = 0.0f;
-    rotation += dt;
+	UNUSED(device);
+    UNUSED(uniforms_memory);
+    UNUSED(uniforms_memory);
+    UNUSED(uniforms);
+    UNUSED(dt);
+    UNUSED(aspect);
 
-    uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{0.0f, 1.0f, 0.0f});
-    uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
-    uniforms.proj = glm::perspective(glm::radians(180.0f), aspect, 0.1f, 100.0f);
+	// static float rotation = 0.0f;
+    // rotation += dt;
 
-    void *data;
-	vk::detail::resultCheck(
-		device.mapMemory(
-			uniforms_memory, 
-			0, 
-			sizeof(Uniforms), 
-			vk::MemoryMapFlags{}, 
-			&data
-		), 
-		"Failed to map memory!"
-	);
-	std::memcpy(data, &uniforms, sizeof(Uniforms));
-	device.unmapMemory(uniforms_memory);
+    // uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{0.0f, 1.0f, 0.0f});
+    // uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
+    // uniforms.proj = glm::perspective(glm::radians(180.0f), aspect, 0.1f, 100.0f);
+
+    // void *data;
+	// vk::detail::resultCheck(
+	// 	device.mapMemory(
+	// 		uniforms_memory, 
+	// 		0, 
+	// 		sizeof(Uniforms), 
+	// 		vk::MemoryMapFlags{}, 
+	// 		&data
+	// 	), 
+	// 	"Failed to map memory!"
+	// );
+	// std::memcpy(data, &uniforms, sizeof(Uniforms));
+	// device.unmapMemory(uniforms_memory);
 }
 
 static void based_renderer_main()
@@ -2168,7 +2175,7 @@ static void based_renderer_main()
 			0,
 			vulkan_descriptor_sets,
 			{});
-		cb.draw(6, 1, 0, 0);
+		cb.draw(36, 1, 0, 0);
 
 		cb.endRendering();
 
