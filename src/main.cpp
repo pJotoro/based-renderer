@@ -10,7 +10,7 @@
 // TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
 #ifdef _DEBUG
-#define BASED_RENDERER_DEBUG 1
+#define BASED_RENDERER_DEBUG 0
 #else
 #define BASED_RENDERER_DEBUG 0
 #endif
