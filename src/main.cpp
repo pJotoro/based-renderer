@@ -10,7 +10,7 @@
 // TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
 #ifdef _DEBUG
-#define BASED_RENDERER_DEBUG 0
+#define BASED_RENDERER_DEBUG 1
 #else
 #define BASED_RENDERER_DEBUG 0
 #endif
@@ -23,7 +23,7 @@
 #define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
 
-#define BASED_RENDERER_FULLSCREEN 1
+#define BASED_RENDERER_FULLSCREEN !BASED_RENDERER_DEBUG
 
 // TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
@@ -1449,7 +1449,7 @@ static void based_renderer_main()
 	vk::Queue vulkan_present_queue = vulkan_queues[vulkan_present_queue_family_idx.value()][0];
 
 	auto vulkan_surface_formats = vulkan_physical_device.getSurfaceFormatsKHR(vulkan_surface);
-	vk::Format vulkan_format = vulkan_surface_formats.front().format; // TODO
+	vk::Format vulkan_swapchain_format = vulkan_surface_formats.front().format; // TODO
 
 	auto vulkan_surface_capabilities = vulkan_physical_device.getSurfaceCapabilitiesKHR(vulkan_surface);
 
@@ -1488,7 +1488,7 @@ static void based_renderer_main()
 		// IIRC, having an image count higher than two actually complicates synchronization somewhat.
 		// I might be wrong though. In any case, it's worth looking into.
 		std::clamp(2u, vulkan_surface_capabilities.minImageCount, vulkan_surface_capabilities.maxImageCount),
-		vulkan_format,
+		vulkan_swapchain_format,
 		vk::ColorSpaceKHR::eSrgbNonlinear,
 		vulkan_swapchain_extent,
 		1,
@@ -1512,7 +1512,7 @@ static void based_renderer_main()
 		{}, 
 		{},
 		vk::ImageViewType::e2D, 
-		vulkan_format, 
+		vulkan_swapchain_format, 
 		{}, 
 		{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
 	};
@@ -1557,62 +1557,45 @@ static void based_renderer_main()
 		vulkan_semaphores_signal[i] = vulkan_device.createSemaphore({});
 	}
 
-	// vk::Format vulkan_depth_stencil_format = vk::Format::eD24UnormS8Uint; // TODO: Check for different formats.
-
-	// size_t vulkan_uniform_buffer_idx = 0;
-	// std::array<vk::BufferCreateInfo, 1> vulkan_buffer_create_infos;
-	// vulkan_buffer_create_infos[vulkan_uniform_buffer_idx] = vk::BufferCreateInfo{
-	// 	vk::BufferCreateFlags{},
-	// 	sizeof(Uniforms),
-	// 	vk::BufferUsageFlagBits::eUniformBuffer,
-	// };
-
-	// size_t vulkan_depth_stencil_image_idx = 0;
-	// std::array<vk::ImageCreateInfo, 1> vulkan_image_create_infos;
-	// vulkan_image_create_infos[0] = vk::ImageCreateInfo{
-	// 	vk::ImageCreateFlags{},
-	// 	vk::ImageType::e2D,
-	// 	vulkan_depth_stencil_format, 
-	// 	vk::Extent3D{client_width, client_height, 1},
-	// 	1,
-	// 	1,
-	// 	vk::SampleCountFlagBits::e1,
-	// 	vk::ImageTiling::eOptimal,
-	// 	vk::ImageUsageFlagBits::eDepthStencilAttachment,
-	// };
-
-	// std::array<VulkanBufferAllocation, vulkan_buffer_create_infos.size()> vulkan_buffer_allocations{};
-	// std::array<VulkanImageAllocation, vulkan_image_create_infos.size()> vulkan_image_allocations{};
-	// vulkan_allocate(
-	// 	vulkan_device, 
-	// 	vulkan_physical_device_memory_properties,
-	// 	vulkan_buffer_create_infos,
-	// 	vulkan_image_create_infos,
-	// 	vulkan_buffer_allocations,
-	// 	vulkan_image_allocations
-	// );
-
-	// vk::Buffer vulkan_uniform_buffer = vulkan_buffer_allocations[vulkan_uniform_buffer_idx].handle;
-
-	// vk::Image vulkan_depth_stencil_image = vulkan_image_allocations[vulkan_depth_stencil_image_idx].handle;
-
-	// vk::ImageView vulkan_depth_stencil_image_view = vulkan_device.createImageView({
-	// 	vk::ImageViewCreateFlags{},
-	// 	vulkan_depth_stencil_image,
-	// 	vk::ImageViewType::e2D,
-	// 	vulkan_depth_stencil_format,
-	// 	vk::ComponentMapping{},
-	// 	vk::ImageSubresourceRange{
-	// 		vk::ImageAspectFlagBits::eDepth|vk::ImageAspectFlagBits::eStencil,
-	// 		0,
-	// 		1,
-	// 		0,
-	// 		1
-	// 	},
-	// });
+	// TODO: Is there something wrong with the way I have set up the depth buffer? When I enable backface culling, the cube doesn't render correctly at all. Or could it simply be the way that the cube faces are listed in the shader? If so, then there isn't actually anything wrong with the way the depth buffer is set up.
+	vk::Format vulkan_depth_format = vk::Format::eD32Sfloat; // NOTE: Support for this always exists. As long as I'm not using a stencil buffer, this will work perfectly fine.
+	vk::Image vulkan_depth_image = vulkan_device.createImage({
+		vk::ImageCreateFlags{},
+		vk::ImageType::e2D,
+		vulkan_depth_format, 
+		vk::Extent3D{client_width, client_height, 1},
+		1,
+		1,
+		vk::SampleCountFlagBits::e1,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eDepthStencilAttachment,
+	});
+	vk::MemoryRequirements vulkan_depth_image_memory_requirements = vulkan_device.getImageMemoryRequirements(vulkan_depth_image);
+	vk::DeviceMemory vulkan_depth_image_memory = vulkan_device.allocateMemory({
+		vulkan_depth_image_memory_requirements.size,
+		vulkan_find_memory_type_idx(
+			vulkan_physical_device_memory_properties,
+			vulkan_depth_image_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eDeviceLocal
+		),
+	});
+	vulkan_device.bindImageMemory(vulkan_depth_image, vulkan_depth_image_memory, 0);
+	vk::ImageView vulkan_depth_image_view = vulkan_device.createImageView({
+		vk::ImageViewCreateFlags{},
+		vulkan_depth_image,
+		vk::ImageViewType::e2D,
+		vulkan_depth_format,
+		vk::ComponentMapping{},
+		vk::ImageSubresourceRange{
+			vk::ImageAspectFlagBits::eDepth,
+			0,
+			1,
+			0,
+			1
+		},
+	});
 
 	// NOTE: I am writing this code assuming that there exists a memory type index with memory properties host visible, host coherent and device local. This is not necessarily always the case!
-
 	vk::Buffer vulkan_uniform_buffer = vulkan_device.createBuffer({
 		vk::BufferCreateFlags{},
 		sizeof(Uniforms),
@@ -1897,7 +1880,7 @@ static void based_renderer_main()
 		vk::False,
 		vk::PolygonMode::eFill,
 		vk::CullModeFlagBits::eNone,
-		vk::FrontFace::eCounterClockwise,
+		vk::FrontFace::eClockwise,
 		vk::False,
 		0.0f,
 		0.0f,
@@ -1906,19 +1889,14 @@ static void based_renderer_main()
 	};
 	vk::PipelineMultisampleStateCreateInfo vulkan_pipeline_multisample_state_create_info{};
 
-	// vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{
-	// 	vk::PipelineDepthStencilStateCreateFlags{},
-	// 	vk::True,
-	// 	vk::True,
-	// 	vk::CompareOp::eLess,
-	// 	vk::True,
-	// 	vk::True,
-	// 	vk::StencilOp::eKeep, // TODO
-	// 	vk::StencilOp::eKeep, // TODO
-	// 	0.1f,		// TODO
-	// 	100.0f, 	// TODO
-	// };
-	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{};
+	vk::PipelineDepthStencilStateCreateInfo vulkan_pipeline_depth_stencil_state_create_info{
+		vk::PipelineDepthStencilStateCreateFlags{},
+		vk::True,
+		vk::True,
+		vk::CompareOp::eLess,
+		vk::False,
+		vk::False,
+	};
 
 	std::array<vk::PipelineColorBlendAttachmentState, 1> vulkan_pipeline_color_blend_attachment_states{
 		vk::PipelineColorBlendAttachmentState{
@@ -1945,17 +1923,15 @@ static void based_renderer_main()
 
 	vk::PipelineDynamicStateCreateInfo vulkan_pipeline_dynamic_state_create_info{};
 
-	std::array<vk::Format const, 1> const vulkan_pipeline_rendering_formats{
-		vulkan_format,
+	std::array<vk::Format const, 1> const vulkan_color_attachment_formats{
+		vulkan_swapchain_format,
 	};
 
 	vk::PipelineRenderingCreateInfo vulkan_pipeline_rendering_create_info{
 		0,
-		vulkan_pipeline_rendering_formats,
-		vk::Format::eUndefined,
-		vk::Format::eUndefined,
-		// vulkan_depth_stencil_format,
-		// vulkan_depth_stencil_format,
+		vulkan_color_attachment_formats,
+		vulkan_depth_format,
+		// vulkan_stencil_format,
 	};
 
 	vk::GraphicsPipelineCreateInfo vulkan_graphics_pipeline_create_info{
@@ -2038,91 +2014,118 @@ static void based_renderer_main()
 			vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
 		});
 
-		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers_before{
-			vk::ImageMemoryBarrier2{
-				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-				vk::AccessFlags2{},
-				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
-				vk::ImageLayout::eUndefined,
-				vk::ImageLayout::eColorAttachmentOptimal,
-				0, // TODO: srcQueueFamilyIdx
-				0, // TODO: dstQueueFamilyIdx
-				vulkan_swapchain_images[vulkan_image_idx],
-				vk::ImageSubresourceRange{
-					vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
-					0,
-					1,
-					0,
-					1,
-				},
-			},
-			// vk::ImageMemoryBarrier2{
-			// 	vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-			// 	vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
-			// 	vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-			// 	vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
-			// 	vk::ImageLayout::eUndefined,
-			// 	vk::ImageLayout::eDepthStencilAttachmentOptimal,
-			// 	0, // TODO: srcQueueFamilyIdx
-			// 	0, // TODO: dstQueueFamilyIdx
-			// 	vulkan_depth_stencil_image,
-			// 	vk::ImageSubresourceRange{
-			// 		vk::ImageAspectFlags{vk::ImageAspectFlagBits::eDepth|vk::ImageAspectFlagBits::eStencil},
-			// 		0,
-			// 		1,
-			// 		0,
-			// 		1,
-			// 	},
-			// },
-		};
-
+		// It might seem unnecessarily verbose that I am doing things this way. Why not just create the array once, and then modify it based on the value of "staged"? In my experience, I have found that when I am not this explicit about things in Vulkan, it makes it a lot easier to find mistakes.
 		static size_t staged = 0;
 		if (staged == 0)
 		{
+			std::array<vk::ImageMemoryBarrier2, 2> image_barriers{
+				vk::ImageMemoryBarrier2{
+					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+					vk::AccessFlags2{},
+					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+					vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+					vk::ImageLayout::eUndefined,
+					vk::ImageLayout::eColorAttachmentOptimal,
+					0, // TODO: srcQueueFamilyIdx
+					0, // TODO: dstQueueFamilyIdx
+					vulkan_swapchain_images[vulkan_image_idx],
+					vk::ImageSubresourceRange{
+						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+						0,
+						1,
+						0,
+						1,
+					},
+				},
+				vk::ImageMemoryBarrier2{
+					vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+					vk::AccessFlags2{},
+					vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+					vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
+					vk::ImageLayout::eUndefined,
+					vk::ImageLayout::eDepthAttachmentOptimal,
+					0, // TODO: srcQueueFamilyIdx
+					0, // TODO: dstQueueFamilyIdx
+					vulkan_depth_image,
+					vk::ImageSubresourceRange{
+						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eDepth},
+						0,
+						1,
+						0,
+						1,
+					},
+				},
+			};
+
 			cb.pipelineBarrier2({
 				vk::DependencyFlags{},
 				{},
 				{},
-				vulkan_image_memory_barriers_before,
+				image_barriers,
 			});
 
 			staged += 1;
 		}
 		else if (staged < vulkan_swapchain_images.size())
 		{
+			std::array<vk::ImageMemoryBarrier2, 1> image_barriers{
+				vk::ImageMemoryBarrier2{
+					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+					vk::AccessFlags2{},
+					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+					vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+					vk::ImageLayout::eUndefined,
+					vk::ImageLayout::eColorAttachmentOptimal,
+					0, // TODO: srcQueueFamilyIdx
+					0, // TODO: dstQueueFamilyIdx
+					vulkan_swapchain_images[vulkan_image_idx],
+					vk::ImageSubresourceRange{
+						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+						0,
+						1,
+						0,
+						1,
+					},
+				},
+			};
+
 			cb.pipelineBarrier2({
 				vk::DependencyFlags{},
-				
-				0,
-				nullptr,
-
-				0,
-				nullptr,
-
-				// The depth stencil buffer only has to get transitioned once.
-				1,
-				&vulkan_image_memory_barriers_before[0],
+				{},
+				{},
+				image_barriers,
 			});
 
 			staged += 1;
 		}
 		else
 		{
-			vulkan_image_memory_barriers_before[0].oldLayout = vk::ImageLayout::ePresentSrcKHR;
+			std::array<vk::ImageMemoryBarrier2, 1> image_barriers{
+				vk::ImageMemoryBarrier2{
+					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+					vk::AccessFlags2{},
+					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+					vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+					vk::ImageLayout::ePresentSrcKHR,
+					vk::ImageLayout::eColorAttachmentOptimal,
+					0, // TODO: srcQueueFamilyIdx
+					0, // TODO: dstQueueFamilyIdx
+					vulkan_swapchain_images[vulkan_image_idx],
+					vk::ImageSubresourceRange{
+						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+						0,
+						1,
+						0,
+						1,
+					},
+				},
+			};
 
 			cb.pipelineBarrier2({
 				vk::DependencyFlags{},
-				
-				0,
-				nullptr,
-
-				0,
-				nullptr,
-
-				// The depth stencil buffer only has to get transitioned once.
-				1,
-				&vulkan_image_memory_barriers_before[0],
+				{},
+				{},
+				image_barriers,
 			});
 		}
 
@@ -2137,22 +2140,22 @@ static void based_renderer_main()
 
 				vk::AttachmentLoadOp::eClear,
 				vk::AttachmentStoreOp::eStore,
-				vk::ClearValue{},
+				vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
 			},
 		};
 
-		// vk::RenderingAttachmentInfo vulkan_depth_stencil_attachment_info{
-		// 	vulkan_depth_stencil_image_view,
-		// 	vk::ImageLayout::eDepthStencilAttachmentOptimal,
+		vk::RenderingAttachmentInfo vulkan_depth_attachment_info{
+			vulkan_depth_image_view,
+			vk::ImageLayout::eDepthAttachmentOptimal,
 
-		// 	vk::ResolveModeFlagBits::eNone,
-		// 	vk::ImageView{},
-		// 	vk::ImageLayout::eUndefined,
+			vk::ResolveModeFlagBits::eNone,
+			vk::ImageView{},
+			vk::ImageLayout::eUndefined,
 
-		// 	vk::AttachmentLoadOp::eClear,
-		// 	vk::AttachmentStoreOp::eDontCare,
-		// 	vk::ClearValue{},
-		// };
+			vk::AttachmentLoadOp::eClear,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::ClearDepthStencilValue(1.0f, 0),
+		};
 
 		cb.beginRendering({
 			vk::RenderingFlags{},
@@ -2163,8 +2166,8 @@ static void based_renderer_main()
 			1,
 			0,
 			vulkan_rendering_attachment_infos,
-			// &vulkan_depth_stencil_attachment_info,
-			// &vulkan_depth_stencil_attachment_info,
+			&vulkan_depth_attachment_info,
+			//&vulkan_stencil_attachment_info,
 		});
 
 		cb.bindPipeline(
@@ -2176,38 +2179,41 @@ static void based_renderer_main()
 			vulkan_pipeline_layout,
 			0,
 			vulkan_descriptor_sets,
-			{});
+			{}
+		);
 		cb.draw(36, 1, 0, 0);
 
 		cb.endRendering();
 
-		std::array<vk::ImageMemoryBarrier2, 1> vulkan_image_memory_barriers_present{
-			vk::ImageMemoryBarrier2{
-				vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-				vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
-				vk::PipelineStageFlags2{},
-				vk::AccessFlags2{},
-				vk::ImageLayout::eColorAttachmentOptimal,
-				vk::ImageLayout::ePresentSrcKHR,
-				0, // TODO
-				0, // TODO
-				vulkan_swapchain_images[vulkan_image_idx],
-				vk::ImageSubresourceRange{
-					vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
-					0,
-					1,
-					0,
-					1,
+		{
+			std::array<vk::ImageMemoryBarrier2, 1> image_barriers{
+				vk::ImageMemoryBarrier2{
+					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+					vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+					vk::PipelineStageFlags2{},
+					vk::AccessFlags2{},
+					vk::ImageLayout::eColorAttachmentOptimal,
+					vk::ImageLayout::ePresentSrcKHR,
+					0, // TODO
+					0, // TODO
+					vulkan_swapchain_images[vulkan_image_idx],
+					vk::ImageSubresourceRange{
+						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+						0,
+						1,
+						0,
+						1,
+					},
 				},
-			},
-		};
+			};
 
-		cb.pipelineBarrier2({
-			vk::DependencyFlags{},
-			{},
-			{},
-			vulkan_image_memory_barriers_present,
-		});
+			cb.pipelineBarrier2({
+				vk::DependencyFlags{},
+				{},
+				{},
+				image_barriers,
+			});
+		}
 
 		cb.end();
 
