@@ -10,7 +10,7 @@
 // TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
 #ifdef _DEBUG
-#define BASED_RENDERER_DEBUG 0
+#define BASED_RENDERER_DEBUG 1
 #else
 #define BASED_RENDERER_DEBUG 0
 #endif
@@ -23,7 +23,7 @@
 #define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
 
-#define BASED_RENDERER_FULLSCREEN 0
+#define BASED_RENDERER_FULLSCREEN 1
 
 // TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
@@ -113,6 +113,17 @@ LRESULT WINAPI win32_event_callback(
 		case WM_CLOSE: 
 		{
 			win32_running = false;
+		} break;
+		case WM_KEYDOWN: 
+			{
+			uint8_t virtual_key_code = static_cast<uint8_t>(win32_w_param);
+			switch (virtual_key_code)
+			{
+				case VK_ESCAPE: 
+				{
+					win32_running = false;
+				} break;
+			}
 		} break;
 		default: 
 		{
@@ -890,13 +901,6 @@ struct Uniforms
 };
 
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
-	// UNUSED(device);
-    // UNUSED(uniforms_memory);
-    // UNUSED(uniforms_memory);
-    // UNUSED(uniforms);
-    // UNUSED(dt);
-    // UNUSED(aspect);
-
 	static float rotation = 0.0f;
     rotation += dt;
 
