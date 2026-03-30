@@ -1,13 +1,10 @@
 #include "pch.hpp"
 
-// TODO: Would it make sense to add BASED_RENDERER_ to these macro names?
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
 #define STMT(X) do {X} while (0)
 
 #define FORMAT_ERROR(MESSAGE) std::format("{}({}): {}", __FUNCTION__, __LINE__, (MESSAGE))
-
-// TODO: Would it make sense to not define these directly, but instead define them in CMakePresets and CMakeUserPresets?
 
 #ifdef _DEBUG
 #define BASED_RENDERER_DEBUG 1
@@ -680,7 +677,7 @@ vk::Bool32 VKAPI_PTR vulkan_debug_callback(
 static uint32_t vulkan_find_memory_type_idx(
 	vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 	uint32_t const memory_type_bits,
-	vk::MemoryPropertyFlags desired_memory_properties)
+	vk::MemoryPropertyFlags const desired_memory_properties)
 {
 	for (
 		uint32_t memory_type_idx = 0; 
@@ -903,8 +900,9 @@ struct Uniforms
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
 	static float rotation = 0.0f;
     rotation += dt;
+    rotation = glm::clamp(rotation, 0.0f, glm::radians(360.0f));
 
-    uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{1.0f, 0.5f, 0.0f});
+    uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{0.1f, 0.05f, 0.025f});
 
     void *data;
 	vk::detail::resultCheck(
@@ -1619,7 +1617,7 @@ static void based_renderer_main()
 		void *data;
 		vk::DeviceMemory memory = vulkan_uniform_buffer_memory;
 		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
-		uniforms.model = glm::rotate(glm::mat4{1}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f}); 
+		uniforms.model = glm::mat4{1}; 
 		uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
 		uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
 		std::memcpy(data, &uniforms, sizeof(Uniforms));
@@ -2014,7 +2012,7 @@ static void based_renderer_main()
 			vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
 		});
 
-		// It might seem unnecessarily verbose that I am doing things this way. Why not just create the array once, and then modify it based on the value of "staged"? In my experience, I have found that when I am not this explicit about things in Vulkan, it makes it a lot easier to find mistakes.
+		// It might seem unnecessarily verbose that I am doing things this way. Why not just create the array once, and then modify it based on the value of "staged"? In my experience, I have found that when I am not this explicit about things in Vulkan, it makes it a lot harder to find mistakes.
 		static size_t staged = 0;
 		if (staged == 0)
 		{
