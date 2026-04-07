@@ -115,3 +115,7 @@ That's quite a lot of unknowns! No wonder I'm so stuck on how to implement diffu
 
 That said, this isn't necessarily a bad thing. The above shader code was more or less copied from Learn OpenGL and then translated into Slang from GLSL. If it really did just work out of the box somehow for what I'm doing, then I wouldn't be learning anything, and would most likely get even more stuck later on. But of course, it didn't work out of the box because I am trying to make a light point at a rotating cube, which is not what Learn OpenGL teaches.
 */
+
+/*
+After reading FGED and Real-Time Rendering some more, I've come to realize that the problem is that I'm using glm, when I should really be hand-writing the matrices myself in order to get a better understanding of what I'm doing.
+*/
