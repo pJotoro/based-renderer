@@ -1,4 +1,5 @@
 #include "pch.hpp"
+#include "math.hpp"
 
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
@@ -892,22 +893,26 @@ int WINAPI WinMain(
 
 struct Uniforms
 {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
+	float4x4 model;
+	float4x4 view;
+	float4x4 proj;
 };
 
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
 	static float rotation = 0.0f;
     rotation += dt;
-    rotation = glm::clamp(rotation, 0.0f, glm::radians(360.0f));
+    if (rotation >= 1.0f)
+    {
+    	rotation = 0.0f;
+    }
 
-    uniforms.model = glm::rotate(glm::mat4{1}, -rotation, glm::vec3{0.1f, 0.05f, 0.025f});
+    // uniforms.model = glm::rotate(float4x4{1}, -rotation, glm::vec3{0.1f, 0.05f, 0.025f});
+    // TODO: Manually specify rotation matrix.
 
     void *data;
 	vk::detail::resultCheck(
 		device.mapMemory(
-			uniforms_memory, 
+			uniforms_memory,
 			0, 
 			sizeof(uniforms.model), 
 			vk::MemoryMapFlags{}, 
@@ -1617,9 +1622,10 @@ static void based_renderer_main()
 		void *data;
 		vk::DeviceMemory memory = vulkan_uniform_buffer_memory;
 		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
-		uniforms.model = glm::mat4{1}; 
-		uniforms.view = glm::translate(glm::mat4{1}, glm::vec3{0.0f, 0.0f, -3.0f});
-		uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
+		uniforms.model = float4x4{};
+		uniforms.view = float4x4{} + float4{0.0f, 0.0f, -3.0f, 0.0f};
+		// TODO: Manually specify perspective matrix.
+		// uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
 		std::memcpy(data, &uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(memory);
 	}
