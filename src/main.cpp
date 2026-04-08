@@ -1,5 +1,4 @@
 #include "pch.hpp"
-#include "math.hpp"
 
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
@@ -893,9 +892,9 @@ int WINAPI WinMain(
 
 struct Uniforms
 {
-	float4x4 model;
-	float4x4 view;
-	float4x4 proj;
+	alignas(16) float model[4][4];
+	alignas(16) float view[4][4];
+	alignas(16) float proj[4][4];
 };
 
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
@@ -1617,13 +1616,21 @@ static void based_renderer_main()
 	});
 	vulkan_device.bindBufferMemory(vulkan_uniform_buffer, vulkan_uniform_buffer_memory, 0);
 
-	Uniforms uniforms; 
+	Uniforms uniforms{};
 	{
 		void *data;
 		vk::DeviceMemory memory = vulkan_uniform_buffer_memory;
 		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
-		uniforms.model = float4x4{};
-		uniforms.view = float4x4{} + float4{0.0f, 0.0f, -3.0f, 0.0f};
+
+		uniforms.model[0][0] = 1.0f;
+		uniforms.model[1][1] = 1.0f;
+		uniforms.model[2][2] = 1.0f;
+		uniforms.model[3][3] = 1.0f;
+		
+		uniforms.view[0][0] = 1.0f;
+		uniforms.view[1][1] = 1.0f;
+		uniforms.view[2][2] = -2.0f;
+		uniforms.view[3][3] = 1.0f;
 		// TODO: Manually specify perspective matrix.
 		// uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
 		std::memcpy(data, &uniforms, sizeof(Uniforms));
