@@ -1641,8 +1641,6 @@ static void based_renderer_main()
 		uniforms.proj[3][2] = -0.1001001001001001001f;
 		uniforms.proj[2][3] = 1.0f;
 
-		// TODO: Manually specify perspective matrix.
-		// uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
 		memcpy(data, &uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(memory);
 	}
