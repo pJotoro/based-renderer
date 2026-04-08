@@ -1633,18 +1633,12 @@ static void based_renderer_main()
 		uniforms.view[2][2] = -2.0f;
 		uniforms.view[3][3] = 1.0f;
 
-		// TODO: Get sine, cosine, and tangent functions that use turns instead of radians.
-		// TODO: Make a word document where you show your work.
-
-		// NOTE: These constants use turns instead of radians.
-		float constexpr fov_x = 0.25414679033243675288f; // TODO: This assumes an aspect ratio of 16/9. Change this!
-		float constexpr fov_y = 1.0f/6.0f;
-
-		float constexpr proj_dist = 1.73205080756887729353f;
-		float constexpr near_dist = 0.1f;
-		float constexpr far_dist = 100.0f;
-
-		// uniforms.proj[?] = ?; // <---- DO THIS!!!
+		// See projection.docx.
+		uniforms.proj[0][0] = 0.97427857925749347761f;
+		uniforms.proj[1][1] = 1.73205080756887729353f;
+		uniforms.proj[2][2] = 1.001001001001001001f;
+		uniforms.proj[3][2] = -0.1001001001001001001f;
+		uniforms.proj[2][3] = 1.0f;
 
 		// TODO: Manually specify perspective matrix.
 		// uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
