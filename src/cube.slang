@@ -86,7 +86,7 @@ Vertex vs(uint vertex_id : SV_VertexID)
     float3 light_dir = float3(1.0, 0.0, 0.0);
     matrix<float,4,4> transform = mul(u.proj, mul(u.view, u.model));
     res.light_dir = mul(transform, float4(light_dir, 0.0));
-    res.pos = mul(transform, float4(vertices[vertex_id], 1.0)));
+    res.pos = mul(transform, float4(vertices[vertex_id], 1.0));
     res.normal = normals[vertex_id/6];
     res.color = colors[vertex_id/6];
     return res;

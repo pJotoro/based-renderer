@@ -1426,6 +1426,7 @@ static void based_renderer_main()
 	uint32_t const client_width = static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left);
 	uint32_t const client_height = static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top);
 	float const aspect_ratio = static_cast<float>(client_width)/static_cast<float>(client_height);
+	UNUSED(aspect_ratio); // TODO
 
     DEVMODEW win32_dev_mode = DEVMODEW{sizeof(DEVMODEW)};
     if (!EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &win32_dev_mode))
