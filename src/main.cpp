@@ -1062,7 +1062,7 @@ static void based_renderer_main()
 
 	{
 		auto &features = std::get<0>(vulkan_physical_device_features).features;
-		VULKAN_ALLOW_FEATURE(robustBufferAccess);
+		VULKAN_DISABLE_FEATURE(robustBufferAccess);
 		VULKAN_DISABLE_FEATURE(fullDrawIndexUint32);
 		VULKAN_DISABLE_FEATURE(imageCubeArray);
 		VULKAN_DISABLE_FEATURE(independentBlend);
@@ -1185,7 +1185,7 @@ static void based_renderer_main()
 	}
 	{
 		auto &features = std::get<3>(vulkan_physical_device_features);
-		VULKAN_ALLOW_FEATURE(robustImageAccess);
+		VULKAN_DISABLE_FEATURE(robustImageAccess);
 		VULKAN_DISABLE_FEATURE(inlineUniformBlock);
 		VULKAN_DISABLE_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
 		VULKAN_ALLOW_FEATURE(pipelineCreationCacheControl);
@@ -1196,7 +1196,7 @@ static void based_renderer_main()
 		VULKAN_DISABLE_FEATURE(computeFullSubgroups);
 		VULKAN_REQUIRE_FEATURE(synchronization2);
 		VULKAN_DISABLE_FEATURE(textureCompressionASTC_HDR);
-		VULKAN_ALLOW_FEATURE(shaderZeroInitializeWorkgroupMemory);
+		VULKAN_DISABLE_FEATURE(shaderZeroInitializeWorkgroupMemory);
 		VULKAN_REQUIRE_FEATURE(dynamicRendering);
 		VULKAN_DISABLE_FEATURE(shaderIntegerDotProduct);
 		VULKAN_DISABLE_FEATURE(maintenance4);
