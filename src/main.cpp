@@ -897,6 +897,28 @@ struct Uniforms
 	alignas(16) float proj[4][4];
 };
 
+// Make your own sine and cosine implementation using turns instead of radians.
+
+#define PI 3.14159265358979323846f
+
+namespace based_renderer::math
+{
+	static float sin(float t)
+	{
+		float const rotation_radians = t*2*PI;
+		float const res = std::sin(rotation_radians);
+		return res;
+	}
+
+	static float cos(float t)
+	{
+		float const rotation_radians = t*2*PI;
+		float const res = std::cos(rotation_radians);
+		return res;
+	}
+}
+
+
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
 	static float rotation = 0.0f;
     rotation += dt;
@@ -905,10 +927,8 @@ static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms
     	rotation = 0.0f;
     }
 
-    float constexpr pi = 3.14159265358979323846f;
-    float const rotation_radians = rotation*2*pi;
-    float const s = std::sin(rotation_radians);
-    float const c = std::cos(rotation_radians);
+    float const s = based_renderer::math::sin(rotation);
+    float const c = based_renderer::math::cos(rotation);
 
     // Taken from FGED Volume 1 page 61
     uniforms.model[1][1] = c;
