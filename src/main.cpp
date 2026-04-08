@@ -905,8 +905,16 @@ static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms
     	rotation = 0.0f;
     }
 
-    // uniforms.model = glm::rotate(float4x4{1}, -rotation, glm::vec3{0.1f, 0.05f, 0.025f});
-    // TODO: Manually specify rotation matrix.
+    float constexpr pi = 3.14159265358979323846f;
+    float const rotation_radians = rotation*2*pi;
+    float const s = std::sin(rotation_radians);
+    float const c = std::cos(rotation_radians);
+
+    // Taken from FGED Volume 1 page 61
+    uniforms.model[1][1] = c;
+    uniforms.model[2][1] = -s;
+    uniforms.model[1][2] = s;
+    uniforms.model[2][2] = c;
 
     void *data;
 	vk::detail::resultCheck(
