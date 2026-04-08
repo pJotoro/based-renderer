@@ -4,3 +4,5 @@ build/*
 *.radproj
 challenges.txt
 TODO.txt
+*.tmp
+~$*
