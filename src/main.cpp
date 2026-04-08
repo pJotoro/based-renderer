@@ -1423,8 +1423,9 @@ static void based_renderer_main()
 		throw win32_system_error();
 	}
 
-	uint32_t client_width = static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left);
-	uint32_t client_height = static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top);
+	uint32_t const client_width = static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left);
+	uint32_t const client_height = static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top);
+	float const aspect_ratio = static_cast<float>(client_width)/static_cast<float>(client_height);
 
     DEVMODEW win32_dev_mode = DEVMODEW{sizeof(DEVMODEW)};
     if (!EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &win32_dev_mode))
@@ -1631,9 +1632,23 @@ static void based_renderer_main()
 		uniforms.view[1][1] = 1.0f;
 		uniforms.view[2][2] = -2.0f;
 		uniforms.view[3][3] = 1.0f;
+
+		// TODO: Get sine, cosine, and tangent functions that use turns instead of radians.
+		// TODO: Make a word document where you show your work.
+
+		// NOTE: These constants use turns instead of radians.
+		float constexpr fov_x = 0.25414679033243675288f; // TODO: This assumes an aspect ratio of 16/9. Change this!
+		float constexpr fov_y = 1.0f/6.0f;
+
+		float constexpr proj_dist = 1.73205080756887729353f;
+		float constexpr near_dist = 0.1f;
+		float constexpr far_dist = 100.0f;
+
+		// uniforms.proj[?] = ?; // <---- DO THIS!!!
+
 		// TODO: Manually specify perspective matrix.
 		// uniforms.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(client_width)/static_cast<float>(client_height), 0.1f, 100.0f);
-		std::memcpy(data, &uniforms, sizeof(Uniforms));
+		memcpy(data, &uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(memory);
 	}
 
