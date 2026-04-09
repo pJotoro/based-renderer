@@ -1,6 +1,9 @@
 # TODO: Once the project is done, lower the minimum required version to the lowest possible number that doesn't cause anything to break.
 cmake_minimum_required(VERSION 4.2 FATAL_ERROR)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED On)
+
 # HACK: For some reason, CMake thinks Windows doesn't support shared libraries. I have no idea why this is.
 set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
 
@@ -21,7 +24,6 @@ set_target_properties(slang_compiler PROPERTIES
 
 project(based_renderer CXX)
 add_executable(based_renderer src/main.cpp)
-target_compile_features(based_renderer PRIVATE cxx_std_20)
 target_precompile_headers(based_renderer PRIVATE src/pch.hpp)
 target_link_libraries(slang INTERFACE slang_compiler)
 target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang)
