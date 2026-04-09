@@ -11,9 +11,7 @@ ConstantBuffer<Uniforms> u;
 struct Vertex
 {
     float4 pos : SV_Position;
-    nointerpolation float3 normal;
     nointerpolation float3 color;
-    nointerpolation float4 light_dir;
 };
 
 [shader("vertex")]
@@ -83,11 +81,8 @@ Vertex vs(uint vertex_id : SV_VertexID)
         float3(0.0, 1.0, 0.0),
     };
 
-    float3 light_dir = float3(1.0, 0.0, 0.0);
     matrix<float,4,4> transform = mul(u.proj, mul(u.view, u.model));
-    res.light_dir = mul(transform, float4(light_dir, 0.0));
     res.pos = mul(transform, float4(vertices[vertex_id], 1.0));
-    res.normal = normals[vertex_id/6];
     res.color = colors[vertex_id/6];
     return res;
 }
@@ -95,12 +90,7 @@ Vertex vs(uint vertex_id : SV_VertexID)
 [shader("pixel")]
 float4 ps(Vertex vertex) : SV_TARGET
 {
-    float3 light_dir = vertex.light_dir.xyz;
-    float diff = max(dot(vertex.normal, light_dir), 0.0);
-    float3 ambient = float3(0.1, 0.1, 0.1);
-    float3 diffuse = diff*vertex.color;
-    float3 result = (ambient + diffuse) * vertex.color;
-    return float4(result, 1.0);
+    return float4(vertex.color, 1.0);
 }
 
 /*
