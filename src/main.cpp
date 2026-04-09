@@ -903,16 +903,16 @@ struct Uniforms
 
 namespace based_renderer::math
 {
-	static float sin(float t)
+	static float sin(float const t)
 	{
-		float const rotation_radians = t*2*PI;
+		float const rotation_radians = t*2.0f*PI;
 		float const res = std::sin(rotation_radians);
 		return res;
 	}
 
-	static float cos(float t)
+	static float cos(float const t)
 	{
-		float const rotation_radians = t*2*PI;
+		float const rotation_radians = t*2.0f*PI;
 		float const res = std::cos(rotation_radians);
 		return res;
 	}
@@ -1454,7 +1454,6 @@ static void based_renderer_main()
 	uint32_t const client_width = static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left);
 	uint32_t const client_height = static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top);
 	float const aspect_ratio = static_cast<float>(client_width)/static_cast<float>(client_height);
-	UNUSED(aspect_ratio); // TODO
 
     DEVMODEW win32_dev_mode = DEVMODEW{sizeof(DEVMODEW)};
     if (!EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &win32_dev_mode))
@@ -1663,7 +1662,7 @@ static void based_renderer_main()
 		uniforms.view[3][3] = 1.0f;
 
 		// See projection.docx.
-		uniforms.proj[0][0] = 0.97427857925749347761f;
+		uniforms.proj[0][0] = 1.73205080756887729353f/aspect_ratio;
 		uniforms.proj[1][1] = 1.73205080756887729353f;
 		uniforms.proj[2][2] = 1.001001001001001001f;
 		uniforms.proj[3][2] = -0.1001001001001001001f;
