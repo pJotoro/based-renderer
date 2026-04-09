@@ -720,7 +720,10 @@ static uint32_t vulkan_find_memory_type_idx(
 // TODO: Remove global variable.
 static HINSTANCE win32_instance;
 
-static void based_renderer_main();
+namespace based_renderer
+{
+	static void main();
+}
 
 int WINAPI WinMain(
 	HINSTANCE instance,
@@ -736,7 +739,7 @@ int WINAPI WinMain(
 
 	try
 	{
-		based_renderer_main();
+		based_renderer::main();
 	}
 	catch (vk::OutOfHostMemoryError err)
 	{
@@ -921,7 +924,7 @@ namespace based_renderer::math
 
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
 	static float rotation = 0.0f;
-    rotation += dt;
+    rotation += dt/8.0f;
     if (rotation >= 1.0f)
     {
     	rotation = 0.0f;
@@ -951,7 +954,10 @@ static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms
 	device.unmapMemory(uniforms_memory);
 }
 
-static void based_renderer_main()
+namespace based_renderer 
+{
+
+static void main()
 {
 	vk::ApplicationInfo vulkan_app_info{
 		"based_renderer",
@@ -1382,8 +1388,8 @@ static void based_renderer_main()
 	{
 		throw win32_system_error();
 	}
-	int32_t monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
-	int32_t monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+	int32_t const monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+	int32_t const monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
 
 	WNDCLASSEXW win32_window_class{
 		.cbSize = sizeof(WNDCLASSEXW),
@@ -1424,7 +1430,7 @@ static void based_renderer_main()
 		.right = monitor_width,
 		.bottom = monitor_height,
 	};
-	win32_window_styles_ex = WS_EX_TOPMOST;
+	win32_window_styles_ex = 0;//WS_EX_TOPMOST;
 #endif
 	RECT win32_window_rect = win32_client_rect;
 	if (!AdjustWindowRectEx(&win32_window_rect, win32_window_styles, false, win32_window_styles_ex))
@@ -1927,8 +1933,8 @@ static void based_renderer_main()
 		vk::False,
 		vk::False,
 		vk::PolygonMode::eFill,
-		vk::CullModeFlagBits::eNone,
-		vk::FrontFace::eClockwise,
+		vk::CullModeFlagBits::eBack,
+		vk::FrontFace::eCounterClockwise,
 		vk::False,
 		0.0f,
 		0.0f,
@@ -2313,3 +2319,5 @@ static void based_renderer_main()
 		vulkan_frame_idx = (vulkan_frame_idx + 1) % vulkan_swapchain_images.size();
 	}
 }
+
+} // based_renderer
