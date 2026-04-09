@@ -1661,7 +1661,7 @@ static void based_renderer_main()
 		uniforms.view[1][1] = 1.0f;
 		uniforms.view[2][2] = 1.0f;
 		uniforms.view[3][3] = 1.0f;
-		uniforms.view[3][2] = -1.0f;
+		uniforms.view[3][2] = 1.0f;
 
 		// See projection.docx.
 		uniforms.proj[0][0] = 1.73205080756887729353f/aspect_ratio;
