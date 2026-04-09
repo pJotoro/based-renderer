@@ -92,20 +92,3 @@ float4 ps(Vertex vertex) : SV_TARGET
 {
     return float4(vertex.color, 1.0);
 }
-
-/*
-I think I have identified the problems that I am having:
-
-1. I don't know what the light direction should be in world space.
-2. I don't know which coordinate system the light direction should be in when I use it.
-3. I don't know if the light direction should always be the same, or if I have to change it depending on the vertex index.
-4. I don't know how to linearly interpolate the light direction, or if that's even necessary.
-
-That's quite a lot of unknowns! No wonder I'm so stuck on how to implement diffuse reflection.
-
-That said, this isn't necessarily a bad thing. The above shader code was more or less copied from Learn OpenGL and then translated into Slang from GLSL. If it really did just work out of the box somehow for what I'm doing, then I wouldn't be learning anything, and would most likely get even more stuck later on. But of course, it didn't work out of the box because I am trying to make a light point at a rotating cube, which is not what Learn OpenGL teaches.
-*/
-
-/*
-After reading FGED and Real-Time Rendering some more, I've come to realize that the problem is that I'm using glm, when I should really be hand-writing the matrices myself in order to get a better understanding of what I'm doing.
-*/
