@@ -1664,8 +1664,8 @@ static void based_renderer_main()
 		// See projection.docx.
 		uniforms.proj[0][0] = 1.73205080756887729353f/aspect_ratio;
 		uniforms.proj[1][1] = 1.73205080756887729353f;
-		uniforms.proj[2][2] = 1.001001001001001001f;
-		uniforms.proj[3][2] = -0.1001001001001001001f;
+		uniforms.proj[2][2] = 2.0e-20f;
+		uniforms.proj[3][2] = 10.0e-2f;
 		uniforms.proj[2][3] = 1.0f;
 
 		memcpy(data, &uniforms, sizeof(Uniforms));
