@@ -1656,9 +1656,13 @@ static void based_renderer_main()
 		uniforms.model[2][2] = 1.0f;
 		uniforms.model[3][3] = 1.0f;
 		
+		// This matrix is completely wrong!!!
 		uniforms.view[0][0] = 1.0f;
 		uniforms.view[1][1] = 1.0f;
-		uniforms.view[2][2] = -2.0f;
+		uniforms.view[2][2] = 1.0f;
+		uniforms.view[3][0] = -1.0f;
+		uniforms.view[3][1] = -1.0f;
+		uniforms.view[3][2] = 3.0f;
 		uniforms.view[3][3] = 1.0f;
 
 		// See projection.docx.

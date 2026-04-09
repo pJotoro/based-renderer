@@ -81,8 +81,8 @@ Vertex vs(uint vertex_id : SV_VertexID)
         float3(0.0, 1.0, 0.0),
     };
 
-    matrix<float,4,4> transform = mul(u.proj, mul(u.view, u.model));
-    res.pos = mul(transform, float4(vertices[vertex_id], 1.0));
+    float4 pos = float4(vertices[vertex_id], 1.0);
+    res.pos = mul(u.proj, mul(u.view, mul(u.model, pos)));
     res.color = colors[vertex_id/6];
     return res;
 }
