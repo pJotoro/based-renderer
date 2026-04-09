@@ -900,7 +900,7 @@ struct Uniforms
 	alignas(16) float proj[4][4];
 };
 
-// Make your own sine and cosine implementation using turns instead of radians.
+// TODO: Make your own sine and cosine implementation using turns instead of radians.
 
 #define PI 3.14159265358979323846f
 
