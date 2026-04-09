@@ -1665,9 +1665,9 @@ static void main()
 		// See camera.docx.
 		uniforms.view[0][0] = 1.0f;
 		uniforms.view[1][1] = 1.0f;
-		uniforms.view[2][2] = 3.0f;
-		uniforms.view[3][3] = 1.0f;
+		uniforms.view[2][2] = 1.0f;
 		uniforms.view[3][2] = 3.0f;
+		uniforms.view[3][3] = 1.0f;
 
 		// See projection.docx.
 		uniforms.proj[0][0] = 1.73205080756887729353f/aspect_ratio;
