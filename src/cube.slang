@@ -53,7 +53,7 @@ Vertex vs(uint vertex_id : SV_VertexID)
         float3( 0.5, -0.5, 0.5),
         float3( 0.5, -0.5, 0.5),
         float3(-0.5, -0.5, 0.5),
-        float3(-0.5, -0.5, -0.5), 
+        float3(-0.5, -0.5, -0.5),
 
         float3(-0.5, 0.5, -0.5),
         float3( 0.5, 0.5, -0.5),

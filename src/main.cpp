@@ -13,7 +13,7 @@
 #endif
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_VULKAN_DEBUG
+#define BASED_RENDERER_VULKAN_LAYERS 0
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
@@ -1933,7 +1933,7 @@ static void main()
 		vk::False,
 		vk::False,
 		vk::PolygonMode::eFill,
-		vk::CullModeFlagBits::eBack,
+		vk::CullModeFlagBits::eFront,
 		vk::FrontFace::eCounterClockwise,
 		vk::False,
 		0.0f,
@@ -1954,7 +1954,7 @@ static void main()
 
 	std::array<vk::PipelineColorBlendAttachmentState, 1> vulkan_pipeline_color_blend_attachment_states{
 		vk::PipelineColorBlendAttachmentState{
-			{},
+			vk::False,
 			vk::BlendFactor::eZero,
 			vk::BlendFactor::eZero,
 			vk::BlendOp::eAdd,
