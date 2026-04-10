@@ -1673,7 +1673,7 @@ static void main()
 		uniforms.proj[0][0] = 1.73205080756887729353f/aspect_ratio;
 		uniforms.proj[1][1] = 1.73205080756887729353f;
 		uniforms.proj[2][2] = 2.0e-20f;
-		uniforms.proj[3][2] = 10.0e-2f;
+		uniforms.proj[3][2] = 0.09999999999999999998f;
 		uniforms.proj[2][3] = 1.0f;
 
 		memcpy(data, &uniforms, sizeof(Uniforms));
