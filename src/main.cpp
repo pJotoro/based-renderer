@@ -1933,7 +1933,7 @@ static void main()
 		vk::False,
 		vk::False,
 		vk::PolygonMode::eFill,
-		vk::CullModeFlagBits::eFront,
+		vk::CullModeFlagBits::eNone,
 		vk::FrontFace::eCounterClockwise,
 		vk::False,
 		0.0f,
@@ -1947,7 +1947,7 @@ static void main()
 		vk::PipelineDepthStencilStateCreateFlags{},
 		vk::True,
 		vk::True,
-		vk::CompareOp::eLess,
+		vk::CompareOp::eGreater,
 		vk::False,
 		vk::False,
 	};
@@ -2208,7 +2208,7 @@ static void main()
 
 			vk::AttachmentLoadOp::eClear,
 			vk::AttachmentStoreOp::eDontCare,
-			vk::ClearDepthStencilValue(1.0f, 0),
+			vk::ClearDepthStencilValue(0.0f, 0),
 		};
 
 		cb.beginRendering({
