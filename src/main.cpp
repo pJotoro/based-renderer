@@ -900,27 +900,26 @@ struct Uniforms
 	alignas(16) float proj[4][4];
 };
 
+namespace based_renderer 
+{
+
 // TODO: Make your own sine and cosine implementation using turns instead of radians.
 
 #define PI 3.14159265358979323846f
 
-namespace based_renderer::math
+static float sin(float const t)
 {
-	static float sin(float const t)
-	{
-		float const rotation_radians = t*2.0f*PI;
-		float const res = std::sin(rotation_radians);
-		return res;
-	}
-
-	static float cos(float const t)
-	{
-		float const rotation_radians = t*2.0f*PI;
-		float const res = std::cos(rotation_radians);
-		return res;
-	}
+	float const rotation_radians = t*2.0f*PI;
+	float const res = std::sin(rotation_radians);
+	return res;
 }
 
+static float cos(float const t)
+{
+	float const rotation_radians = t*2.0f*PI;
+	float const res = std::cos(rotation_radians);
+	return res;
+}
 
 static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
 	static float rotation = 0.0f;
@@ -930,8 +929,8 @@ static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms
     	rotation = 0.0f;
     }
 
-    float const s = based_renderer::math::sin(rotation);
-    float const c = based_renderer::math::cos(rotation);
+    float const s = sin(rotation);
+    float const c = cos(rotation);
 
     // Taken from FGED Volume 1 page 61
     uniforms.model[1][1] = c;
@@ -953,9 +952,6 @@ static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms
 	memcpy(data, &uniforms, sizeof(uniforms.model));
 	device.unmapMemory(uniforms_memory);
 }
-
-namespace based_renderer 
-{
 
 static void main()
 {
