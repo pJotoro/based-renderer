@@ -931,11 +931,11 @@ static void rotate_cube(
 	uniforms.model[1][2] = (1.0f - c_n)*a_y*a_z + s_n*a_x;
 	uniforms.model[2][2] = c_n + (1.0f - c_n)*a_z*a_z;
 
-    float const s_n_plus_1 = std::clamp(s_n - c_n*theta_0, -1.0f, 1.0f);
-    float const c_n_plus_1 = std::clamp(c_n + s_n*theta_0, -1.0f, 1.0f);
-    
-    s_n = s_n_plus_1;
-    c_n = c_n_plus_1;
+	float const s_n_plus_1 = std::clamp(s_n - c_n*theta_0, -1.0f, 1.0f);
+	float const c_n_plus_1 = std::clamp(c_n + s_n*theta_0, -1.0f, 1.0f);
+
+	s_n = s_n_plus_1;
+	c_n = c_n_plus_1;
 
     void *data;
 	vk::detail::resultCheck(
