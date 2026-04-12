@@ -903,40 +903,39 @@ struct Uniforms
 namespace based_renderer 
 {
 
-// TODO: Make your own sine and cosine implementation using turns instead of radians.
-
-#define PI 3.14159265358979323846f
-
-static float sin(float const t)
+// See rotation.docx.
+static void rotate_cube(
+	vk::Device const device, 
+	vk::DeviceMemory const uniforms_memory, 
+	Uniforms &uniforms) 
 {
-	float const rotation_radians = t*2.0f*PI;
-	float const res = std::sin(rotation_radians);
-	return res;
-}
+	// (3,2,1)/||(3,2,1)||
+	float constexpr a_x = 0.80178372573727315405f;
+	float constexpr a_y = 0.53452248382484876937f;
+	float constexpr a_z = 0.26726124191242438468f;
 
-static float cos(float const t)
-{
-	float const rotation_radians = t*2.0f*PI;
-	float const res = std::cos(rotation_radians);
-	return res;
-}
+	float constexpr theta_0 = 0.10471975511965977462f; // 2pi/60
+	float constexpr s_0 = 0.1045284632676534714f; // sin(1/60 tr)
+	float constexpr c_0 = 0.99452189536827333692f; // cos(1/60 tr)
 
-static void rotate_cube(vk::Device const device, vk::DeviceMemory const uniforms_memory, Uniforms &uniforms, float const dt) {
-	static float rotation = 0.0f;
-    rotation += dt/8.0f;
-    if (rotation >= 1.0f)
-    {
-    	rotation = 0.0f;
-    }
+	static float s_n = s_0;
+	static float c_n = c_0;
 
-    float const s = sin(rotation);
-    float const c = cos(rotation);
+	uniforms.model[0][0] = c_n + (1.0f - c_n)*a_x*a_x;
+	uniforms.model[1][0] = (1.0f - c_n)*a_x*a_y - s_n*a_z;
+	uniforms.model[2][0] = (1.0f - c_n)*a_x*a_z + s_n*a_y;
+	uniforms.model[0][1] = (1.0f - c_n)*a_x*a_y + s_n*a_z;
+	uniforms.model[1][1] = c_n + (1.0f - c_n)*a_y*a_y;
+	uniforms.model[2][1] = (1.0f - c_n)*a_y*a_z - s_n*a_x;
+	uniforms.model[0][2] = (1.0f - c_n)*a_x*a_z - s_n*a_y;
+	uniforms.model[1][2] = (1.0f - c_n)*a_y*a_z + s_n*a_x;
+	uniforms.model[2][2] = c_n + (1.0f - c_n)*a_z*a_z;
 
-    // Taken from FGED Volume 1 page 61
-    uniforms.model[1][1] = c;
-    uniforms.model[2][1] = -s;
-    uniforms.model[1][2] = s;
-    uniforms.model[2][2] = c;
+    float const s_n_plus_1 = std::clamp(s_n - c_n*theta_0, -1.0f, 1.0f);
+    float const c_n_plus_1 = std::clamp(c_n + s_n*theta_0, -1.0f, 1.0f);
+    
+    s_n = s_n_plus_1;
+    c_n = c_n_plus_1;
 
     void *data;
 	vk::detail::resultCheck(
@@ -2057,7 +2056,8 @@ static void main()
 			}
 		}
 
-		rotate_cube(vulkan_device, vulkan_uniform_buffer_memory, uniforms, fixed_dt);
+		UNUSED(fixed_dt); // TODO
+		rotate_cube(vulkan_device, vulkan_uniform_buffer_memory, uniforms);
 
 		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
 		cb.begin({
