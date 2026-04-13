@@ -914,7 +914,6 @@ static void rotate_cube(
 	float constexpr a_y = 0.53452248382484876937f;
 	float constexpr a_z = 0.26726124191242438468f;
 
-	float constexpr theta_0 = 0.10471975511965977462f; // 2pi/60
 	float constexpr s_0 = 0.1045284632676534714f; // sin(1/60 tr)
 	float constexpr c_0 = 0.99452189536827333692f; // cos(1/60 tr)
 
@@ -931,8 +930,8 @@ static void rotate_cube(
 	uniforms.model[1][2] = (1.0f - c_n)*a_y*a_z + s_n*a_x;
 	uniforms.model[2][2] = c_n + (1.0f - c_n)*a_z*a_z;
 
-	float const s_n_plus_1 = std::clamp(s_n - c_n*theta_0, -1.0f, 1.0f);
-	float const c_n_plus_1 = std::clamp(c_n + s_n*theta_0, -1.0f, 1.0f);
+	float const s_n_plus_1 = s_n*c_0 + c_n*s_0;
+	float const c_n_plus_1 = c_n*c_0 - s_n*s_0;
 
 	s_n = s_n_plus_1;
 	c_n = c_n_plus_1;
