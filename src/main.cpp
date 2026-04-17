@@ -96,6 +96,9 @@ static std::system_error win32_system_error() noexcept
 // TODO: Remove global.
 static bool win32_running;
 
+// TODO: Remove global.
+static bool should_rotate = true;
+
 LRESULT WINAPI win32_event_callback(
 	HWND   win32_window,
 	UINT   win32_message,
@@ -116,6 +119,10 @@ LRESULT WINAPI win32_event_callback(
 			uint8_t virtual_key_code = static_cast<uint8_t>(win32_w_param);
 			switch (virtual_key_code)
 			{
+				case VK_SPACE:
+				{
+					should_rotate = !should_rotate;
+				} break;
 				case VK_ESCAPE: 
 				{
 					win32_running = false;
@@ -909,46 +916,49 @@ static void rotate_cube(
 	vk::DeviceMemory const uniforms_memory, 
 	Uniforms &uniforms) 
 {
-	// (3,2,1)/||(3,2,1)||
-	float constexpr a_x = 0.80178372573727315405f;
-	float constexpr a_y = 0.53452248382484876937f;
-	float constexpr a_z = 0.26726124191242438468f;
+	if (should_rotate)
+	{
+			// (3,2,1)/||(3,2,1)||
+			float constexpr a_x = 0.80178372573727315405f;
+			float constexpr a_y = 0.53452248382484876937f;
+			float constexpr a_z = 0.26726124191242438468f;
 
-	float constexpr s_0 = 0.1045284632676534714f; // sin(1/60 tr)
-	float constexpr c_0 = 0.99452189536827333692f; // cos(1/60 tr)
+			float constexpr s_0 = 0.1045284632676534714f; // sin(1/60 tr)
+			float constexpr c_0 = 0.99452189536827333692f; // cos(1/60 tr)
 
-	static float s_n = s_0;
-	static float c_n = c_0;
+			static float s_n = s_0;
+			static float c_n = c_0;
 
-	uniforms.model[0][0] = c_n + (1.0f - c_n)*a_x*a_x;
-	uniforms.model[1][0] = (1.0f - c_n)*a_x*a_y - s_n*a_z;
-	uniforms.model[2][0] = (1.0f - c_n)*a_x*a_z + s_n*a_y;
-	uniforms.model[0][1] = (1.0f - c_n)*a_x*a_y + s_n*a_z;
-	uniforms.model[1][1] = c_n + (1.0f - c_n)*a_y*a_y;
-	uniforms.model[2][1] = (1.0f - c_n)*a_y*a_z - s_n*a_x;
-	uniforms.model[0][2] = (1.0f - c_n)*a_x*a_z - s_n*a_y;
-	uniforms.model[1][2] = (1.0f - c_n)*a_y*a_z + s_n*a_x;
-	uniforms.model[2][2] = c_n + (1.0f - c_n)*a_z*a_z;
+			uniforms.model[0][0] = c_n + (1.0f - c_n)*a_x*a_x;
+			uniforms.model[1][0] = (1.0f - c_n)*a_x*a_y - s_n*a_z;
+			uniforms.model[2][0] = (1.0f - c_n)*a_x*a_z + s_n*a_y;
+			uniforms.model[0][1] = (1.0f - c_n)*a_x*a_y + s_n*a_z;
+			uniforms.model[1][1] = c_n + (1.0f - c_n)*a_y*a_y;
+			uniforms.model[2][1] = (1.0f - c_n)*a_y*a_z - s_n*a_x;
+			uniforms.model[0][2] = (1.0f - c_n)*a_x*a_z - s_n*a_y;
+			uniforms.model[1][2] = (1.0f - c_n)*a_y*a_z + s_n*a_x;
+			uniforms.model[2][2] = c_n + (1.0f - c_n)*a_z*a_z;
 
-	float const s_n_plus_1 = s_n*c_0 + c_n*s_0;
-	float const c_n_plus_1 = c_n*c_0 - s_n*s_0;
+			float const s_n_plus_1 = s_n*c_0 + c_n*s_0;
+			float const c_n_plus_1 = c_n*c_0 - s_n*s_0;
 
-	s_n = s_n_plus_1;
-	c_n = c_n_plus_1;
+			s_n = s_n_plus_1;
+			c_n = c_n_plus_1;
 
-    void *data;
-	vk::detail::resultCheck(
-		device.mapMemory(
-			uniforms_memory,
-			0, 
-			sizeof(uniforms.model), 
-			vk::MemoryMapFlags{}, 
-			&data
-		), 
-		"Failed to map memory!"
-	);
-	memcpy(data, &uniforms, sizeof(uniforms.model));
-	device.unmapMemory(uniforms_memory);
+		    void *data;
+			vk::detail::resultCheck(
+				device.mapMemory(
+					uniforms_memory,
+					0, 
+					sizeof(uniforms.model), 
+					vk::MemoryMapFlags{}, 
+					&data
+				), 
+				"Failed to map memory!"
+			);
+			memcpy(data, &uniforms, sizeof(uniforms.model));
+			device.unmapMemory(uniforms_memory);
+	}
 }
 
 static void main()
