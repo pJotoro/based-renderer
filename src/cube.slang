@@ -220,11 +220,12 @@ Vertex vs(uint vertex_id : SV_VertexID)
 [shader("pixel")]
 float4 ps(Vertex vertex) : SV_TARGET
 {
-    // FGED Listing 7.2
-    float3 light = float3(0.0, 0.0, -1.0);
-    float3 halfway = normalize(light + vertex.pos.xyz);
-    float cos_theta = saturate(dot(vertex.normal, light));
-    float alpha = 2.0;
-    float highlight = pow(saturate(dot(vertex.normal, halfway)), alpha) * cos_theta;
-    return float4(vertex.color*highlight, 1.0);
+    // FGED Eq 7.26
+    float3 view_dir = float3(0.0, 0.0, -1.0);
+    float3 light_dir = float3(0.0, -0.6, -0.8);
+    float3 halfway_dir = normalize(view_dir + light_dir);
+    float4 diffuse = float4(vertex.color*saturate(dot(vertex.normal, light_dir)), 1.0);
+    float alpha = 10.0;
+    float4 specular = float4(vertex.color*pow(saturate(dot(vertex.normal, halfway_dir)), alpha), 1.0);
+    return diffuse + specular;
 }
