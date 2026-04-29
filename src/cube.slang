@@ -220,7 +220,11 @@ Vertex vs(uint vertex_id : SV_VertexID)
 [shader("pixel")]
 float4 ps(Vertex vertex) : SV_TARGET
 {
-    float3 l = float3(0.0, 0.0, -1.0);
-    float cos_theta = saturate(dot(vertex.normal, l));
-    return float4(vertex.color*cos_theta, 1.0);
+    // FGED Listing 7.2
+    float3 light = float3(0.0, 0.0, -1.0);
+    float3 halfway = normalize(light + vertex.pos.xyz);
+    float cos_theta = saturate(dot(vertex.normal, light));
+    float alpha = 2.0;
+    float highlight = pow(saturate(dot(vertex.normal, halfway)), alpha) * cos_theta;
+    return float4(vertex.color*highlight, 1.0);
 }
