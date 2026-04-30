@@ -217,6 +217,8 @@ Vertex vs(uint vertex_id : SV_VertexID)
     return res;
 }
 
+SamplerState image_sampler;
+
 [shader("pixel")]
 float4 ps(Vertex vertex) : SV_TARGET
 {

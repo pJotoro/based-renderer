@@ -1,5 +1,8 @@
 #include "pch.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
 #define STMT(X) do {X} while (0)
@@ -13,7 +16,7 @@
 #endif
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VULKAN_LAYERS 0
+#define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
@@ -961,6 +964,11 @@ static void rotate_cube(
 	}
 }
 
+// TODO: Surely I can start to pull stuff out of main right about now?
+// The way I could do it is very simple: just identify which parts require
+// a specific order of execution, and which parts don't. The parts that
+// don't can get put into functions.
+
 static void main()
 {
 	vk::ApplicationInfo vulkan_app_info{
@@ -1636,6 +1644,72 @@ static void main()
 		},
 	});
 
+	int32_t stone_image_width;
+	int32_t stone_image_height;
+	int32_t stone_image_channels;
+	int32_t stone_image_desired_channels = 4;
+	uint8_t *stone_image_file_data = stbi_load(
+		"assets/stone.jpg", 
+		&stone_image_width, 
+		&stone_image_height, 
+		&stone_image_channels, 
+		stone_image_desired_channels);
+
+	vk::Buffer vulkan_staging_buffer = vulkan_device.createBuffer({
+		vk::BufferCreateFlags{},
+		static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
+		vk::BufferUsageFlagBits::eTransferSrc,
+	});
+	vk::MemoryRequirements vulkan_staging_buffer_memory_requirements = vulkan_device.getBufferMemoryRequirements(vulkan_staging_buffer);
+	vk::DeviceMemory vulkan_staging_buffer_memory = vulkan_device.allocateMemory({
+		vulkan_staging_buffer_memory_requirements.size,
+		vulkan_find_memory_type_idx(
+			vulkan_physical_device_memory_properties,
+			vulkan_staging_buffer_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eHostVisible|
+			vk::MemoryPropertyFlagBits::eHostCoherent
+		),
+	});
+	vulkan_device.bindBufferMemory(vulkan_staging_buffer, vulkan_staging_buffer_memory, 0);
+	{
+		void *data;
+		vk::detail::resultCheck(
+			vulkan_device.mapMemory(
+				vulkan_staging_buffer_memory,
+				0, 
+				static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
+				vk::MemoryMapFlags{}, 
+				&data
+			), 
+			"Failed to map memory!"
+		);
+		memcpy(data, stone_image_file_data, sizeof(static_cast<size_t>(stone_image_width*stone_image_height*stone_image_desired_channels)));
+		vulkan_device.unmapMemory(vulkan_staging_buffer_memory);
+	}
+
+	vk::Image vulkan_image = vulkan_device.createImage({
+		vk::ImageCreateFlags{},
+		vk::ImageType::e2D,
+		vk::Format::eR8G8B8A8Uint, 
+		vk::Extent3D{static_cast<uint32_t>(stone_image_width), static_cast<uint32_t>(stone_image_height), 1},
+		1,
+		1,
+		vk::SampleCountFlagBits::e1,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eTransferDst|
+		vk::ImageUsageFlagBits::eSampled,
+	});
+	vk::MemoryRequirements vulkan_image_memory_requirements = vulkan_device.getImageMemoryRequirements(vulkan_image);
+	vk::DeviceMemory vulkan_image_memory = vulkan_device.allocateMemory({
+		vulkan_image_memory_requirements.size,
+		vulkan_find_memory_type_idx(
+			vulkan_physical_device_memory_properties,
+			vulkan_image_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eDeviceLocal
+		),
+	});
+	vulkan_device.bindImageMemory(vulkan_image, vulkan_image_memory, 0);
+
 	// NOTE: I am writing this code assuming that there exists a memory type index with memory properties host visible, host coherent and device local. This is not necessarily always the case!
 	vk::Buffer vulkan_uniform_buffer = vulkan_device.createBuffer({
 		vk::BufferCreateFlags{},
@@ -2077,7 +2151,21 @@ static void main()
 		static size_t staged = 0;
 		if (staged == 0)
 		{
-			std::array<vk::ImageMemoryBarrier2, 2> image_barriers{
+			std::array<vk::BufferMemoryBarrier2, 1> buffer_barriers{
+				vk::BufferMemoryBarrier2{
+					vk::PipelineStageFlags2{},
+					vk::AccessFlags2{},
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferRead,
+					0,
+					0,
+					vulkan_staging_buffer,
+					0,
+					static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
+				},
+			};
+
+			std::array<vk::ImageMemoryBarrier2, 3> image_barriers{
 				vk::ImageMemoryBarrier2{
 					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 					vk::AccessFlags2{},
@@ -2114,13 +2202,83 @@ static void main()
 						1,
 					},
 				},
+				vk::ImageMemoryBarrier2{
+					vk::PipelineStageFlagBits2{},
+					vk::AccessFlagBits2{},
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferWrite,
+					vk::ImageLayout::eUndefined,
+					vk::ImageLayout::eTransferDstOptimal,
+					0, // TODO: srcQueueFamilyIdx
+					0, // TODO: dstQueueFamilyIdx
+					vulkan_image,
+					vk::ImageSubresourceRange{
+						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+						0,
+						1,
+						0,
+						1,
+					},
+				},
+			};
+
+			cb.pipelineBarrier2({
+				vk::DependencyFlags{},
+				{},
+				buffer_barriers,
+				image_barriers,
+			});
+
+			std::array<vk::BufferImageCopy, 1> regions{
+				vk::BufferImageCopy{
+					0, 0, 0,
+					vk::ImageSubresourceLayers{
+						vk::ImageAspectFlagBits::eColor,
+						0,
+						0,
+						1, 
+					},
+					vk::Offset3D{},
+					vk::Extent3D{
+						static_cast<uint32_t>(stone_image_width), 
+						static_cast<uint32_t>(stone_image_height),
+						1
+					},
+				},
+			};
+
+			cb.copyBufferToImage(
+				vulkan_staging_buffer,
+				vulkan_image,
+				vk::ImageLayout::eTransferDstOptimal,
+				regions);
+
+			std::array<vk::ImageMemoryBarrier2, 1> image_barriers2{
+				vk::ImageMemoryBarrier2{
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferWrite,
+					vk::PipelineStageFlagBits2::eFragmentShader,
+					vk::AccessFlagBits2::eShaderSampledRead, // TODO: This is probably wrong.
+					vk::ImageLayout::eTransferDstOptimal,
+					vk::ImageLayout::eShaderReadOnlyOptimal,
+					0, // TODO: srcQueueFamilyIdx
+					0, // TODO: dstQueueFamilyIdx
+					vulkan_image,
+					vk::ImageSubresourceRange{
+						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
+						0,
+						1,
+						0,
+						1,
+					},
+				},
 			};
 
 			cb.pipelineBarrier2({
 				vk::DependencyFlags{},
 				{},
 				{},
-				image_barriers,
+				image_barriers2,
 			});
 
 			staged += 1;
