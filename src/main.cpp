@@ -1177,7 +1177,7 @@ static void main()
 		VULKAN_DISABLE_FEATURE(variablePointers);
 		VULKAN_DISABLE_FEATURE(protectedMemory);
 		VULKAN_DISABLE_FEATURE(samplerYcbcrConversion);
-		VULKAN_REQUIRE_FEATURE(shaderDrawParameters);
+		VULKAN_REQUIRE_FEATURE(shaderDrawParameters); // Slang requires this.
 	}
 	{
 		auto &features = std::get<2>(vulkan_physical_device_features);
@@ -1201,7 +1201,7 @@ static void main()
 		VULKAN_DISABLE_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
 		VULKAN_DISABLE_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
 		VULKAN_DISABLE_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
-		VULKAN_DISABLE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
+		VULKAN_DISABLE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind); // TODO: If I remember correctly, my laptop does not support this feature, but it supports basically all the other "UpdateAfterBind" features. Does this matter? Can I still put the uniform buffer in the same descriptor set as every other descriptor, as long as I don't update it after binding?
 		VULKAN_DISABLE_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
 		VULKAN_DISABLE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
@@ -1709,6 +1709,24 @@ static void main()
 		),
 	});
 	vulkan_device.bindImageMemory(vulkan_image, vulkan_image_memory, 0);
+	vk::ImageView vulkan_image_view = vulkan_device.createImageView({
+		vk::ImageViewCreateFlags{},
+		vulkan_image,
+		vk::ImageViewType::e2D,
+		vk::Format::eR8G8B8A8Uint,
+		vk::ComponentMapping{},
+		vk::ImageSubresourceRange{
+			vk::ImageAspectFlagBits::eColor,
+			0,
+			1,
+			0,
+			1
+		},
+	});
+
+	vk::Sampler vulkan_sampler = vulkan_device.createSampler({
+		// TODO
+	});
 
 	// NOTE: I am writing this code assuming that there exists a memory type index with memory properties host visible, host coherent and device local. This is not necessarily always the case!
 	vk::Buffer vulkan_uniform_buffer = vulkan_device.createBuffer({
@@ -1758,7 +1776,8 @@ static void main()
 		vulkan_device.unmapMemory(memory);
 	}
 
-	std::array<vk::DescriptorSetLayoutBinding, 1> vulkan_descriptor_set_layout_bindings{
+	// TODO: Implement descriptor indexing.
+	std::array<vk::DescriptorSetLayoutBinding, 1> vulkan_descriptor_set_layout_binding_uniform_buffer{
 		vk::DescriptorSetLayoutBinding{
 			0,
 			vk::DescriptorType::eUniformBuffer,
@@ -1766,23 +1785,39 @@ static void main()
 			vk::ShaderStageFlagBits::eVertex,
 		},
 	};
+	std::array<vk::DescriptorSetLayoutBinding, 1> vulkan_descriptor_set_layout_binding_combined_image_sampler{
+		vk::DescriptorSetLayoutBinding{
+			0,
+			vk::DescriptorType::eCombinedImageSampler,
+			1,
+			vk::ShaderStageFlagBits::eFragment,
+		},
+	};
 
-	std::array<vk::DescriptorSetLayout, 1> vulkan_descriptor_set_layouts{};
+	std::array<vk::DescriptorSetLayout, 2> vulkan_descriptor_set_layouts{};
     vulkan_descriptor_set_layouts[0] = vulkan_device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{
     	vk::DescriptorSetLayoutCreateFlags{},
-    	vulkan_descriptor_set_layout_bindings,
+    	vulkan_descriptor_set_layout_binding_uniform_buffer,
+    });
+    vulkan_descriptor_set_layouts[1] = vulkan_device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{
+    	vk::DescriptorSetLayoutCreateFlags{},
+    	vulkan_descriptor_set_layout_binding_combined_image_sampler,
     });
 
-    std::array<vk::DescriptorPoolSize, 1> vulkan_descriptor_pool_sizes{
+    std::array<vk::DescriptorPoolSize, 2> vulkan_descriptor_pool_sizes{
     	vk::DescriptorPoolSize{
     		vk::DescriptorType::eUniformBuffer,
-    		static_cast<uint32_t>(vulkan_swapchain_images.size()),
+    		1,
+    	},
+    	vk::DescriptorPoolSize{
+    		vk::DescriptorType::eCombinedImageSampler,
+    		1,
     	},
     };
 
     vk::DescriptorPool vulkan_descriptor_pool = vulkan_device.createDescriptorPool(vk::DescriptorPoolCreateInfo{
     	vk::DescriptorPoolCreateFlags{},
-    	static_cast<uint32_t>(vulkan_swapchain_images.size()),
+    	static_cast<uint32_t>(vulkan_descriptor_pool_sizes.size()),
     	vulkan_descriptor_pool_sizes,
     });
 
@@ -1799,13 +1834,30 @@ static void main()
     	},
     };
 
-    std::array<vk::WriteDescriptorSet, 1> vulkan_descriptor_writes{
+    std::array<vk::DescriptorImageInfo, 1> vulkan_descriptor_image_infos{
+    	vk::DescriptorImageInfo{
+    		vulkan_sampler,
+    		vulkan_image_view,
+    		vk::ImageLayout::eShaderReadOnlyOptimal, // TODO: Is this supposed to be the image layout when it gets used, or what it is at the start?
+    	},
+    };    
+
+    std::array<vk::WriteDescriptorSet, 2> vulkan_descriptor_writes{
     	vk::WriteDescriptorSet{
     		vulkan_descriptor_sets[0],
     		0, 0,
     		vk::DescriptorType::eUniformBuffer,
     		{},
     		vulkan_descriptor_buffer_infos,
+    		{},
+    	},
+    	vk::WriteDescriptorSet{
+    		vulkan_descriptor_sets[1],
+    		0, 0,
+    		vk::DescriptorType::eCombinedImageSampler,
+    		vulkan_descriptor_image_infos,
+    		{},
+    		{},
     	},
     };
 
