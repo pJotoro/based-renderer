@@ -1885,7 +1885,7 @@ static void main()
 			.compilerOptionEntryCount = 0,
 		};
 
-		std::array<char const*, 1> const search_paths{
+		std::array<char const *, 1> const search_paths{
 			"src",
 		};
 

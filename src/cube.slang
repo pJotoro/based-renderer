@@ -1,20 +1,5 @@
 module cube;
 
-struct Uniforms
-{
-    matrix<float,4,4> model;
-    matrix<float,4,4> view;
-    matrix<float,4,4> proj;
-}
-ConstantBuffer<Uniforms> u;
-
-struct Vertex
-{
-    float4 pos : SV_Position;
-    nointerpolation float3 color;
-    nointerpolation float3 normal;
-};
-
 // ChatGPT was used to write this function.
 matrix<float,4,4> adjugate(matrix<float,4,4> m)
 {
@@ -61,6 +46,22 @@ matrix<float,4,4> adjugate(matrix<float,4,4> m)
 
     return adj;
 }
+
+struct Uniforms
+{
+    matrix<float,4,4> model;
+    matrix<float,4,4> view;
+    matrix<float,4,4> proj;
+}
+ConstantBuffer<Uniforms> u;
+
+struct Vertex
+{
+    float4 pos : SV_Position;
+    nointerpolation float3 color;
+    nointerpolation float3 normal;
+    float2 texcoord;
+};
 
 [shader("vertex")]
 Vertex vs(uint vertex_id : SV_VertexID)
@@ -129,14 +130,25 @@ Vertex vs(uint vertex_id : SV_VertexID)
         float3(0.0, 1.0, 0.0),
     };
 
+    float2 texcoords[6] = {
+        float2(0.0, 0.0),
+        float2(1.0, 0.0),
+        float2(1.0, 1.0),
+        float2(0.0, 0.0),
+        float2(1.0, 1.0),
+        float2(0.0, 1.0),
+    };
+
     float4 pos = float4(vertices[vertex_id], 1.0);
     res.pos = mul(u.proj, mul(u.view, mul(u.model, pos)));
     res.color = colors[vertex_id/6];
-    res.normal = mul(float4(normals[vertex_id/6], 0.0), adjugate(u.model)).xyz; 
+    res.normal = mul(float4(normals[vertex_id/6], 0.0), adjugate(u.model)).xyz;
+    res.texcoord = texcoords[vertex_id/6];
     return res;
 }
 
-SamplerState image_sampler;
+[format("rgba8ui"), vk::binding(0, 1)]
+Sampler2D<uint> texture_sampler;
 
 [shader("pixel")]
 float4 ps(Vertex vertex) : SV_TARGET
@@ -148,5 +160,5 @@ float4 ps(Vertex vertex) : SV_TARGET
     float4 diffuse = float4(vertex.color*saturate(dot(vertex.normal, light_dir)), 1.0);
     float alpha = 10.0;
     float4 specular = float4(vertex.color*pow(saturate(dot(vertex.normal, halfway_dir)), alpha), 1.0);
-    return diffuse + specular;
+    return (diffuse + specular) * texture_sampler.Sample(vertex.texcoord);
 }
