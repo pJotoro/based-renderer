@@ -60,7 +60,7 @@ struct Vertex
     float4 pos : SV_Position;
     nointerpolation float3 color;
     nointerpolation float3 normal;
-    float2 texcoord;
+    nointerpolation float2 texcoord;
 };
 
 [shader("vertex")]
