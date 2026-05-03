@@ -131,12 +131,12 @@ Vertex vs(uint vertex_id : SV_VertexID)
     };
 
     float2 texcoords[6] = {
-        float2(1.0, 0.0),
         float2(0.0, 0.0),
-        float2(0.0, 1.0),
-        float2(1.0, 1.0),
         float2(1.0, 0.0),
         float2(1.0, 1.0),
+        float2(1.0, 1.0),
+        float2(0.0, 1.0),
+        float2(0.0, 0.0),
     };
 
     float4 pos = float4(vertices[vertex_id], 1.0);
@@ -162,8 +162,8 @@ float4 ps(Vertex vertex) : SV_TARGET
     // float4 specular = float4(vertex.color*pow(saturate(dot(vertex.normal, halfway_dir)), alpha), 1.0);
     uint res = texture_sampler.Sample(vertex.texcoord);
     float r = 1.0/float(res&0x000000FF);
-    float g = 1.0/float(res&0x0000FF00);
-    float b = 1.0/float(res&0x00FF0000);
-    float a = 1.0/float(res&0xFF000000);
+    float g = 1.0/float((res&0x0000FF00)>>8);
+    float b = 1.0/float((res&0x00FF0000)>>16);
+    float a = 1.0/float((res&0xFF000000)>>24);
     return float4(b, g, r, a);
 }
