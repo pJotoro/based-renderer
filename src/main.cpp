@@ -96,11 +96,11 @@ static std::system_error win32_system_error() noexcept
 	return system_error;
 }
 
-// TODO: Remove global.
+// TODO: Remove globals.
 static bool win32_running;
-
-// TODO: Remove global.
 static bool should_rotate = true;
+static int32_t w_down;
+static int32_t s_down;
 
 LRESULT WINAPI win32_event_callback(
 	HWND   win32_window,
@@ -125,6 +125,33 @@ LRESULT WINAPI win32_event_callback(
 				case VK_SPACE:
 				{
 					should_rotate = !should_rotate;
+				} break;
+				case 'W':
+				{
+					w_down = true;
+				} break;
+				case 'S':
+				{
+					s_down = true;
+				} break;
+				case VK_ESCAPE: 
+				{
+					win32_running = false;
+				} break;
+			}
+		} break;
+		case WM_KEYUP: 
+		{
+			uint8_t virtual_key_code = static_cast<uint8_t>(win32_w_param);
+			switch (virtual_key_code)
+			{
+				case 'W':
+				{
+					w_down = false;
+				} break;
+				case 'S':
+				{
+					s_down = false;
 				} break;
 				case VK_ESCAPE: 
 				{
@@ -914,10 +941,11 @@ namespace based_renderer
 {
 
 // See rotation.docx.
-static void rotate_cube(
+static void update_cube(
 	vk::Device const device, 
 	vk::DeviceMemory const uniforms_memory, 
-	Uniforms &uniforms) 
+	Uniforms &uniforms,
+	float const dt) 
 {
 	if (should_rotate)
 	{
@@ -947,21 +975,24 @@ static void rotate_cube(
 
 			s_n = s_n_plus_1;
 			c_n = c_n_plus_1;
-
-		    void *data;
-			vk::detail::resultCheck(
-				device.mapMemory(
-					uniforms_memory,
-					0, 
-					sizeof(uniforms.model),
-					vk::MemoryMapFlags{}, 
-					&data
-				), 
-				"Failed to map memory!"
-			);
-			memcpy(data, &uniforms, sizeof(uniforms.model));
-			device.unmapMemory(uniforms_memory);
 	}
+
+	int32_t cube_dir = s_down - w_down;
+	uniforms.view[3][2] += static_cast<float>(cube_dir)*dt;
+
+    void *data;
+	vk::detail::resultCheck(
+		device.mapMemory(
+			uniforms_memory,
+			0, 
+			sizeof(uniforms),
+			vk::MemoryMapFlags{}, 
+			&data
+		), 
+		"Failed to map memory!"
+	);
+	memcpy(data, &uniforms, sizeof(uniforms));
+	device.unmapMemory(uniforms_memory);
 }
 
 // TODO: Surely I can start to pull stuff out of main right about now?
@@ -2195,8 +2226,7 @@ static void main()
 			}
 		}
 
-		UNUSED(fixed_dt); // TODO
-		rotate_cube(vulkan_device, vulkan_uniform_buffer_memory, uniforms);
+		update_cube(vulkan_device, vulkan_uniform_buffer_memory, uniforms, fixed_dt);
 
 		vk::CommandBuffer cb = vulkan_graphics_command_buffers[vulkan_frame_idx];
 		cb.begin({
