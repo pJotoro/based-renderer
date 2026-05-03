@@ -147,23 +147,18 @@ Vertex vs(uint vertex_id : SV_VertexID)
     return res;
 }
 
-[format("rgba8ui"), vk::binding(0, 1)]
-Sampler2D<uint> texture_sampler;
+[format("rgba8"), vk::binding(0, 1)]
+Sampler2D<float> texture_sampler;
 
 [shader("pixel")]
 float4 ps(Vertex vertex) : SV_TARGET
 {
     // FGED Eq 7.26
-    // float3 view_dir = float3(0.0, 0.0, -1.0);
-    // float3 light_dir = float3(0.0, 0.0, -1.0);
-    // float3 halfway_dir = normalize(view_dir + light_dir);
-    // float4 diffuse = float4(vertex.color*saturate(dot(vertex.normal, light_dir)), 1.0);
-    // float alpha = 10.0;
-    // float4 specular = float4(vertex.color*pow(saturate(dot(vertex.normal, halfway_dir)), alpha), 1.0);
-    uint res = texture_sampler.Sample(vertex.texcoord);
-    float r = 1.0/float(res&0x000000FF);
-    float g = 1.0/float((res&0x0000FF00)>>8);
-    float b = 1.0/float((res&0x00FF0000)>>16);
-    float a = 1.0/float((res&0xFF000000)>>24);
-    return float4(b, g, r, a);
+    //float3 view_dir = float3(0.0, 0.0, -1.0);
+    float3 light_dir = float3(0.0, 0.0, -1.0);
+    //float3 halfway_dir = normalize(view_dir + light_dir);
+    float diffuse = saturate(dot(vertex.normal, light_dir));
+    //float alpha = 10.0;
+    //float specular = pow(saturate(dot(vertex.normal, halfway_dir)), alpha);
+    return diffuse*texture_sampler.Sample(vertex.texcoord);
 }

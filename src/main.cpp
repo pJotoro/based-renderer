@@ -1694,7 +1694,7 @@ static void main()
 	vk::Image vulkan_image = vulkan_device.createImage({
 		vk::ImageCreateFlags{},
 		vk::ImageType::e2D,
-		vk::Format::eR8G8B8A8Uint, 
+		vk::Format::eR8G8B8A8Unorm, 
 		vk::Extent3D{static_cast<uint32_t>(stone_image_width), static_cast<uint32_t>(stone_image_height), 1},
 		1,
 		1,
@@ -1717,7 +1717,7 @@ static void main()
 		vk::ImageViewCreateFlags{},
 		vulkan_image,
 		vk::ImageViewType::e2D,
-		vk::Format::eR8G8B8A8Uint,
+		vk::Format::eR8G8B8A8Unorm,
 		vk::ComponentMapping{},
 		vk::ImageSubresourceRange{
 			vk::ImageAspectFlagBits::eColor,
