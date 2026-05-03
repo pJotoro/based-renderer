@@ -60,7 +60,7 @@ struct Vertex
     float4 pos : SV_Position;
     nointerpolation float3 color;
     nointerpolation float3 normal;
-    nointerpolation float2 texcoord;
+    float2 texcoord;
 };
 
 [shader("vertex")]
@@ -131,19 +131,19 @@ Vertex vs(uint vertex_id : SV_VertexID)
     };
 
     float2 texcoords[6] = {
+        float2(1.0, 0.0),
         float2(0.0, 0.0),
+        float2(0.0, 1.0),
+        float2(1.0, 1.0),
         float2(1.0, 0.0),
         float2(1.0, 1.0),
-        float2(0.0, 0.0),
-        float2(1.0, 1.0),
-        float2(0.0, 1.0),
     };
 
     float4 pos = float4(vertices[vertex_id], 1.0);
     res.pos = mul(u.proj, mul(u.view, mul(u.model, pos)));
     res.color = colors[vertex_id/6];
     res.normal = mul(float4(normals[vertex_id/6], 0.0), adjugate(u.model)).xyz;
-    res.texcoord = texcoords[vertex_id/6];
+    res.texcoord = texcoords[vertex_id%6];
     return res;
 }
 
@@ -154,11 +154,16 @@ Sampler2D<uint> texture_sampler;
 float4 ps(Vertex vertex) : SV_TARGET
 {
     // FGED Eq 7.26
-    float3 view_dir = float3(0.0, 0.0, -1.0);
-    float3 light_dir = float3(0.0, 0.0, -1.0);
-    float3 halfway_dir = normalize(view_dir + light_dir);
-    float4 diffuse = float4(vertex.color*saturate(dot(vertex.normal, light_dir)), 1.0);
-    float alpha = 10.0;
-    float4 specular = float4(vertex.color*pow(saturate(dot(vertex.normal, halfway_dir)), alpha), 1.0);
-    return (diffuse + specular) * texture_sampler.Sample(vertex.texcoord);
+    // float3 view_dir = float3(0.0, 0.0, -1.0);
+    // float3 light_dir = float3(0.0, 0.0, -1.0);
+    // float3 halfway_dir = normalize(view_dir + light_dir);
+    // float4 diffuse = float4(vertex.color*saturate(dot(vertex.normal, light_dir)), 1.0);
+    // float alpha = 10.0;
+    // float4 specular = float4(vertex.color*pow(saturate(dot(vertex.normal, halfway_dir)), alpha), 1.0);
+    uint res = texture_sampler.Sample(vertex.texcoord);
+    float r = 1.0/float(res&0x000000FF);
+    float g = 1.0/float(res&0x0000FF00);
+    float b = 1.0/float(res&0x00FF0000);
+    float a = 1.0/float(res&0xFF000000);
+    return float4(b, g, r, a);
 }

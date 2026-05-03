@@ -16,7 +16,7 @@
 #endif
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_DEBUG
+#define BASED_RENDERER_VULKAN_LAYERS 1
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
@@ -953,7 +953,7 @@ static void rotate_cube(
 				device.mapMemory(
 					uniforms_memory,
 					0, 
-					sizeof(uniforms.model), 
+					sizeof(uniforms.model),
 					vk::MemoryMapFlags{}, 
 					&data
 				), 
@@ -1654,6 +1654,10 @@ static void main()
 		&stone_image_height, 
 		&stone_image_channels, 
 		stone_image_desired_channels);
+	if (!stone_image_file_data)
+	{
+		throw std::runtime_error{FORMAT_ERROR("Failed to load assets/stone.jpg")};
+	}
 
 	vk::Buffer vulkan_staging_buffer = vulkan_device.createBuffer({
 		vk::BufferCreateFlags{},
@@ -1683,7 +1687,7 @@ static void main()
 			), 
 			"Failed to map memory!"
 		);
-		memcpy(data, stone_image_file_data, sizeof(static_cast<size_t>(stone_image_width*stone_image_height*stone_image_desired_channels)));
+		memcpy(data, stone_image_file_data, static_cast<size_t>(stone_image_width*stone_image_height*stone_image_desired_channels));
 		vulkan_device.unmapMemory(vulkan_staging_buffer_memory);
 	}
 
