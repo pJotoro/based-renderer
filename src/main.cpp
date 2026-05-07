@@ -932,13 +932,15 @@ int WINAPI WinMain(
 
 struct Uniforms
 {
-	alignas(16) float model[4][4];
-	alignas(16) float view[4][4];
-	alignas(16) float proj[4][4];
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
 };
 
 namespace based_renderer 
 {
+
+constexpr float TAU = 6.28318530717958647693f;
 
 // See rotation.docx.
 static void update_cube(
@@ -949,36 +951,13 @@ static void update_cube(
 {
 	if (should_rotate)
 	{
-			// (3,2,1)/||(3,2,1)||
-			float constexpr a_x = 0.80178372573727315405f;
-			float constexpr a_y = 0.53452248382484876937f;
-			float constexpr a_z = 0.26726124191242438468f;
-
-			float constexpr s_0 = 0.1045284632676534714f; // sin(1/60 tr)
-			float constexpr c_0 = 0.99452189536827333692f; // cos(1/60 tr)
-
-			static float s_n = s_0;
-			static float c_n = c_0;
-
-			uniforms.model[0][0] = c_n + (1.0f - c_n)*a_x*a_x;
-			uniforms.model[1][0] = (1.0f - c_n)*a_x*a_y - s_n*a_z;
-			uniforms.model[2][0] = (1.0f - c_n)*a_x*a_z + s_n*a_y;
-			uniforms.model[0][1] = (1.0f - c_n)*a_x*a_y + s_n*a_z;
-			uniforms.model[1][1] = c_n + (1.0f - c_n)*a_y*a_y;
-			uniforms.model[2][1] = (1.0f - c_n)*a_y*a_z - s_n*a_x;
-			uniforms.model[0][2] = (1.0f - c_n)*a_x*a_z - s_n*a_y;
-			uniforms.model[1][2] = (1.0f - c_n)*a_y*a_z + s_n*a_x;
-			uniforms.model[2][2] = c_n + (1.0f - c_n)*a_z*a_z;
-
-			float const s_n_plus_1 = s_n*c_0 + c_n*s_0;
-			float const c_n_plus_1 = c_n*c_0 - s_n*s_0;
-
-			s_n = s_n_plus_1;
-			c_n = c_n_plus_1;
+		static float time = 0.0f;
+		uniforms.model = glm::rotate(uniforms.model, time, glm::vec3{0.5f, 1.0f, 0.0f});
+		time += dt;
 	}
 
 	int32_t cube_dir = s_down - w_down;
-	uniforms.view[3][2] += static_cast<float>(cube_dir)*dt;
+	uniforms.view = glm::translate(uniforms.view, glm::vec3{0.0f, 0.0f, static_cast<float>(cube_dir)*dt});
 
     void *data;
 	vk::detail::resultCheck(
@@ -993,24 +972,6 @@ static void update_cube(
 	);
 	memcpy(data, &uniforms, sizeof(uniforms));
 	device.unmapMemory(uniforms_memory);
-}
-
-void set_view(
-	float const x, float const y, float const z,
-	float const target_x, float const target_y, float const target_z,
-	)
-{
-	// See view.pie
-
-	// Here, we are assuming that U = (0, 1, 0), and that 
-
-	Matrix res{};
-	res.val[0][0] = 1.0f;
-	res.val[1][1] = 1.0f;
-	res.val[2][2] = 1.0f;
-	res.val[3][2] = 3.0f;
-	res.val[3][3] = 1.0f;
-	return res;
 }
 
 // TODO: Surely I can start to pull stuff out of main right about now?
@@ -1806,19 +1767,9 @@ static void main()
 		vk::DeviceMemory memory = vulkan_uniform_buffer_memory;
 		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
 
-		uniforms.model[0][0] = 1.0f;
-		uniforms.model[1][1] = 1.0f;
-		uniforms.model[2][2] = 1.0f;
-		uniforms.model[3][3] = 1.0f;
-
-		set_view_matrix(uniforms.view);
-
-		// See projection.docx.
-		uniforms.proj[0][0] = 1.73205080756887729353f/aspect_ratio;
-		uniforms.proj[1][1] = 1.73205080756887729353f;
-		uniforms.proj[2][2] = 2.0e-20f;
-		uniforms.proj[3][2] = 0.09999999999999999998f;
-		uniforms.proj[2][3] = 1.0f;
+		uniforms.model = glm::mat4{1.0f};
+		uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
+		uniforms.proj = glm::infinitePerspectiveRH_ZO(TAU/6.0f, aspect_ratio, 0.1f);
 
 		memcpy(data, &uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(memory);
