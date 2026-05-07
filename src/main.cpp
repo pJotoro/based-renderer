@@ -951,9 +951,7 @@ static void update_cube(
 {
 	if (should_rotate)
 	{
-		static float time = 0.0f;
-		uniforms.model = glm::rotate(uniforms.model, time, glm::vec3{0.5f, 1.0f, 0.0f});
-		time += dt;
+		uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
 	}
 
 	int32_t cube_dir = s_down - w_down;
