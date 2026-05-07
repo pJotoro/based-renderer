@@ -103,6 +103,7 @@ static int32_t key_w;
 static int32_t key_s;
 static int32_t key_a;
 static int32_t key_d;
+static glm::ivec2 mouse_pos;
 
 LRESULT WINAPI win32_event_callback(
 	HWND   win32_window,
@@ -176,6 +177,11 @@ LRESULT WINAPI win32_event_callback(
 					win32_running = false;
 				} break;
 			}
+		} break;
+		case WM_MOUSEMOVE:
+		{
+			mouse_pos.x = static_cast<int32_t>(win32_l_param); 
+			mouse_pos.y = static_cast<int32_t>(win32_l_param >> 32);
 		} break;
 		default: 
 		{
@@ -987,6 +993,19 @@ static void update_cube(
 	int32_t cube_dir_z = key_s - key_w;
 	int32_t cube_dir_x = key_a - key_d;
 	uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
+
+	static glm::ivec2 last_mouse_pos{-1, -1};
+	if (last_mouse_pos == glm::ivec2({-1, -1}))
+	{
+		last_mouse_pos = mouse_pos;
+	}
+	else
+	{
+		glm::ivec2 mouse_pos_diff = mouse_pos - last_mouse_pos;
+		uniforms.view = glm::rotate(uniforms.view, static_cast<float>(mouse_pos_diff.x), glm::vec3{0.0, 1.0f, 0.0f});
+		uniforms.view = glm::rotate(uniforms.view, static_cast<float>(mouse_pos_diff.y), glm::vec3{0.0, 0.0f, 1.0f});
+		last_mouse_pos = mouse_pos;
+	}
 
     void *data;
 	vk::detail::resultCheck(
