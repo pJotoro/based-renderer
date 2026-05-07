@@ -995,6 +995,24 @@ static void update_cube(
 	device.unmapMemory(uniforms_memory);
 }
 
+void set_view(
+	float const x, float const y, float const z,
+	float const target_x, float const target_y, float const target_z,
+	)
+{
+	// See view.pie
+
+	// Here, we are assuming that U = (0, 1, 0), and that 
+
+	Matrix res{};
+	res.val[0][0] = 1.0f;
+	res.val[1][1] = 1.0f;
+	res.val[2][2] = 1.0f;
+	res.val[3][2] = 3.0f;
+	res.val[3][3] = 1.0f;
+	return res;
+}
+
 // TODO: Surely I can start to pull stuff out of main right about now?
 // The way I could do it is very simple: just identify which parts require
 // a specific order of execution, and which parts don't. The parts that
@@ -1792,13 +1810,8 @@ static void main()
 		uniforms.model[1][1] = 1.0f;
 		uniforms.model[2][2] = 1.0f;
 		uniforms.model[3][3] = 1.0f;
-		
-		// See camera.docx.
-		uniforms.view[0][0] = 1.0f;
-		uniforms.view[1][1] = 1.0f;
-		uniforms.view[2][2] = 1.0f;
-		uniforms.view[3][2] = 3.0f;
-		uniforms.view[3][3] = 1.0f;
+
+		set_view_matrix(uniforms.view);
 
 		// See projection.docx.
 		uniforms.proj[0][0] = 1.73205080756887729353f/aspect_ratio;

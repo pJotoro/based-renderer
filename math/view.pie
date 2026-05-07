@@ -1,0 +1,220 @@
+// Radical Pie Equation
+
+D
+{
+}
+Gr
+{
+	Bg {}
+	Sb (ro='text') {s{"Taken from glm::lookAt."}}
+	Bg {}
+	Sb (ro='text') {s{"Let E, C, and U be 3D vectors."}}
+	Bg {}
+	Sb {s{"f"}}
+	Sb (ro='rltn') {s{"="}}
+	Sb (st='uprt') {s{"nrm("}}
+	Sb {s{"C"}}
+	Sb (ro='oper') {s{"−"}}
+	Sb {s{"E"}}
+	Sb (st='uprt') {s{")"}}
+	Bg {}
+	Sb {s{"s"}}
+	Sb (ro='rltn') {s{"="}}
+	Sb (st='uprt') {s{"nrm("}}
+	Sb {s{"f"}}
+	Sb (ro='oper') {s{"×"}}
+	Sb {s{"U"}}
+	Sb (st='uprt') {s{")"}}
+	Bg {}
+	Sb {s{"u"}}
+	Sb (ro='rltn') {s{"="}}
+	Sb {s{"s"}}
+	Sb (ro='oper') {s{"×"}}
+	Sb {s{"f"}}
+	Bg {}
+	Sb (st='bold') {s{"M"}}
+	Sc
+	{
+		Gr (t='subs')
+		{
+			Bg {}
+			Sb (st='uprt') {s{"camera"}}
+		}
+	}
+	Sb (ro='rltn') {s{"="}}
+	Br
+	{
+		u32{0x5B,0x5D}
+		Gr (ba='mddl')
+		{
+			Bg {}
+			Mx (r=4,c=4)
+			{
+				Gr
+				{
+					Bg {}
+					Sb {s{"s"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"x"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb {s{"s"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"y"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb {s{"s"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"z"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='oper') {s{"−"}}
+					Sb {s{"s"}}
+					Sb (ro='oper') {s{"·"}}
+					Sb {s{"E"}}
+				}
+				Gr
+				{
+					Bg {}
+					Sb {s{"u"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"x"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb {s{"u"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"y"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb {s{"u"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"z"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='oper') {s{"−"}}
+					Sb {s{"u"}}
+					Sb (ro='oper') {s{"·"}}
+					Sb {s{"E"}}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='oper') {s{"−"}}
+					Sb {s{"f"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"x"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='oper') {s{"−"}}
+					Sb {s{"f"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"y"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='oper') {s{"−"}}
+					Sb {s{"f"}}
+					Sc
+					{
+						Gr (t='subs')
+						{
+							Bg {}
+							Sb {s{"z"}}
+						}
+					}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='oper') {s{"−"}}
+					Sb {s{"f"}}
+					Sb (ro='oper') {s{"·"}}
+					Sb {s{"E"}}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='nmbr') {s{"0"}}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='nmbr') {s{"0"}}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='nmbr') {s{"0"}}
+				}
+				Gr
+				{
+					Bg {}
+					Sb (ro='nmbr') {s{"1"}}
+				}
+			}
+		}
+	}
+}
