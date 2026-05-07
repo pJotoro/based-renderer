@@ -984,11 +984,6 @@ static void update_cube(
 	device.unmapMemory(uniforms_memory);
 }
 
-// TODO: Surely I can start to pull stuff out of main right about now?
-// The way I could do it is very simple: just identify which parts require
-// a specific order of execution, and which parts don't. The parts that
-// don't can get put into functions.
-
 static void main()
 {
 	vk::ApplicationInfo vulkan_app_info{
@@ -1847,7 +1842,7 @@ static void main()
     	vk::DescriptorImageInfo{
     		vulkan_sampler,
     		vulkan_image_view,
-    		vk::ImageLayout::eShaderReadOnlyOptimal, // TODO: Is this supposed to be the image layout when it gets used, or what it is at the start?
+    		vk::ImageLayout::eShaderReadOnlyOptimal,
     	},
     };    
 
@@ -2318,7 +2313,7 @@ static void main()
 					vk::PipelineStageFlagBits2::eTransfer,
 					vk::AccessFlagBits2::eTransferWrite,
 					vk::PipelineStageFlagBits2::eFragmentShader,
-					vk::AccessFlagBits2::eShaderSampledRead, // TODO: This is probably wrong.
+					vk::AccessFlagBits2::eShaderSampledRead,
 					vk::ImageLayout::eTransferDstOptimal,
 					vk::ImageLayout::eShaderReadOnlyOptimal,
 					0, // TODO: srcQueueFamilyIdx
