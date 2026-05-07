@@ -942,6 +942,18 @@ namespace based_renderer
 
 constexpr float TAU = 6.28318530717958647693f;
 
+// See projection.docx
+static glm::mat4 perspective(float const aspect_ratio)
+{
+	glm::mat4 res{1.0f};
+	res[0][0] = 1.73205080756887729353f/aspect_ratio;
+	res[1][1] = 1.73205080756887729353f;
+	res[2][2] = 2.0e-20f;
+	res[3][2] = 0.09999999999999999998f;
+	res[2][3] = 1.0f;
+	return res;
+}
+
 // See rotation.docx.
 static void update_cube(
 	vk::Device const device, 
@@ -1766,8 +1778,8 @@ static void main()
 		vk::detail::resultCheck(vulkan_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
 
 		uniforms.model = glm::mat4{1.0f};
-		uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
-		uniforms.proj = glm::infinitePerspectiveRH_ZO(TAU/6.0f, aspect_ratio, 0.1f);
+		uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, 3.0f});
+		uniforms.proj = perspective(aspect_ratio);
 
 		memcpy(data, &uniforms, sizeof(Uniforms));
 		vulkan_device.unmapMemory(memory);
