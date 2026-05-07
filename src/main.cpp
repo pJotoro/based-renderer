@@ -99,8 +99,10 @@ static std::system_error win32_system_error() noexcept
 // TODO: Remove globals.
 static bool win32_running;
 static bool should_rotate = true;
-static int32_t w_down;
-static int32_t s_down;
+static int32_t key_w;
+static int32_t key_s;
+static int32_t key_a;
+static int32_t key_d;
 
 LRESULT WINAPI win32_event_callback(
 	HWND   win32_window,
@@ -128,11 +130,19 @@ LRESULT WINAPI win32_event_callback(
 				} break;
 				case 'W':
 				{
-					w_down = true;
+					key_w = true;
 				} break;
 				case 'S':
 				{
-					s_down = true;
+					key_s = true;
+				} break;
+				case 'A':
+				{
+					key_a = true;
+				} break;
+				case 'D':
+				{
+					key_d = true;
 				} break;
 				case VK_ESCAPE: 
 				{
@@ -147,11 +157,19 @@ LRESULT WINAPI win32_event_callback(
 			{
 				case 'W':
 				{
-					w_down = false;
+					key_w = false;
 				} break;
 				case 'S':
 				{
-					s_down = false;
+					key_s = false;
+				} break;
+				case 'A':
+				{
+					key_a = false;
+				} break;
+				case 'D':
+				{
+					key_d = false;
 				} break;
 				case VK_ESCAPE: 
 				{
@@ -966,8 +984,9 @@ static void update_cube(
 		uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
 	}
 
-	int32_t cube_dir = s_down - w_down;
-	uniforms.view = glm::translate(uniforms.view, glm::vec3{0.0f, 0.0f, static_cast<float>(cube_dir)*dt});
+	int32_t cube_dir_z = key_s - key_w;
+	int32_t cube_dir_x = key_a - key_d;
+	uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
 
     void *data;
 	vk::detail::resultCheck(
