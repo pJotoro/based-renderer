@@ -180,8 +180,7 @@ LRESULT WINAPI win32_event_callback(
 		} break;
 		case WM_MOUSEMOVE:
 		{
-			mouse_pos.x = static_cast<int32_t>(win32_l_param); 
-			mouse_pos.y = static_cast<int32_t>(win32_l_param >> 32);
+			memcpy(&mouse_pos, &win32_l_param, sizeof(LPARAM));
 		} break;
 		default: 
 		{
@@ -984,10 +983,10 @@ static void update_cube(
 	Uniforms &uniforms,
 	float const dt) 
 {
-	if (should_rotate)
-	{
-		uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
-	}
+	// if (should_rotate)
+	// {
+	// 	uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
+	// }
 
 	// Translate based on whether WASD keys are pressed.
 	int32_t const cube_dir_z = key_s - key_w;
