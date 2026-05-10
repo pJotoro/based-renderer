@@ -23,7 +23,7 @@
 #define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
 
-#define BASED_RENDERER_FULLSCREEN !BASED_RENDERER_DEBUG
+#define BASED_RENDERER_FULLSCREEN 1
 
 // TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
@@ -954,6 +954,9 @@ int WINAPI WinMain(
 	return 0;
 }
 
+namespace based_renderer 
+{
+
 struct Uniforms
 {
 	glm::mat4 model;
@@ -961,10 +964,7 @@ struct Uniforms
 	glm::mat4 proj;
 };
 
-namespace based_renderer 
-{
-
-constexpr float TAU = 6.28318530717958647693f;
+float constexpr TAU = 6.28318530717958647693f;
 
 // See projection.docx
 static glm::mat4 perspective(float const aspect_ratio)
@@ -990,22 +990,21 @@ static void update_cube(
 		uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
 	}
 
-	int32_t cube_dir_z = key_s - key_w;
-	int32_t cube_dir_x = key_a - key_d;
+	// Translate based on whether WASD keys are pressed.
+	int32_t const cube_dir_z = key_s - key_w;
+	int32_t const cube_dir_x = key_a - key_d;
 	uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
 
+	// Rotate based on mouse delta (doesn't work at all right now).
 	static glm::ivec2 last_mouse_pos{-1, -1};
-	if (last_mouse_pos == glm::ivec2({-1, -1}))
+	if (last_mouse_pos == glm::ivec2{-1, -1})
 	{
 		last_mouse_pos = mouse_pos;
 	}
-	else
-	{
-		glm::ivec2 mouse_pos_diff = mouse_pos - last_mouse_pos;
-		uniforms.view = glm::rotate(uniforms.view, static_cast<float>(mouse_pos_diff.x), glm::vec3{0.0, 1.0f, 0.0f});
-		uniforms.view = glm::rotate(uniforms.view, static_cast<float>(mouse_pos_diff.y), glm::vec3{0.0, 0.0f, 1.0f});
-		last_mouse_pos = mouse_pos;
-	}
+	glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
+	uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.x*dt/(TAU*2048.0f), glm::vec3{1.0f, 0.0f, 0.0f});
+	uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 1.0f, 0.0f});
+	last_mouse_pos = mouse_pos;
 
     void *data;
 	vk::detail::resultCheck(
