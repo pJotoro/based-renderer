@@ -978,7 +978,6 @@ static glm::mat4 perspective(float const aspect_ratio)
 	return res;
 }
 
-// See rotation.docx.
 static void update_cube(
 	vk::Device const device, 
 	vk::DeviceMemory const uniforms_memory, 
