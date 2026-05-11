@@ -14,6 +14,8 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.hpp>
 
+#include <slang/slang-com-ptr.h>
+
 #include <glm/ext/vector_float2.hpp> // vec3
 #include <glm/ext/vector_float3.hpp> // vec3
 #include <glm/ext/vector_float4.hpp> // vec4
@@ -21,7 +23,11 @@
 #include <glm/ext/matrix_transform.hpp> // translate, rotate
 #include <glm/ext/matrix_clip_space.hpp> // perspective
 
-#include <slang/slang-com-ptr.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#include <tiny_gltf.h>
 
 #include <algorithm>
 #include <format>

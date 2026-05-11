@@ -1,8 +1,5 @@
 #include "pch.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
 #define STMT(X) do {X} while (0)
@@ -1001,7 +998,7 @@ static void update_cube(
 	}
 	glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
 	uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.x*dt/(TAU*2048.0f), glm::vec3{1.0f, 0.0f, 0.0f});
-	uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 1.0f, 0.0f});
+	uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 0.0f, 1.0f});
 	last_mouse_pos = mouse_pos;
 
     void *data;
