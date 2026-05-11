@@ -1,5 +1,8 @@
 #include "pch.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 namespace based_renderer
 {
 
@@ -790,9 +793,9 @@ int WINAPI WinMain(
 	LPSTR win32_command_line,
 	int	win32_show_command)
 {
-	UNUSED(prev_instance);
-	UNUSED(command_line);
-	UNUSED(show_command);
+	UNUSED(win32_prev_instance);
+	UNUSED(win32_command_line);
+	UNUSED(win32_show_command);
 
 	based_renderer::win32_instance = win32_instance;
 

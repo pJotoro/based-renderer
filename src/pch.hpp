@@ -23,12 +23,6 @@
 #include <glm/ext/matrix_transform.hpp> // translate, rotate
 #include <glm/ext/matrix_clip_space.hpp> // perspective
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#define CGLTF_IMPLEMENTATION
-#include <cgltf.h>
-
 #include <algorithm>
 #include <format>
 // #include <fstream>
