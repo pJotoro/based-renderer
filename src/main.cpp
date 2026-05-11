@@ -40,7 +40,7 @@
 #endif
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VULKAN_LAYERS 1
+#define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_DEBUG
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
@@ -1045,8 +1045,25 @@ static void update_cube(
 	device.unmapMemory(uniforms_memory);
 }
 
+static cgltf_data *gltf_load(char const *path)
+{
+	cgltf_data *data;
+	cgltf_options options{};
+	cgltf_result res = cgltf_parse_file(&options, path, &data);
+	if (res != cgltf_result_success)
+	{
+		// TODO: Change this to make it tell you which file failed to load.
+		throw std::runtime_error{FORMAT_ERROR("Failed to load gltf file")};
+	}
+
+	return data;
+}
+
 static void main()
 {
+	cgltf_data *box = gltf_load("assets/box.glb");
+	UNUSED(box);
+
 	vk::ApplicationInfo vk_app_info{
 		"based_renderer",
 		VK_API_VERSION_1_0,
