@@ -26,8 +26,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#include <tiny_gltf.h>
+#define CGLTF_IMPLEMENTATION
+#include <cgltf.h>
 
 #include <algorithm>
 #include <format>
