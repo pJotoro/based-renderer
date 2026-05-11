@@ -1061,8 +1061,24 @@ static cgltf_data *gltf_load(char const *path)
 
 static void main()
 {
-	cgltf_data *box = gltf_load("assets/box.glb");
-	UNUSED(box);
+	cgltf_data const *box = gltf_load("assets/box.glb");
+	cgltf_mesh const &box_mesh = box->meshes[0];
+	cgltf_material const &box_material = box->materials[0];
+	for (size_t i = 0; i < box->accessors_count; ++i)
+	{
+		cgltf_accessor const &accessor = box->accessors[i];
+	}
+	for (size_t i = 0; i < box->buffer_views_count; ++i)
+	{
+		cgltf_buffer_view const &buffer_view = box->buffer_views[i];
+	}
+	cgltf_buffer const &box_buffer = box->buffers[0];
+	for (size_t i = 0; i < box->nodes_count; ++i)
+	{
+		cgltf_node const &node = box->nodes[i];
+	}
+	cgltf_scene const *box_scene = box->scene;
+
 
 	vk::ApplicationInfo vk_app_info{
 		"based_renderer",
