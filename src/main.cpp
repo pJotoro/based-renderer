@@ -9,13 +9,28 @@
 #include "cgltf.h"
 #pragma warning(pop)
 
-namespace based_renderer
-{
-
+#ifdef UNUSED
+#warning Removing previously defined macro 'UNUSED'.
+#undef UNUSED
+#endif
 #define UNUSED(X) (void)(X)
+
+#ifdef STRINGIFY
+#warning Removing previously defined macro 'STRINGIFY'.
+#undef STRINGIFY
+#endif
 #define STRINGIFY(x) #x
+
+#ifdef STMT
+#warning Removing previously defined macro 'STMT'.
+#undef STMT
+#endif
 #define STMT(X) do {X} while (0)
 
+#ifdef FORMAT_ERROR
+#warning Removing previously defined macro 'FORMAT_ERROR'.
+#undef FORMAT_ERROR
+#endif
 #define FORMAT_ERROR(MESSAGE) std::format("{}({}): {}", __FUNCTION__, __LINE__, (MESSAGE))
 
 #ifdef _DEBUG
@@ -36,6 +51,9 @@ namespace based_renderer
 
 // TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
+
+namespace based_renderer
+{
 
 // TODO: How does printing to the debug output work on other systems?
 
