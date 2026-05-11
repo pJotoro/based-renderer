@@ -992,7 +992,7 @@ struct Uniforms
 float constexpr TAU = 6.28318530717958647693f;
 
 // See projection.docx
-static glm::mat4 perspective(float const aspect_ratio)
+static glm::mat4 perspective(float const aspect_ratio) noexcept
 {
 	glm::mat4 res{1.0f};
 	res[0][0] = 1.73205080756887729353f/aspect_ratio;
@@ -1007,7 +1007,7 @@ static void update_cube(
 	vk::Device const device, 
 	vk::DeviceMemory const uniforms_memory, 
 	Uniforms &uniforms,
-	float const dt) 
+	float const dt) noexcept
 {
 	// if (should_rotate)
 	// {
