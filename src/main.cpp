@@ -1,5 +1,8 @@
 #include "pch.hpp"
 
+namespace based_renderer
+{
+
 #define UNUSED(X) (void)(X)
 #define STRINGIFY(x) #x
 #define STMT(X) do {X} while (0)
@@ -777,22 +780,21 @@ static uint32_t vk_find_memory_type_idx(
 // TODO: Remove global variable.
 static HINSTANCE win32_instance;
 
-namespace based_renderer
-{
-	static void main();
-}
+static void main();
+
+} // namespace based_renderer
 
 int WINAPI WinMain(
-	HINSTANCE instance,
-	HINSTANCE prev_instance,
-	LPSTR	 command_line,
-	int	   show_command)
+	HINSTANCE win32_instance,
+	HINSTANCE win32_prev_instance,
+	LPSTR win32_command_line,
+	int	win32_show_command)
 {
 	UNUSED(prev_instance);
 	UNUSED(command_line);
 	UNUSED(show_command);
 
-	win32_instance = instance;
+	based_renderer::win32_instance = win32_instance;
 
 	try
 	{
@@ -800,151 +802,151 @@ int WINAPI WinMain(
 	}
 	catch (vk::OutOfHostMemoryError err)
 	{
-		win32_message_box(err.what(), "vk::OutOfHostMemoryError");
+		based_renderer::win32_message_box(err.what(), "vk::OutOfHostMemoryError");
 	}
 	catch (vk::OutOfDeviceMemoryError err)
 	{
-		win32_message_box(err.what(), "vk::OutOfDeviceMemoryError");
+		based_renderer::win32_message_box(err.what(), "vk::OutOfDeviceMemoryError");
 	}
 	catch (vk::InitializationFailedError err)
 	{
-		win32_message_box(err.what(), "vk::InitializationFailedError");
+		based_renderer::win32_message_box(err.what(), "vk::InitializationFailedError");
 	}
 	catch (vk::DeviceLostError err)
 	{
-		win32_message_box(err.what(), "vk::DeviceLostError");
+		based_renderer::win32_message_box(err.what(), "vk::DeviceLostError");
 	}
 	catch (vk::MemoryMapFailedError err)
 	{
-		win32_message_box(err.what(), "vk::MemoryMapFailedError");
+		based_renderer::win32_message_box(err.what(), "vk::MemoryMapFailedError");
 	}
 	catch (vk::LayerNotPresentError err)
 	{
-		win32_message_box(err.what(), "vk::LayerNotPresentError");
+		based_renderer::win32_message_box(err.what(), "vk::LayerNotPresentError");
 	}
 	catch (vk::ExtensionNotPresentError err)
 	{
-		win32_message_box(err.what(), "vk::ExtensionNotPresentError");
+		based_renderer::win32_message_box(err.what(), "vk::ExtensionNotPresentError");
 	}
 	catch (vk::FeatureNotPresentError err)
 	{
-		win32_message_box(err.what(), "vk::FeatureNotPresentError");
+		based_renderer::win32_message_box(err.what(), "vk::FeatureNotPresentError");
 	}
 	catch (vk::IncompatibleDriverError err)
 	{
-		win32_message_box(err.what(), "vk::IncompatibleDriverError");
+		based_renderer::win32_message_box(err.what(), "vk::IncompatibleDriverError");
 	}
 	catch (vk::TooManyObjectsError err)
 	{
-		win32_message_box(err.what(), "vk::TooManyObjectsError");
+		based_renderer::win32_message_box(err.what(), "vk::TooManyObjectsError");
 	}
 	catch (vk::FormatNotSupportedError err)
 	{
-		win32_message_box(err.what(), "vk::FormatNotSupportedError");
+		based_renderer::win32_message_box(err.what(), "vk::FormatNotSupportedError");
 	}
 	catch (vk::FragmentedPoolError err)
 	{
-		win32_message_box(err.what(), "vk::FragmentedPoolError");
+		based_renderer::win32_message_box(err.what(), "vk::FragmentedPoolError");
 	}
 	catch (vk::UnknownError err)
 	{
-		win32_message_box(err.what(), "vk::UnknownError");
+		based_renderer::win32_message_box(err.what(), "vk::UnknownError");
 	}
 	catch (vk::ValidationFailedError err)
 	{
-		win32_message_box(err.what(), "vk::ValidationFailedError");
+		based_renderer::win32_message_box(err.what(), "vk::ValidationFailedError");
 	}
 	catch (vk::OutOfPoolMemoryError err)
 	{
-		win32_message_box(err.what(), "vk::OutOfPoolMemoryError");
+		based_renderer::win32_message_box(err.what(), "vk::OutOfPoolMemoryError");
 	}
 	catch (vk::InvalidExternalHandleError err)
 	{
-		win32_message_box(err.what(), "vk::InvalidExternalHandleError");
+		based_renderer::win32_message_box(err.what(), "vk::InvalidExternalHandleError");
 	}
 	catch (vk::InvalidOpaqueCaptureAddressError err)
 	{
-		win32_message_box(err.what(), "vk::InvalidOpaqueCaptureAddressError");
+		based_renderer::win32_message_box(err.what(), "vk::InvalidOpaqueCaptureAddressError");
 	}
 	catch (vk::FragmentationError err)
 	{
-		win32_message_box(err.what(), "vk::FragmentationError");
+		based_renderer::win32_message_box(err.what(), "vk::FragmentationError");
 	}
 	catch (vk::NotPermittedError err)
 	{
-		win32_message_box(err.what(), "vk::NotPermittedError");
+		based_renderer::win32_message_box(err.what(), "vk::NotPermittedError");
 	}
 	catch (vk::SurfaceLostKHRError err)
 	{
-		win32_message_box(err.what(), "vk::SurfaceLostKHRError");
+		based_renderer::win32_message_box(err.what(), "vk::SurfaceLostKHRError");
 	}
 	catch (vk::NativeWindowInUseKHRError err)
 	{
-		win32_message_box(err.what(), "vk::NativeWindowInUseKHRError");
+		based_renderer::win32_message_box(err.what(), "vk::NativeWindowInUseKHRError");
 	}
 	catch (vk::OutOfDateKHRError err)
 	{
-		win32_message_box(err.what(), "vk::OutOfDateKHRError");
+		based_renderer::win32_message_box(err.what(), "vk::OutOfDateKHRError");
 	}
 	catch (vk::InvalidShaderNVError err)
 	{
-		win32_message_box(err.what(), "vk::InvalidShaderNVError");
+		based_renderer::win32_message_box(err.what(), "vk::InvalidShaderNVError");
 	}
 	catch (vk::FullScreenExclusiveModeLostEXTError err)
 	{
-		win32_message_box(err.what(), "vk::FullScreenExclusiveModeLostEXTError");
+		based_renderer::win32_message_box(err.what(), "vk::FullScreenExclusiveModeLostEXTError");
 
 		// NOTE: We are not actually using this
 		// extension yet, but will be soon.
 	}
 	catch (vk::LogicError err)
 	{
-		win32_message_box(err.what(), "vk::LogicError");
+		based_renderer::win32_message_box(err.what(), "vk::LogicError");
 	}
 	catch (vk::SystemError err)
 	{
-		win32_message_box(err.what(), "vk::SystemError");
+		based_renderer::win32_message_box(err.what(), "vk::SystemError");
 	}
 
 	catch (std::invalid_argument err)
 	{
-		win32_message_box(err.what(), "std::invalid_argument");
+		based_renderer::win32_message_box(err.what(), "std::invalid_argument");
 	}
 	catch (std::domain_error err)
 	{
-		win32_message_box(err.what(), "std::domain_error");
+		based_renderer::win32_message_box(err.what(), "std::domain_error");
 	}
 	catch (std::length_error err)
 	{
-		win32_message_box(err.what(), "std::length_error");
+		based_renderer::win32_message_box(err.what(), "std::length_error");
 	}
 	catch (std::out_of_range err)
 	{
-		win32_message_box(err.what(), "std::out_of_range");
+		based_renderer::win32_message_box(err.what(), "std::out_of_range");
 	}
 	catch (std::range_error err)
 	{
-		win32_message_box(err.what(), "std::range_error");
+		based_renderer::win32_message_box(err.what(), "std::range_error");
 	}
 	catch (std::overflow_error err)
 	{
-		win32_message_box(err.what(), "std::overflow_error");
+		based_renderer::win32_message_box(err.what(), "std::overflow_error");
 	}
 	catch (std::underflow_error err)
 	{
-		win32_message_box(err.what(), "std::underflow_error");
+		based_renderer::win32_message_box(err.what(), "std::underflow_error");
 	}
 	catch (std::logic_error err)
 	{
-		win32_message_box(err.what(), "std::logic_error");
+		based_renderer::win32_message_box(err.what(), "std::logic_error");
 	}
 	catch (std::runtime_error err)
 	{
-		win32_message_box(err.what(), "std::runtime_error");
+		based_renderer::win32_message_box(err.what(), "std::runtime_error");
 	}
 	catch (...)
 	{
-		win32_message_box("Failed for unknown reason.", "Error");
+		based_renderer::win32_message_box("Failed for unknown reason.", "Error");
 	}
 
 	return 0;
