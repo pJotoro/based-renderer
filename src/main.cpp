@@ -2823,6 +2823,10 @@ static void main()
 			vk::PipelineBindPoint::eGraphics,
 			vk_pipelines[0]
 		);
+		std::array<vk::Buffer, 1> vertex_buffers{vk_vertex_buffer};
+		std::array<vk::DeviceSize, 1> offsets{0};
+		cb.bindVertexBuffers(0, vertex_buffers, offsets);
+		cb.bindIndexBuffer(vk_index_buffer, 0, vk::IndexType::eUint16);
 		cb.bindDescriptorSets(
 			vk::PipelineBindPoint::eGraphics,
 			vk_pipeline_layout,
