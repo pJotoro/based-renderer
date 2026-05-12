@@ -1966,6 +1966,7 @@ static void main()
 	vk_map_memory(vk_device, vk_uniform_buffer_memory, &uniforms, sizeof(uniforms));
 
 	// TODO: Implement descriptor indexing.
+#if 0
 	std::array<vk::DescriptorSetLayoutBinding, 1> vk_descriptor_set_layout_binding_uniform_buffer{
 		vk::DescriptorSetLayoutBinding{
 			0,
@@ -2046,6 +2047,59 @@ static void main()
     		vk::DescriptorType::eCombinedImageSampler,
     		vk_descriptor_image_infos,
     		{},
+    		{},
+    	},
+    };
+#endif
+
+	std::array<vk::DescriptorSetLayoutBinding, 1> vk_descriptor_set_layout_binding_uniform_buffer{
+		vk::DescriptorSetLayoutBinding{
+			0,
+			vk::DescriptorType::eUniformBuffer,
+			1,
+			vk::ShaderStageFlagBits::eVertex,
+		},
+	};
+
+	std::array<vk::DescriptorSetLayout, 1> vk_descriptor_set_layouts{};
+    vk_descriptor_set_layouts[0] = vk_device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{
+    	vk::DescriptorSetLayoutCreateFlags{},
+    	vk_descriptor_set_layout_binding_uniform_buffer,
+    });
+
+    std::array<vk::DescriptorPoolSize, 1> vk_descriptor_pool_sizes{
+    	vk::DescriptorPoolSize{
+    		vk::DescriptorType::eUniformBuffer,
+    		1,
+    	},
+    };
+
+    vk::DescriptorPool vk_descriptor_pool = vk_device.createDescriptorPool(vk::DescriptorPoolCreateInfo{
+    	vk::DescriptorPoolCreateFlags{},
+    	static_cast<uint32_t>(vk_descriptor_pool_sizes.size()),
+    	vk_descriptor_pool_sizes,
+    });
+
+    std::vector<vk::DescriptorSet> vk_descriptor_sets = vk_device.allocateDescriptorSets({
+    	vk_descriptor_pool,
+    	vk_descriptor_set_layouts,
+    });
+
+    std::array<vk::DescriptorBufferInfo, 1> vk_descriptor_buffer_infos{
+    	vk::DescriptorBufferInfo{
+    		vk_uniform_buffer,
+    		0,
+    		sizeof(Uniforms),
+    	},
+    };
+
+    std::array<vk::WriteDescriptorSet, 1> vk_descriptor_writes{
+    	vk::WriteDescriptorSet{
+    		vk_descriptor_sets[0],
+    		0, 0,
+    		vk::DescriptorType::eUniformBuffer,
+    		{},
+    		vk_descriptor_buffer_infos,
     		{},
     	},
     };
