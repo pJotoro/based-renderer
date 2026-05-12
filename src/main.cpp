@@ -982,6 +982,29 @@ int WINAPI WinMain(
 namespace based_renderer 
 {
 
+static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size)
+{
+    void *data;
+	vk::detail::resultCheck(
+		device.mapMemory(
+			device_memory,
+			0, 
+			memory_size,
+			vk::MemoryMapFlags{}, 
+			&data
+		), 
+		"Failed to map memory!"
+	);
+	memcpy(data, memory, memory_size);
+	device.unmapMemory(device_memory);
+}
+
+template <typename T>
+static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
+{
+	vk_map_memory(device, device_memory, memory.data(), memory.size());
+}
+
 struct Uniforms
 {
 	glm::mat4 model;
@@ -1030,19 +1053,7 @@ static void update_cube(
 	uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 0.0f, 1.0f});
 	last_mouse_pos = mouse_pos;
 
-    void *data;
-	vk::detail::resultCheck(
-		device.mapMemory(
-			uniforms_memory,
-			0, 
-			sizeof(uniforms),
-			vk::MemoryMapFlags{}, 
-			&data
-		), 
-		"Failed to map memory!"
-	);
-	memcpy(data, &uniforms, sizeof(uniforms));
-	device.unmapMemory(uniforms_memory);
+	vk_map_memory(device, uniforms_memory, &uniforms, sizeof(uniforms));
 }
 
 static cgltf_data *gltf_load(char const *path)
@@ -1900,6 +1911,7 @@ static void main()
 		),
 	});
 	vk_device.bindBufferMemory(vk_vertex_staging_buffer, vk_vertex_staging_buffer_memory, 0);
+	vk_map_memory(vk_device, vk_vertex_staging_buffer_memory, vertices);
 
 	vk::Buffer vk_index_staging_buffer = vk_device.createBuffer({
 		vk::BufferCreateFlags{},
@@ -1944,19 +1956,11 @@ static void main()
 	});
 	vk_device.bindBufferMemory(vk_uniform_buffer, vk_uniform_buffer_memory, 0);
 
-	Uniforms uniforms{};
-	{
-		void *data;
-		vk::DeviceMemory memory = vk_uniform_buffer_memory;
-		vk::detail::resultCheck(vk_device.mapMemory(memory, 0, sizeof(Uniforms), vk::MemoryMapFlags{}, &data), "Failed to map memory!");
-
-		uniforms.model = glm::mat4{1.0f};
-		uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, 3.0f});
-		uniforms.proj = perspective(aspect_ratio);
-
-		memcpy(data, &uniforms, sizeof(Uniforms));
-		vk_device.unmapMemory(memory);
-	}
+	Uniforms uniforms;
+	uniforms.model = glm::mat4{1.0f};
+	uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, 3.0f});
+	uniforms.proj = perspective(aspect_ratio);
+	vk_map_memory(vk_device, vk_uniform_buffer_memory, &uniforms, sizeof(uniforms));
 
 	// TODO: Implement descriptor indexing.
 	std::array<vk::DescriptorSetLayoutBinding, 1> vk_descriptor_set_layout_binding_uniform_buffer{
