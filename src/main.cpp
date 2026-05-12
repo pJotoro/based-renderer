@@ -2291,18 +2291,33 @@ static void main()
 		vk_fragment_shader_stage_create_info,
 	};
 
-	// std::array<vk::VertexInputBindingDescription, 1> vk_vertex_input_binding_descriptions{
+	std::array<vk::VertexInputBindingDescription, 1> vk_vertex_input_binding_descriptions{
+		vk::VertexInputBindingDescription{
+			0,
+			sizeof(Vertex),
+			vk::VertexInputRate::eVertex,
+		}
+	};
 
-	// };
-
-	// std::array<vk::VertexInputAttributeDescription, 1> vk_vertex_input_attribute_descriptions{
-
-	// };
+	std::array<vk::VertexInputAttributeDescription, 2> vk_vertex_input_attribute_descriptions{
+		vk::VertexInputAttributeDescription{
+			0,
+			0,
+			vk::Format::eR32G32B32Sfloat,
+			offsetof(Vertex, pos),
+		},
+		vk::VertexInputAttributeDescription{
+			1,
+			0,
+			vk::Format::eR32G32B32Sfloat,
+			offsetof(Vertex, normal),
+		},
+	};
 
 	vk::PipelineVertexInputStateCreateInfo vk_vertex_input_state_create_info{
 		vk::PipelineVertexInputStateCreateFlags{},
-		// vk_vertex_input_binding_descriptions,
-		// vk_vertex_input_attribute_descriptions,
+		vk_vertex_input_binding_descriptions,
+		vk_vertex_input_attribute_descriptions,
 	};
 
 	vk::PipelineInputAssemblyStateCreateInfo vk_pipeline_input_assembly_state_create_info{
