@@ -1820,20 +1820,41 @@ static void main()
 	});
 #endif
 
+	/*
+	What I've figured out so far:
+	- The box's binary is formatted like this: first all the vertices, then all the normals, then all the indices.
+	*/
+
 	cgltf_data const *box = gltf_load("assets/box.glb");
 	cgltf_mesh const &box_mesh = box->meshes[0];
 	dprint("{}", box_mesh.name);
 	cgltf_material const &box_material = box->materials[0]; // It seems like I can safely ignore the material. The only thing set is the alpha cutoff.
 	dprint("{}", box_material.name);
+	size_t box_vertex_count = 0;
 	for (size_t i = 0; i < box->accessors_count; ++i)
 	{
 		cgltf_accessor const &accessor = box->accessors[i];
 		if (accessor.name) dprint("{}", accessor.name);
+		if (accessor.buffer_view->type != cgltf_buffer_view_type_indices)
+		{
+			box_vertex_count = std::max(box_vertex_count, accessor.count);
+		}
 	}
+	vk::DeviceSize box_vertex_buffer_size = 0;
+	vk::DeviceSize box_index_buffer_size = 0;
 	for (size_t i = 0; i < box->buffer_views_count; ++i)
 	{
 		cgltf_buffer_view const &buffer_view = box->buffer_views[i];
 		if (buffer_view.name) dprint("{}", buffer_view.name);
+		switch (buffer_view.type)
+		{
+			case cgltf_buffer_view_type_vertices:
+				box_vertex_buffer_size += buffer_view.size;
+				break;
+			case cgltf_buffer_view_type_indices:
+				box_index_buffer_size += buffer_view.size;
+				break;
+		}
 	}
 	cgltf_buffer const &box_buffer = box->buffers[0];
 	if (box_buffer.name) dprint("{}", box_buffer.name);
@@ -1847,26 +1868,57 @@ static void main()
 
 	struct Vertex
 	{
-		alignas(16) glm::vec3 pos;
-		alignas(16) glm::vec3 normal;
+		glm::vec3 pos;
+		glm::vec3 normal;
 	};
+	std::vector<Vertex> vertices;
+	vertices.reserve(box_vertex_count);
+	for (size_t i = 0; i < box_vertex_count; ++i)
+	{
+		Vertex vertex;
+		// TODO: How would this be made generic?
+		auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[1].buffer_view->offset + i*box->accessors[1].stride);
+		auto normal = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].buffer_view->offset + i*box->accessors[2].stride);
+		vertex.pos = *pos;
+		vertex.normal = *normal;
+		vertices.push_back(vertex);
+	}
 
-	vk::Buffer vk_staging_buffer = vk_device.createBuffer({
+	vk::Buffer vk_vertex_staging_buffer = vk_device.createBuffer({
 		vk::BufferCreateFlags{},
-		static_cast<vk::DeviceSize>(0), // TODO
+		box_vertex_buffer_size,
 		vk::BufferUsageFlagBits::eTransferSrc,
 	});
-	vk::MemoryRequirements vk_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_staging_buffer);
-	vk::DeviceMemory vk_staging_buffer_memory = vk_device.allocateMemory({
-		vk_staging_buffer_memory_requirements.size,
+	vk::MemoryRequirements vk_vertex_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_vertex_staging_buffer);
+	vk::DeviceMemory vk_vertex_staging_buffer_memory = vk_device.allocateMemory({
+		vk_vertex_staging_buffer_memory_requirements.size,
 		vk_find_memory_type_idx(
 			vk_physical_device_memory_properties,
-			vk_staging_buffer_memory_requirements.memoryTypeBits,
+			vk_vertex_staging_buffer_memory_requirements.memoryTypeBits,
 			vk::MemoryPropertyFlagBits::eHostVisible|
 			vk::MemoryPropertyFlagBits::eHostCoherent
 		),
 	});
-	vk_device.bindBufferMemory(vk_staging_buffer, vk_staging_buffer_memory, 0);
+	vk_device.bindBufferMemory(vk_vertex_staging_buffer, vk_vertex_staging_buffer_memory, 0);
+
+	vk::Buffer vk_index_staging_buffer = vk_device.createBuffer({
+		vk::BufferCreateFlags{},
+		box_index_buffer_size,
+		vk::BufferUsageFlagBits::eTransferSrc,
+	});
+	vk::MemoryRequirements vk_index_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_index_staging_buffer);
+	vk::DeviceMemory vk_index_staging_buffer_memory = vk_device.allocateMemory({
+		vk_index_staging_buffer_memory_requirements.size,
+		vk_find_memory_type_idx(
+			vk_physical_device_memory_properties,
+			vk_index_staging_buffer_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eHostVisible|
+			vk::MemoryPropertyFlagBits::eHostCoherent
+		),
+	});
+	vk_device.bindBufferMemory(vk_index_staging_buffer, vk_index_staging_buffer_memory, 0);
+
+
 
 
 	vk::Sampler vk_sampler = vk_device.createSampler({
@@ -2340,7 +2392,7 @@ static void main()
 					vk::AccessFlagBits2::eTransferRead,
 					0,
 					0,
-					vk_staging_buffer,
+					nullptr, // vk_staging_buffer, TODO
 					0,
 					static_cast<vk::DeviceSize>(0), // TODO
 				},
@@ -2429,7 +2481,7 @@ static void main()
 			};
 
 			cb.copyBufferToImage(
-				vk_staging_buffer,
+				nullptr, // vk_staging_buffer, TODO
 				nullptr, // vk_image, TODO
 				vk::ImageLayout::eTransferDstOptimal,
 				regions);
