@@ -1965,6 +1965,39 @@ static void main()
 	uniforms.proj = perspective(aspect_ratio);
 	vk_map_memory(vk_device, vk_uniform_buffer_memory, &uniforms, sizeof(uniforms));
 
+	vk::Buffer vk_vertex_buffer = vk_device.createBuffer({
+		vk::BufferCreateFlags{},
+		box_vertex_buffer_size,
+		vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eVertexBuffer,
+	});
+	vk::MemoryRequirements vk_vertex_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_vertex_buffer);
+	vk::DeviceMemory vk_vertex_buffer_memory = vk_device.allocateMemory({
+		vk_vertex_buffer_memory_requirements.size,
+		vk_find_memory_type_idx(
+			vk_physical_device_memory_properties,
+			vk_vertex_buffer_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eDeviceLocal,
+		),
+	});
+	vk_device.bindBufferMemory(vk_vertex_buffer, vk_vertex_buffer_memory, 0);
+
+	vk::Buffer vk_index_buffer = vk_device.createBuffer({
+		vk::BufferCreateFlags{},
+		box_index_buffer_size,
+		vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eIndexBuffer,
+	});
+	vk::MemoryRequirements vk_index_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_index_buffer);
+	vk::DeviceMemory vk_index_buffer_memory = vk_device.allocateMemory({
+		vk_index_buffer_memory_requirements.size,
+		vk_find_memory_type_idx(
+			vk_physical_device_memory_properties,
+			vk_index_buffer_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eDeviceLocal,
+		),
+	});
+	vk_device.bindBufferMemory(vk_index_buffer, vk_index_buffer_memory, 0);
+
+
 	// TODO: Implement descriptor indexing.
 #if 0
 	std::array<vk::DescriptorSetLayoutBinding, 1> vk_descriptor_set_layout_binding_uniform_buffer{
