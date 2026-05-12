@@ -1061,25 +1061,6 @@ static cgltf_data *gltf_load(char const *path)
 
 static void main()
 {
-	cgltf_data const *box = gltf_load("assets/box.glb");
-	cgltf_mesh const &box_mesh = box->meshes[0];
-	cgltf_material const &box_material = box->materials[0];
-	for (size_t i = 0; i < box->accessors_count; ++i)
-	{
-		cgltf_accessor const &accessor = box->accessors[i];
-	}
-	for (size_t i = 0; i < box->buffer_views_count; ++i)
-	{
-		cgltf_buffer_view const &buffer_view = box->buffer_views[i];
-	}
-	cgltf_buffer const &box_buffer = box->buffers[0];
-	for (size_t i = 0; i < box->nodes_count; ++i)
-	{
-		cgltf_node const &node = box->nodes[i];
-	}
-	cgltf_scene const *box_scene = box->scene;
-
-
 	vk::ApplicationInfo vk_app_info{
 		"based_renderer",
 		VK_API_VERSION_1_0,
@@ -1753,6 +1734,7 @@ static void main()
 		},
 	});
 
+#if 0
 	int32_t stone_image_width;
 	int32_t stone_image_height;
 	int32_t stone_image_channels;
@@ -1836,6 +1818,55 @@ static void main()
 			1
 		},
 	});
+#endif
+
+	cgltf_data const *box = gltf_load("assets/box.glb");
+	cgltf_mesh const &box_mesh = box->meshes[0];
+	dprint("{}", box_mesh.name);
+	cgltf_material const &box_material = box->materials[0]; // It seems like I can safely ignore the material. The only thing set is the alpha cutoff.
+	dprint("{}", box_material.name);
+	for (size_t i = 0; i < box->accessors_count; ++i)
+	{
+		cgltf_accessor const &accessor = box->accessors[i];
+		if (accessor.name) dprint("{}", accessor.name);
+	}
+	for (size_t i = 0; i < box->buffer_views_count; ++i)
+	{
+		cgltf_buffer_view const &buffer_view = box->buffer_views[i];
+		if (buffer_view.name) dprint("{}", buffer_view.name);
+	}
+	cgltf_buffer const &box_buffer = box->buffers[0];
+	if (box_buffer.name) dprint("{}", box_buffer.name);
+	for (size_t i = 0; i < box->nodes_count; ++i)
+	{
+		cgltf_node const &node = box->nodes[i];
+		if (node.name) dprint("{}", node.name);
+	}
+	cgltf_scene const *box_scene = box->scene;
+	if (box_scene->name) dprint("{}", box_scene->name);
+
+	struct Vertex
+	{
+		int blah;
+	};
+
+	vk::Buffer vk_staging_buffer = vk_device.createBuffer({
+		vk::BufferCreateFlags{},
+		static_cast<vk::DeviceSize>(0), // TODO
+		vk::BufferUsageFlagBits::eTransferSrc,
+	});
+	vk::MemoryRequirements vk_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_staging_buffer);
+	vk::DeviceMemory vk_staging_buffer_memory = vk_device.allocateMemory({
+		vk_staging_buffer_memory_requirements.size,
+		vk_find_memory_type_idx(
+			vk_physical_device_memory_properties,
+			vk_staging_buffer_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eHostVisible|
+			vk::MemoryPropertyFlagBits::eHostCoherent
+		),
+	});
+	vk_device.bindBufferMemory(vk_staging_buffer, vk_staging_buffer_memory, 0);
+
 
 	vk::Sampler vk_sampler = vk_device.createSampler({
 		// TODO
@@ -1935,8 +1966,8 @@ static void main()
     std::array<vk::DescriptorImageInfo, 1> vk_descriptor_image_infos{
     	vk::DescriptorImageInfo{
     		vk_sampler,
-    		vk_image_view,
-    		vk::ImageLayout::eShaderReadOnlyOptimal,
+    		// vk_image_view, TODO
+    		// vk::ImageLayout::eShaderReadOnlyOptimal, TODO
     	},
     };    
 
@@ -2310,7 +2341,7 @@ static void main()
 					0,
 					vk_staging_buffer,
 					0,
-					static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
+					static_cast<vk::DeviceSize>(0), // TODO
 				},
 			};
 
@@ -2360,7 +2391,7 @@ static void main()
 					vk::ImageLayout::eTransferDstOptimal,
 					0, // TODO: srcQueueFamilyIdx
 					0, // TODO: dstQueueFamilyIdx
-					vk_image,
+					nullptr, // vk_image, TODO
 					vk::ImageSubresourceRange{
 						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
 						0,
@@ -2389,8 +2420,8 @@ static void main()
 					},
 					vk::Offset3D{},
 					vk::Extent3D{
-						static_cast<uint32_t>(stone_image_width), 
-						static_cast<uint32_t>(stone_image_height),
+						0, // static_cast<uint32_t>(stone_image_width), TODO
+						0, // static_cast<uint32_t>(stone_image_height), TODO
 						1
 					},
 				},
@@ -2398,7 +2429,7 @@ static void main()
 
 			cb.copyBufferToImage(
 				vk_staging_buffer,
-				vk_image,
+				nullptr, // vk_image, TODO
 				vk::ImageLayout::eTransferDstOptimal,
 				regions);
 
@@ -2412,7 +2443,7 @@ static void main()
 					vk::ImageLayout::eShaderReadOnlyOptimal,
 					0, // TODO: srcQueueFamilyIdx
 					0, // TODO: dstQueueFamilyIdx
-					vk_image,
+					nullptr, // vk_image, TODO
 					vk::ImageSubresourceRange{
 						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
 						0,
