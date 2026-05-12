@@ -36,7 +36,7 @@ target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang glm::glm)
 # TODO: Is this the only way to set these options? Or is there a cross-platform way?
 # TODO: What about other compilers? I know you can also use clang and mingw on Windows.
 if(MSVC)
-target_compile_options(based_renderer PRIVATE /W4 /WX /diagnostics:column /wd4201)
+target_compile_options(based_renderer PRIVATE /W4 /WX /diagnostics:column /wd4201 /wd4324)
 target_link_options(based_renderer PRIVATE /subsystem:windows)
 endif()
 # ==========================

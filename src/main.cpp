@@ -1847,7 +1847,8 @@ static void main()
 
 	struct Vertex
 	{
-		int blah;
+		alignas(16) glm::vec3 pos;
+		alignas(16) glm::vec3 normal;
 	};
 
 	vk::Buffer vk_staging_buffer = vk_device.createBuffer({
