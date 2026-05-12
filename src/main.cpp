@@ -40,14 +40,14 @@
 #endif
 
 #define BASED_RENDERER_VULKAN_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VULKAN_LAYERS BASED_RENDERER_DEBUG
+#define BASED_RENDERER_VULKAN_LAYERS 0
 #define BASED_RENDERER_VULKAN_DEBUG_OUTPUT BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_VULKAN_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VULKAN_DEBUG
 
 #define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_VULKAN_DEBUG
 #define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
 
-#define BASED_RENDERER_FULLSCREEN 1
+#define BASED_RENDERER_FULLSCREEN 0
 
 // TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
@@ -2540,6 +2540,7 @@ static void main()
 				},
 			};
 
+			// TODO: Does it really make sense to just shove as much as possible into one call to pipelineBarrier2? I feel like it probably doesn't. These images don't have to get transitioned at this point. They could be transitioned after copying the buffers.
 			std::array<vk::ImageMemoryBarrier2, 2> image_barriers{
 				vk::ImageMemoryBarrier2{
 					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
@@ -2834,7 +2835,7 @@ static void main()
 			vk_descriptor_sets,
 			{}
 		);
-		cb.draw(36, 1, 0, 0);
+		cb.drawIndexed(static_cast<uint32_t>(box->accessors[0].count), 1, 0, 0, 0);
 
 		cb.endRendering();
 
