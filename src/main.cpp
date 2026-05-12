@@ -1929,9 +1929,12 @@ static void main()
 		),
 	});
 	vk_device.bindBufferMemory(vk_index_staging_buffer, vk_index_staging_buffer_memory, 0);
-
-
-
+	{
+		size_t index_buffer_offset = box->accessors[0].buffer_view->offset;
+		size_t index_buffer_size = box->accessors[0].buffer_view->size;
+		auto index_buffer_data = reinterpret_cast<uint8_t const *const>(box->bin) + index_buffer_offset;
+		vk_map_memory(vk_device, vk_index_staging_buffer_memory, index_buffer_data, index_buffer_size);
+	}
 
 	vk::Sampler vk_sampler = vk_device.createSampler({
 		// TODO
