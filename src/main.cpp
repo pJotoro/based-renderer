@@ -2161,7 +2161,7 @@ static void main()
 
 	Slang::ComPtr<slang::IModule> slang_module;
 	Slang::ComPtr<slang::IBlob> slang_module_diagnostics;
-	slang_module = slang_session->loadModule("cube", slang_module_diagnostics.writeRef());
+	slang_module = slang_session->loadModule("box", slang_module_diagnostics.writeRef());
 	if (slang_module_diagnostics.get())
 	{
 		// TODO: Find a way to get shader compile errors in the Sublime Text console.
@@ -2445,7 +2445,7 @@ static void main()
 		static size_t staged = 0;
 		if (staged == 0)
 		{
-			std::array<vk::BufferMemoryBarrier2, 1> buffer_barriers{
+			std::array<vk::BufferMemoryBarrier2, 2> buffer_barriers{
 				vk::BufferMemoryBarrier2{
 					vk::PipelineStageFlags2{},
 					vk::AccessFlags2{},
@@ -2453,13 +2453,24 @@ static void main()
 					vk::AccessFlagBits2::eTransferRead,
 					0,
 					0,
-					nullptr, // vk_staging_buffer, TODO
+					vk_vertex_staging_buffer,
 					0,
-					static_cast<vk::DeviceSize>(0), // TODO
+					box_vertex_buffer_size,
+				},
+				vk::BufferMemoryBarrier2{
+					vk::PipelineStageFlags2{},
+					vk::AccessFlags2{},
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferRead,
+					0,
+					0,
+					vk_index_staging_buffer,
+					0,
+					box_index_buffer_size,
 				},
 			};
 
-			std::array<vk::ImageMemoryBarrier2, 3> image_barriers{
+			std::array<vk::ImageMemoryBarrier2, 2> image_barriers{
 				vk::ImageMemoryBarrier2{
 					vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
 					vk::AccessFlags2{},
@@ -2496,6 +2507,7 @@ static void main()
 						1,
 					},
 				},
+#if 0
 				vk::ImageMemoryBarrier2{
 					vk::PipelineStageFlagBits2{},
 					vk::AccessFlagBits2{},
@@ -2505,7 +2517,7 @@ static void main()
 					vk::ImageLayout::eTransferDstOptimal,
 					0, // TODO: srcQueueFamilyIdx
 					0, // TODO: dstQueueFamilyIdx
-					nullptr, // vk_image, TODO
+					vk_image,
 					vk::ImageSubresourceRange{
 						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
 						0,
@@ -2514,6 +2526,7 @@ static void main()
 						1,
 					},
 				},
+#endif
 			};
 
 			cb.pipelineBarrier2({
@@ -2523,6 +2536,7 @@ static void main()
 				image_barriers,
 			});
 
+#if 0
 			std::array<vk::BufferImageCopy, 1> regions{
 				vk::BufferImageCopy{
 					0, 0, 0,
@@ -2534,18 +2548,19 @@ static void main()
 					},
 					vk::Offset3D{},
 					vk::Extent3D{
-						0, // static_cast<uint32_t>(stone_image_width), TODO
-						0, // static_cast<uint32_t>(stone_image_height), TODO
+						static_cast<uint32_t>(stone_image_width),
+						static_cast<uint32_t>(stone_image_height),
 						1
 					},
 				},
 			};
 
 			cb.copyBufferToImage(
-				nullptr, // vk_staging_buffer, TODO
-				nullptr, // vk_image, TODO
+				vk_staging_buffer,
+				vk_image,
 				vk::ImageLayout::eTransferDstOptimal,
 				regions);
+
 
 			std::array<vk::ImageMemoryBarrier2, 1> image_barriers2{
 				vk::ImageMemoryBarrier2{
@@ -2557,7 +2572,7 @@ static void main()
 					vk::ImageLayout::eShaderReadOnlyOptimal,
 					0, // TODO: srcQueueFamilyIdx
 					0, // TODO: dstQueueFamilyIdx
-					nullptr, // vk_image, TODO
+					vk_image,
 					vk::ImageSubresourceRange{
 						vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
 						0,
@@ -2574,6 +2589,7 @@ static void main()
 				{},
 				image_barriers2,
 			});
+#endif
 
 			staged += 1;
 		}
