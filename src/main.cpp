@@ -1976,7 +1976,7 @@ static void main()
 		vk_find_memory_type_idx(
 			vk_physical_device_memory_properties,
 			vk_vertex_buffer_memory_requirements.memoryTypeBits,
-			vk::MemoryPropertyFlagBits::eDeviceLocal,
+			vk::MemoryPropertyFlagBits::eDeviceLocal
 		),
 	});
 	vk_device.bindBufferMemory(vk_vertex_buffer, vk_vertex_buffer_memory, 0);
@@ -1992,7 +1992,7 @@ static void main()
 		vk_find_memory_type_idx(
 			vk_physical_device_memory_properties,
 			vk_index_buffer_memory_requirements.memoryTypeBits,
-			vk::MemoryPropertyFlagBits::eDeviceLocal,
+			vk::MemoryPropertyFlagBits::eDeviceLocal
 		),
 	});
 	vk_device.bindBufferMemory(vk_index_buffer, vk_index_buffer_memory, 0);
@@ -2478,7 +2478,7 @@ static void main()
 		static size_t staged = 0;
 		if (staged == 0)
 		{
-			std::array<vk::BufferMemoryBarrier2, 2> buffer_barriers{
+			std::array<vk::BufferMemoryBarrier2, 4> buffer_barriers{
 				vk::BufferMemoryBarrier2{
 					vk::PipelineStageFlags2{},
 					vk::AccessFlags2{},
@@ -2498,6 +2498,28 @@ static void main()
 					0,
 					0,
 					vk_index_staging_buffer,
+					0,
+					box_index_buffer_size,
+				},
+				vk::BufferMemoryBarrier2{
+					vk::PipelineStageFlags2{},
+					vk::AccessFlags2{},
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferWrite,
+					0,
+					0,
+					vk_vertex_buffer,
+					0,
+					box_vertex_buffer_size,
+				},
+				vk::BufferMemoryBarrier2{
+					vk::PipelineStageFlags2{},
+					vk::AccessFlags2{},
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferWrite,
+					0,
+					0,
+					vk_index_buffer,
 					0,
 					box_index_buffer_size,
 				},
@@ -2567,6 +2589,58 @@ static void main()
 				{},
 				buffer_barriers,
 				image_barriers,
+			});
+
+			std::array<vk::BufferCopy, 1> vertex_buffer_regions{
+				vk::BufferCopy{
+					0,
+					0,
+					box_vertex_buffer_size,
+				},
+			};
+
+			cb.copyBuffer(vk_vertex_staging_buffer, vk_vertex_buffer, vertex_buffer_regions);
+
+			std::array<vk::BufferCopy, 1> index_buffer_regions{
+				vk::BufferCopy{
+					0,
+					0,
+					box_index_buffer_size,
+				},
+			};
+
+			cb.copyBuffer(vk_index_staging_buffer, vk_index_buffer, index_buffer_regions);
+
+			std::array<vk::BufferMemoryBarrier2, 2> buffer_barriers2{
+				vk::BufferMemoryBarrier2{
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferWrite,
+					vk::PipelineStageFlagBits2::eVertexAttributeInput,
+					vk::AccessFlagBits2::eVertexAttributeRead,
+					0,
+					0,
+					vk_vertex_buffer,
+					0,
+					box_vertex_buffer_size,
+				},
+				vk::BufferMemoryBarrier2{
+					vk::PipelineStageFlagBits2::eTransfer,
+					vk::AccessFlagBits2::eTransferWrite,
+					vk::PipelineStageFlagBits2::eIndexInput,
+					vk::AccessFlagBits2::eIndexRead,
+					0,
+					0,
+					vk_index_buffer,
+					0,
+					box_index_buffer_size,
+				},
+			};
+
+			cb.pipelineBarrier2({
+				vk::DependencyFlags{},
+				{},
+				buffer_barriers2,
+				{},
 			});
 
 #if 0
