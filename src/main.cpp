@@ -40,14 +40,14 @@
 #endif
 
 #define BASED_RENDERER_VK_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VK_LAYERS 1
+#define BASED_RENDERER_VK_LAYERS 0
 #define BASED_RENDERER_VK_DEBUG_OUTPUT BASED_RENDERER_VK_DEBUG
 #define BASED_RENDERER_VK_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VK_DEBUG
 
 #define BASED_RENDERER_SLANG_DEBUG BASED_RENDERER_VK_DEBUG
 #define BASED_RENDERER_SLANG_SPIRV_VALIDATION BASED_RENDERER_SLANG_DEBUG
 
-#define BASED_RENDERER_FULLSCREEN 0
+#define BASED_RENDERER_FULLSCREEN 1
 
 // TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
@@ -1879,8 +1879,8 @@ static void main()
 
 	struct Vertex
 	{
-		glm::vec3 pos;
-		glm::vec3 normal;
+		glm::vec4 pos;
+		glm::vec4 normal;
 	};
 	std::vector<Vertex> vertices;
 	vertices.reserve(box_vertex_count);
@@ -1890,14 +1890,14 @@ static void main()
 		// TODO: How would this be made generic?
 		auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[1].offset + i*box->accessors[1].stride);
 		auto normal = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
-		vertex.pos = *pos;
-		vertex.normal = *normal;
+		vertex.pos = glm::vec4{*pos, 1.0f};
+		vertex.normal = glm::vec4{*normal, 0.0f};
 		vertices.push_back(vertex);
 	}
 
 	vk::Buffer vk_vertex_staging_buffer = vk_device.createBuffer({
 		vk::BufferCreateFlags{},
-		box_vertex_buffer_size,
+		sizeof(vertices[0])*vertices.size(),
 		vk::BufferUsageFlagBits::eTransferSrc,
 	});
 	vk::MemoryRequirements vk_vertex_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_vertex_staging_buffer);
@@ -2303,13 +2303,13 @@ static void main()
 		vk::VertexInputAttributeDescription{
 			0,
 			0,
-			vk::Format::eR32G32B32Sfloat,
+			vk::Format::eR32G32B32A32Sfloat,
 			offsetof(Vertex, pos),
 		},
 		vk::VertexInputAttributeDescription{
 			1,
 			0,
-			vk::Format::eR32G32B32Sfloat,
+			vk::Format::eR32G32B32A32Sfloat,
 			offsetof(Vertex, normal),
 		},
 	};
