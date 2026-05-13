@@ -1888,8 +1888,8 @@ static void main()
 	{
 		Vertex vertex;
 		// TODO: How would this be made generic?
-		auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[1].offset + i*box->accessors[1].stride);
-		auto normal = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
+		auto normal = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[1].offset + i*box->accessors[1].stride);
+		auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
 		vertex.pos = glm::vec4{*pos, 1.0f};
 		vertex.normal = glm::vec4{*normal, 0.0f};
 		vertices.push_back(vertex);
