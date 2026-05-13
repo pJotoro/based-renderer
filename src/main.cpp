@@ -1002,7 +1002,7 @@ static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device
 template <typename T>
 static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
 {
-	vk_map_memory(device, device_memory, memory.data(), memory.size());
+	vk_map_memory(device, device_memory, memory.data(), sizeof(T)*memory.size());
 }
 
 struct Uniforms
@@ -1892,6 +1892,11 @@ static void main()
 		auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
 		vertex.pos = glm::vec4{*pos, 1.0f};
 		vertex.normal = glm::vec4{*normal, 0.0f};
+		vertex.pos.x = -vertex.pos.x;
+		vertex.normal.x = -vertex.normal.x;
+		vertex.pos.z = -vertex.pos.z;
+		vertex.normal.z = -vertex.normal.z;
+		dprint("\n{},{},{} {},{},{}", vertex.pos.x, vertex.pos.y, vertex.pos.z, vertex.normal.x, vertex.normal.y, vertex.normal.z);
 		vertices.push_back(vertex);
 	}
 
