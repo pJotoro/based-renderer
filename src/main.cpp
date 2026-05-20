@@ -1026,16 +1026,17 @@ static glm::mat4 perspective(float const aspect_ratio) noexcept
 	return res;
 }
 
+#if 0
 static void update_cube(
 	vk::Device const device, 
 	vk::DeviceMemory const uniforms_memory, 
 	Uniforms &uniforms,
 	float const dt) noexcept
 {
-	// if (should_rotate)
-	// {
-	// 	uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
-	// }
+	if (should_rotate)
+	{
+		uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
+	}
 
 	// Translate based on whether WASD keys are pressed.
 	int32_t const cube_dir_z = key_s - key_w;
@@ -1055,6 +1056,7 @@ static void update_cube(
 
 	vk_map_memory(device, uniforms_memory, &uniforms, sizeof(uniforms));
 }
+#endif
 
 static cgltf_data *gltf_load(char const *path)
 {
@@ -1831,11 +1833,7 @@ static void main()
 	});
 #endif
 
-	/*
-	What I've figured out so far:
-	- The box's binary is formatted like this: first all the vertices, then all the normals, then all the indices.
-	*/
-
+	//The box's binary is formatted like this: first all the vertices, then all the normals, then all the indices.
 	cgltf_data const *box = gltf_load("assets/box.glb");
 	cgltf_mesh const &box_mesh = box->meshes[0];
 	dprint("{}", box_mesh.name);
@@ -2487,7 +2485,11 @@ static void main()
 			}
 		}
 
+		UNUSED(fixed_dt);
+
+#if 0
 		update_cube(vk_device, vk_uniform_buffer_memory, uniforms, fixed_dt);
+#endif
 
 		vk::CommandBuffer cb = vk_graphics_command_buffers[vk_frame_idx];
 		cb.begin({
