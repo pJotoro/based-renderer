@@ -1072,6 +1072,20 @@ static cgltf_data *gltf_load(char const *path)
 	return data;
 }
 
+static glm::mat4 gltf_node_transform_local(cgltf_node const *node)
+{
+	glm::mat4 res;
+	cgltf_node_transform_local(node, &res);
+	return res;
+}
+
+static glm::mat4 gltf_node_transform_world(cgltf_node const *node)
+{
+	glm::mat4 res;
+	cgltf_node_transform_world(node, &res);
+	return res;
+}
+
 static void main()
 {
 	vk::ApplicationInfo vk_app_info{
