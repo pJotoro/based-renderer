@@ -1436,6 +1436,8 @@ namespace based_renderer
 		// Why use C for loops here? Why not std::find_if? I tried that, and it came out uglier and harder to understand. 
 		// However, in other cases, like selecting which physical device to use, std::find_if is actually pretty convenient.
 
+		// TODO: Using std::optional is completely inappropriate here. No matter what, we have to find a valid queue.
+
 		std::optional<size_t> vk_graphics_queue_family_idx;
 		for (size_t i = 0; i < vk_queue_family_properties.size(); ++i)
 		{
