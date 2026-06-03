@@ -1167,7 +1167,7 @@ namespace based_renderer
 			cgltf_node const &node = box->nodes[i];
 			if (node.name) dprint("{}", node.name);
 		}
-		glm::mat4 box_model = gltf_node_transform_world(&box->nodes[1]); // THIS LINE OF CODE IS WHY NOTHING IS WORKING!!!
+		glm::mat4 box_model = gltf_node_transform_world(&box->nodes[1]);
 		cgltf_scene const *box_scene = box->scene;
 		if (box_scene->name) dprint("{}", box_scene->name);
 
@@ -1186,7 +1186,7 @@ namespace based_renderer
 			auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
 			vertex.pos = glm::vec4{*pos, 1.0f};
 			vertex.normal = glm::vec4{*normal, 0.0f};
-		#if 0
+		#if 1
 			vertex.pos.x = -vertex.pos.x;
 			vertex.normal.x = -vertex.normal.x;
 			vertex.pos.z = -vertex.pos.z;
@@ -1261,7 +1261,7 @@ namespace based_renderer
 		vk_device.bindBufferMemory(vk_uniform_buffer, vk_uniform_buffer_memory, 0);
 
 		Uniforms uniforms;
-		uniforms.model = box_model;
+		uniforms.model = glm::mat4{1.0f};
 		uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, 3.0f});
 		uniforms.proj = perspective(aspect_ratio);
 		vk_map_memory(vk_device, vk_uniform_buffer_memory, &uniforms, sizeof(uniforms));
@@ -1667,8 +1667,8 @@ namespace based_renderer
 
 		vk::PipelineDepthStencilStateCreateInfo vk_pipeline_depth_stencil_state_create_info{
 			vk::PipelineDepthStencilStateCreateFlags{},
-			vk::False,
-			vk::False,
+			vk::True,
+			vk::True,
 			vk::CompareOp::eGreater,
 			vk::False,
 			vk::False,
