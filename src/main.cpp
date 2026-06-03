@@ -1360,6 +1360,22 @@ namespace based_renderer
 		return device_queue_infos;
 	}
 
+	static std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties)
+	{
+		std::vector<std::vector<vk::Queue>> queues{queue_family_properties.size()};
+
+		for (size_t i = 0; i < queue_family_properties.size(); ++i)
+		{
+			queues[i].resize(queue_family_properties[i].queueCount);
+			for (size_t j = 0; j < static_cast<size_t>(queue_family_properties[i].queueCount); ++j)
+			{
+				queues[i][j] = device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
+			}
+		}
+
+		return queues;
+	}
+
 	static void main()
 	{
 	#if BASED_RENDERER_VK_LAYERS
@@ -1442,7 +1458,6 @@ namespace based_renderer
 			vk::PhysicalDeviceVulkan12Features,
 			vk::PhysicalDeviceVulkan13Features,
 			vk::PhysicalDeviceVulkan14Features>();
-
 		vk_qualify_physical_device_features(vk_physical_device_features);
 
 		std::vector<char const *> vk_device_extensions = vk_get_device_extensions(vk_physical_device);
@@ -1460,15 +1475,7 @@ namespace based_renderer
 		});
 
 		// Each queue family gets its own std::vector, whether or not it has any queues.
-		std::vector<std::vector<vk::Queue>> vk_queues{vk_queue_family_properties.size()};
-		for (size_t i = 0; i < vk_queue_family_properties.size(); ++i)
-		{
-			vk_queues[i].resize(vk_queue_family_properties[i].queueCount);
-			for (size_t j = 0; j < static_cast<size_t>(vk_queue_family_properties[i].queueCount); ++j)
-			{
-				vk_queues[i][j] = vk_device.getQueue(static_cast<uint32_t>(i), static_cast<uint32_t>(j));
-			}
-		}
+		std::vector<std::vector<vk::Queue>> vk_queues = vk_get_queues(vk_device, vk_queue_family_properties);
 
 		// Why use C for loops here? Why not std::find_if? I tried that, and it came out uglier and harder to understand. 
 		// However, in other cases, like selecting which physical device to use, std::find_if is actually pretty convenient.
