@@ -1238,6 +1238,29 @@ namespace based_renderer
 		#undef BASED_RENDERER_VK_ALLOW_FEATURE
 	}
 
+#if BASED_RENDERER_VK_LAYERS
+	static std::vector<char const *> vk_get_instance_layers()
+	{
+		std::vector<char const *> instance_layers;
+
+		std::vector<vk::LayerProperties> layer_properties = vk::enumerateInstanceLayerProperties();
+		for (vk::LayerProperties const &layer_property : layer_properties)
+		{
+			// TODO: Don't check for each of these every single time. There is no reason to do that.
+			if (std::strcmp(layer_property.layerName, "VK_LAYER_LUNARG_monitor") == 0)
+			{
+				instance_layers.push_back("VK_LAYER_LUNARG_monitor");
+			}
+			else if (std::strcmp(layer_property.layerName, "VK_LAYER_KHRONOS_validation") == 0)
+			{
+				instance_layers.push_back("VK_LAYER_KHRONOS_validation");
+			}
+		}
+
+		return instance_layers;
+	}
+#endif
+
 	static void main()
 	{
 		vk::ApplicationInfo vk_app_info{
@@ -1249,20 +1272,8 @@ namespace based_renderer
 		};
 
 	#if BASED_RENDERER_VK_LAYERS
-		std::vector<vk::LayerProperties> vk_layer_properties = vk::enumerateInstanceLayerProperties();
-		std::vector<char const *> vk_instance_layers;
-		for (vk::LayerProperties const &layer_properties : vk_layer_properties)
-		{
-			if (std::strcmp(layer_properties.layerName, "VK_LAYER_LUNARG_monitor") == 0)
-			{
-				vk_instance_layers.push_back("VK_LAYER_LUNARG_monitor");
-			}
-			else if (std::strcmp(layer_properties.layerName, "VK_LAYER_KHRONOS_validation") == 0)
-			{
-				vk_instance_layers.push_back("VK_LAYER_KHRONOS_validation");
-			}
-		}
-	#endif // BASED_RENDERER_VK_LAYERS
+		std::vector<char const *> vk_instance_layers = vk_get_instance_layers();
+	#endif
 
 	#if BASED_RENDERER_VK_DEBUG_OUTPUT
 		vk::DebugUtilsMessengerCreateInfoEXT vk_debug_output_info{
