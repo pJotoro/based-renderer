@@ -1376,6 +1376,19 @@ namespace based_renderer
 		return queues;
 	}
 
+	static size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags)
+	{
+		for (size_t i = 0; i < queue_family_properties.size(); ++i)
+		{
+			if ((queue_family_properties[i].queueFlags & vk::QueueFlags{flags}) != vk::QueueFlags{})
+			{
+				return i;
+			}
+		}
+		// TODO: Is there a different error we should be using here?
+		throw vk::LogicError{FORMAT_ERROR("Failed to find queue family idx")};
+	}
+
 	static void main()
 	{
 	#if BASED_RENDERER_VK_LAYERS
@@ -1477,36 +1490,15 @@ namespace based_renderer
 		// Each queue family gets its own std::vector, whether or not it has any queues.
 		std::vector<std::vector<vk::Queue>> vk_queues = vk_get_queues(vk_device, vk_queue_family_properties);
 
-		// Why use C for loops here? Why not std::find_if? I tried that, and it came out uglier and harder to understand. 
-		// However, in other cases, like selecting which physical device to use, std::find_if is actually pretty convenient.
-
-		// TODO: Using std::optional is completely inappropriate here. No matter what, we have to find a valid queue.
-
-		std::optional<size_t> vk_graphics_queue_family_idx;
-		for (size_t i = 0; i < vk_queue_family_properties.size(); ++i)
-		{
-			if ((vk_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eGraphics}) != vk::QueueFlags{})
-			{
-				vk_graphics_queue_family_idx = i;
-				break;
-			}
-		}
-		vk::Queue vk_graphics_queue = vk_queues[vk_graphics_queue_family_idx.value()][0];
-
-		std::optional<size_t> vk_transfer_queue_family_idx;
-		for (size_t i = 0; i < vk_queue_family_properties.size(); ++i)
-		{
-			if ((vk_queue_family_properties[i].queueFlags & vk::QueueFlags{vk::QueueFlagBits::eTransfer}) != vk::QueueFlags{})
-			{
-				vk_transfer_queue_family_idx = i;
-				break;
-			}
-		}
-		vk::Queue vk_transfer_queue = vk_queues[vk_transfer_queue_family_idx.value()][0];
+		size_t const vk_graphics_queue_family_idx = vk_find_queue_family_idx(vk_queue_family_properties, vk::QueueFlagBits::eGraphics);
+		vk::Queue const vk_graphics_queue = vk_queues[vk_graphics_queue_family_idx][0];
+		
+		size_t const vk_transfer_queue_family_idx = vk_find_queue_family_idx(vk_queue_family_properties, vk::QueueFlagBits::eTransfer);
+		vk::Queue const vk_transfer_queue = vk_queues[vk_transfer_queue_family_idx][0];
 
 		vk::CommandPool vk_graphics_command_pool = vk_device.createCommandPool({
 			vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient|vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
-			static_cast<uint32_t>(vk_graphics_queue_family_idx.value()),
+			static_cast<uint32_t>(vk_graphics_queue_family_idx),
 		});
 
 		vk::CommandPool vk_transfer_command_pool;
@@ -1514,7 +1506,7 @@ namespace based_renderer
 		{
 			vk_transfer_command_pool = vk_device.createCommandPool({
 				vk::CommandPoolCreateFlags(),
-				static_cast<uint32_t>(vk_transfer_queue_family_idx.value()),
+				static_cast<uint32_t>(vk_transfer_queue_family_idx),
 			});
 		}
 		else
