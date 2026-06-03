@@ -29,3 +29,10 @@
 #include <optional>
 #include <span>
 // #include <sstream>
+
+#include "stb_image.h"
+
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#include "cgltf.h"
+#pragma warning(pop)

@@ -30,8 +30,8 @@ find_package(stb REQUIRED)
 
 # ===== Set up project =====
 project(based_renderer CXX)
-add_executable(based_renderer src/main.cpp src/libraries.cpp) # TODO: Use a wildcard.
-target_precompile_headers(based_renderer PRIVATE src/pch.hpp)
+add_executable(based_renderer src/main.cpp src/libraries.cpp src/vk_util.cpp) # TODO: Use a wildcard.
+target_precompile_headers(based_renderer PRIVATE src/main_pch.hpp src/vk_util_pch.hpp)
 target_link_libraries(slang INTERFACE slang_compiler)
 target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang glm::glm stb::stb)
 
