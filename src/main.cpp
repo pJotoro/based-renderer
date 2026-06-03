@@ -1261,8 +1261,49 @@ namespace based_renderer
 	}
 #endif
 
+	static std::vector<char const *> vk_get_instance_extensions()
+	{
+		std::vector<char const *> instance_extensions;
+
+		instance_extensions.push_back("VK_KHR_surface");
+		instance_extensions.push_back(VK_KHR_platform_surface);
+	#if BASED_RENDERER_VK_DEBUG_OUTPUT
+		instance_extensions.push_back("VK_EXT_debug_utils");
+	#endif
+		std::vector<vk::ExtensionProperties> instance_extension_properties = vk::enumerateInstanceExtensionProperties();
+		std::vector<std::string> missing_instance_extensions;
+		for (char const *instance_extension : instance_extensions)
+		{
+			bool found = false;
+			for (vk::ExtensionProperties const &extension_properties : instance_extension_properties)
+			{
+				if (std::strcmp(extension_properties.extensionName, instance_extension) == 0)
+				{
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+			{
+				missing_instance_extensions.push_back(instance_extension);
+			}
+		}
+		if (missing_instance_extensions.size() > 0)
+		{
+			throw vk::ExtensionNotPresentError{FORMAT_ERROR(to_string(missing_instance_extensions))};
+		}
+
+		return instance_extensions;
+	}
+
 	static void main()
 	{
+	#if BASED_RENDERER_VK_LAYERS
+		std::vector<char const *> vk_instance_layers = vk_get_instance_layers();
+	#endif
+
+		std::vector<char const *> vk_instance_extensions = vk_get_instance_extensions();
+
 		vk::ApplicationInfo vk_app_info{
 			"based_renderer",
 			VK_API_VERSION_1_0,
@@ -1270,10 +1311,6 @@ namespace based_renderer
 			VK_API_VERSION_1_0,
 			VK_API_VERSION_1_4,
 		};
-
-	#if BASED_RENDERER_VK_LAYERS
-		std::vector<char const *> vk_instance_layers = vk_get_instance_layers();
-	#endif
 
 	#if BASED_RENDERER_VK_DEBUG_OUTPUT
 		vk::DebugUtilsMessengerCreateInfoEXT vk_debug_output_info{
@@ -1291,35 +1328,6 @@ namespace based_renderer
 			vk_debug_callback
 		};
 	#endif
-
-		std::vector<char const *> vk_instance_extensions;
-		vk_instance_extensions.push_back("VK_KHR_surface");
-		vk_instance_extensions.push_back(VK_KHR_platform_surface);
-	#if BASED_RENDERER_VK_DEBUG_OUTPUT
-		vk_instance_extensions.push_back("VK_EXT_debug_utils");
-	#endif
-		std::vector<vk::ExtensionProperties> vk_instance_extension_properties = vk::enumerateInstanceExtensionProperties();
-		std::vector<std::string> vk_missing_instance_extensions;
-		for (char const *instance_extension : vk_instance_extensions)
-		{
-			bool found = false;
-			for (vk::ExtensionProperties const &extension_properties : vk_instance_extension_properties)
-			{
-				if (std::strcmp(extension_properties.extensionName, instance_extension) == 0)
-				{
-					found = true;
-					break;
-				}
-			}
-			if (!found)
-			{
-				vk_missing_instance_extensions.push_back(instance_extension);
-			}
-		}
-		if (vk_missing_instance_extensions.size() > 0)
-		{
-			throw vk::ExtensionNotPresentError{FORMAT_ERROR(to_string(vk_missing_instance_extensions))};
-		}
 
 		vk::InstanceCreateInfo vk_instance_create_info{
 			{},
