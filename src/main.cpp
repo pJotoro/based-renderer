@@ -520,7 +520,7 @@ namespace based_renderer
 		return res;
 	}
 
-	static void vk_qualify_physical_device_features(auto &physical_device_features)
+	static void vk_modify_physical_device_features(auto &physical_device_features)
 	{
 		std::vector<std::string> missing_features;
 		#define BASED_RENDERER_VK_REQUIRE_FEATURE(FEATURE) STMT( \
@@ -808,7 +808,7 @@ namespace based_renderer
 			vk::PhysicalDeviceVulkan12Features,
 			vk::PhysicalDeviceVulkan13Features,
 			vk::PhysicalDeviceVulkan14Features>();
-		vk_qualify_physical_device_features(vk_physical_device_features);
+		vk_modify_physical_device_features(vk_physical_device_features);
 
 		std::vector<char const *> vk_device_extensions = vk_get_device_extensions(vk_physical_device);
 
