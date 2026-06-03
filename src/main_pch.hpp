@@ -30,9 +30,9 @@
 #include <span>
 // #include <sstream>
 
-#include "stb_image.h"
+#include <stb_image.h>
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
-#include "cgltf.h"
+#include <cgltf.h>
 #pragma warning(pop)

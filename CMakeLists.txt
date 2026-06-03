@@ -17,6 +17,7 @@ set_target_properties(slang PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${VULKAN_SDK}/Include")
 
 find_package(stb REQUIRED)
+find_package(cgltf REQUIRED)
 
 # TODO: What should be done when it comes to single-header-libraries? For now, it seems like it would be much easier to just copy-paste them into the project, but eventually, wouldn't it make sense to use them in CMake just like other libraries?
 
@@ -26,7 +27,7 @@ find_package(stb REQUIRED)
 project(based_renderer CXX)
 add_executable(based_renderer src/main.cpp src/libraries.cpp src/vk_util.cpp) # TODO: Use a wildcard.
 target_precompile_headers(based_renderer PRIVATE src/main_pch.hpp src/vk_util_pch.hpp)
-target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang stb::stb)
+target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang stb::stb cgltf::cgltf)
 
 # TODO: Is this the only way to set these options? Or is there a cross-platform way?
 # TODO: What about other compilers? I know you can also use clang and mingw on Windows.
