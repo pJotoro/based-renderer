@@ -1,23 +1,10 @@
 #include "vk_util_pch.hpp"
-#include "main.hpp"
+
+#include "macros.hpp"
+#include "util.hpp"
 
 namespace based_renderer
 {
-	// TODO: Don't redefine this here.
-	static std::string to_string(std::vector<std::string> const &v) noexcept
-	{
-		std::string res;
-		if (v.size() > 0)
-		{
-			for (size_t i = 0; i < v.size() - 1; ++i)
-			{
-				res += v[i] + ", ";
-			}
-			res += v.back();
-		}
-		return res;
-	}
-
 #if BASED_RENDERER_VK_LAYERS
 	std::vector<char const *> vk_get_instance_layers()
 	{
