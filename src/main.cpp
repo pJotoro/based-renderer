@@ -1351,14 +1351,17 @@ namespace based_renderer
 
 		// Choose the first discrete GPU.
 		// If there is no discrete GPU, default to the last GPU.
-		std::vector<vk::PhysicalDevice> vk_physical_devices = vk_instance.enumeratePhysicalDevices();
-		vk::PhysicalDevice vk_physical_device = *std::find_if(vk_physical_devices.begin(), vk_physical_devices.end(),
-			[](vk::PhysicalDevice p) 
-			{
-				vk::PhysicalDeviceProperties props = p.getProperties();
-				return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
-			}
-		);
+		vk::PhysicalDevice vk_physical_device;
+		{
+			std::vector<vk::PhysicalDevice> physical_devices = vk_instance.enumeratePhysicalDevices();
+			vk_physical_device = *std::find_if(physical_devices.begin(), physical_devices.end(),
+				[](vk::PhysicalDevice p) 
+				{
+					vk::PhysicalDeviceProperties props = p.getProperties();
+					return props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
+				}
+			);
+		}
 
 		auto vk_physical_device_properties = vk_physical_device.getProperties2<
 			vk::PhysicalDeviceProperties2,
