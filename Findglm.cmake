@@ -1,3 +1,5 @@
+# NOTE(pJotoro): This file was taken from Khronos's Vulkan tutorial and modified to not use pkg-config.
+
 # Findglm.cmake
 #
 # Finds the GLM library
@@ -12,84 +14,54 @@
 #    glm::glm
 #
 
-# Try to find the package using pkg-config first
-find_package(PkgConfig QUIET)
-if(PKG_CONFIG_FOUND)
-  pkg_check_modules(PC_glm QUIET glm)
-endif()
+include(FetchContent)
 
-# Find the include directory
-find_path(glm_INCLUDE_DIR
-  NAMES glm/glm.hpp
-  PATHS
-    ${PC_glm_INCLUDE_DIRS}
-    /usr/include
-    /usr/local/include
-    $ENV{VULKAN_SDK}/include
-    ${ANDROID_NDK}/sources/third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../external
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../attachments/external
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../attachments/third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../attachments/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../external
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../include
-  PATH_SUFFIXES glm
+message(STATUS "GLM not found, fetching from GitHub...")
+FetchContent_Declare(
+  glm
+  GIT_REPOSITORY https://github.com/g-truc/glm.git
+  GIT_TAG 0.9.9.8  # Use a specific tag for stability
 )
 
-# If the include directory wasn't found, use FetchContent to download and build
-if(NOT glm_INCLUDE_DIR)
-  # If not found, use FetchContent to download and build
-  include(FetchContent)
+# Define a function to update the CMake minimum required version
+function(update_glm_cmake_version)
+  # Get the source directory
+  FetchContent_GetProperties(glm SOURCE_DIR glm_SOURCE_DIR)
 
-  message(STATUS "GLM not found, fetching from GitHub...")
-  FetchContent_Declare(
-    glm
-    GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG 0.9.9.8  # Use a specific tag for stability
-  )
+  # Update the minimum required CMake version
+  file(READ "${glm_SOURCE_DIR}/CMakeLists.txt" GLM_CMAKE_CONTENT)
+  string(REPLACE "cmake_minimum_required(VERSION 3.2"
+                 "cmake_minimum_required(VERSION 3.5"
+                 GLM_CMAKE_CONTENT "${GLM_CMAKE_CONTENT}")
+  file(WRITE "${glm_SOURCE_DIR}/CMakeLists.txt" "${GLM_CMAKE_CONTENT}")
+endfunction()
 
-  # Define a function to update the CMake minimum required version
-  function(update_glm_cmake_version)
-    # Get the source directory
-    FetchContent_GetProperties(glm SOURCE_DIR glm_SOURCE_DIR)
+# Set policy to suppress the deprecation warning
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
 
-    # Update the minimum required CMake version
-    file(READ "${glm_SOURCE_DIR}/CMakeLists.txt" GLM_CMAKE_CONTENT)
-    string(REPLACE "cmake_minimum_required(VERSION 3.2"
-                   "cmake_minimum_required(VERSION 3.5"
-                   GLM_CMAKE_CONTENT "${GLM_CMAKE_CONTENT}")
-    file(WRITE "${glm_SOURCE_DIR}/CMakeLists.txt" "${GLM_CMAKE_CONTENT}")
-  endfunction()
+# First, declare and populate the content
+FetchContent_GetProperties(glm)
+if(NOT glm_POPULATED)
+  FetchContent_Populate(glm)
+  # Update the CMake version before making it available
+  update_glm_cmake_version()
+endif()
 
-  # Set policy to suppress the deprecation warning
-  if(POLICY CMP0169)
-    cmake_policy(SET CMP0169 OLD)
-  endif()
+# Now make it available (this will process the CMakeLists.txt)
+FetchContent_MakeAvailable(glm)
 
-  # First, declare and populate the content
-  FetchContent_GetProperties(glm)
-  if(NOT glm_POPULATED)
-    FetchContent_Populate(glm)
-    # Update the CMake version before making it available
-    update_glm_cmake_version()
-  endif()
-
-  # Now make it available (this will process the CMakeLists.txt)
-  FetchContent_MakeAvailable(glm)
-
-  # Get the include directory from the target
-  if(TARGET glm)
-    get_target_property(glm_INCLUDE_DIR glm INTERFACE_INCLUDE_DIRECTORIES)
-    if(NOT glm_INCLUDE_DIR)
-      # If we can't get the include directory from the target, use the source directory
-      set(glm_INCLUDE_DIR ${glm_SOURCE_DIR})
-    endif()
-  else()
-    # GLM might not create a target, so use the source directory
+# Get the include directory from the target
+if(TARGET glm)
+  get_target_property(glm_INCLUDE_DIR glm INTERFACE_INCLUDE_DIRECTORIES)
+  if(NOT glm_INCLUDE_DIR)
+    # If we can't get the include directory from the target, use the source directory
     set(glm_INCLUDE_DIR ${glm_SOURCE_DIR})
   endif()
+else()
+  # GLM might not create a target, so use the source directory
+  set(glm_INCLUDE_DIR ${glm_SOURCE_DIR})
 endif()
 
 # Set the variables

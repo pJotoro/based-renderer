@@ -1,3 +1,5 @@
+# NOTE(pJotoro): This file was taken from Khronos's Vulkan tutorial and modified to not use pkg-config.
+
 # Findstb.cmake
 #
 # Finds the stb library (specifically stb_image.h)
@@ -12,58 +14,27 @@
 #    stb::stb
 #
 
-# Try to find the package using pkg-config first
-find_package(PkgConfig QUIET)
-if(PKG_CONFIG_FOUND)
-  pkg_check_modules(PC_stb QUIET stb)
-endif()
+include(FetchContent)
 
-# Find the include directory
-find_path(stb_INCLUDE_DIR
-  NAMES stb_image.h
-  PATHS
-    ${PC_stb_INCLUDE_DIRS}
-    /usr/include
-    /usr/local/include
-    $ENV{VULKAN_SDK}/include
-    ${ANDROID_NDK}/sources/third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../external
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../attachments/external
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../attachments/third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../attachments/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../external
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../include
-  PATH_SUFFIXES stb
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG master  # stb doesn't use version tags, so we use master
 )
 
-# If the include directory wasn't found, use FetchContent to download and build
-if(NOT stb_INCLUDE_DIR)
-  # If not found, use FetchContent to download and build
-  include(FetchContent)
-
-  message(STATUS "stb_image.h not found, fetching from GitHub...")
-  FetchContent_Declare(
-    stb
-    GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG master  # stb doesn't use version tags, so we use master
-  )
-
-  # Set policy to suppress the deprecation warning
-  if(POLICY CMP0169)
-    cmake_policy(SET CMP0169 OLD)
-  endif()
-
-  # Populate the content
-  FetchContent_GetProperties(stb)
-  if(NOT stb_POPULATED)
-    FetchContent_Populate(stb)
-  endif()
-
-  # stb is a header-only library with no CMakeLists.txt, so we just need to set the include directory
-  set(stb_INCLUDE_DIR ${stb_SOURCE_DIR})
+# Set policy to suppress the deprecation warning
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
 endif()
+
+# Populate the content
+FetchContent_GetProperties(stb)
+if(NOT stb_POPULATED)
+  FetchContent_Populate(stb)
+endif()
+
+# stb is a header-only library with no CMakeLists.txt, so we just need to set the include directory
+set(stb_INCLUDE_DIR ${stb_SOURCE_DIR})
 
 # Set the variables
 include(FindPackageHandleStandardArgs)

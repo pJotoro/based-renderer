@@ -3,8 +3,6 @@
 #include "macros.hpp"
 #include "util.hpp"
 
-// TODO: Figure out a way to separate all of the Windows-specific stuff into a separate file, like main_win32.cpp or something like that.
-
 namespace based_renderer
 {
 	// Defined in vk_util.cpp
@@ -1136,7 +1134,7 @@ namespace based_renderer
 	#endif
 
 		//The box's binary is formatted like this: first all the vertices, then all the normals, then all the indices.
-		cgltf_data const *box = gltf_load("assets/box.glb");
+		cgltf_data const *box = gltf_load("assets/Box.glb");
 		cgltf_mesh const &box_mesh = box->meshes[0];
 		dprint("{}", box_mesh.name);
 		cgltf_material const &box_material = box->materials[0]; // It seems like I can safely ignore the material. The only thing set is the alpha cutoff.
@@ -1174,7 +1172,7 @@ namespace based_renderer
 			cgltf_node const &node = box->nodes[i];
 			if (node.name) dprint("{}", node.name);
 		}
-		glm::mat4 box_model = gltf_node_transform_world(&box->nodes[1]);
+		glm::mat4 box_model = gltf_node_transform_world(&box->nodes[1]); // THIS LINE OF CODE IS WHY NOTHING IS WORKING!!!
 		cgltf_scene const *box_scene = box->scene;
 		if (box_scene->name) dprint("{}", box_scene->name);
 
