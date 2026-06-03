@@ -2,8 +2,6 @@
 
 namespace based_renderer
 {
-	// TODO: How does printing to the debug output work on other systems?
-
 	// Works just like std::print, except it prints to the debug console.
 	template<class... Args> 
 	static void dprint(std::format_string<Args...> fmt, Args&&... args) noexcept

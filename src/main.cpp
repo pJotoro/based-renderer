@@ -16,8 +16,6 @@ namespace based_renderer
 	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
 	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
 
-	// TODO: What about system errors on other systems?
-	// TODO: Is there a cross-platform way to get the last error?
 	static std::system_error win32_system_error() noexcept
 	{
 		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
@@ -490,9 +488,6 @@ namespace based_renderer
 		// It's so that way, when scrolling through all of the Vulkan
 		// features I might want to use, none of them are missing.
 		#define BASED_RENDERER_VK_ALLOW_FEATURE(FEATURE)
-
-		// TODO: Should we say why we require or allow certain features? 
-		// Right now it's pretty self-explanatory because there are so few, but eventually that might change.
 
 		{
 			auto &features = std::get<0>(physical_device_features).features;
@@ -1191,12 +1186,12 @@ namespace based_renderer
 			auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
 			vertex.pos = glm::vec4{*pos, 1.0f};
 			vertex.normal = glm::vec4{*normal, 0.0f};
-	#if 0
+		#if 0
 			vertex.pos.x = -vertex.pos.x;
 			vertex.normal.x = -vertex.normal.x;
 			vertex.pos.z = -vertex.pos.z;
 			vertex.normal.z = -vertex.normal.z;
-	#endif
+		#endif
 			dprint("\n{},{},{} {},{},{}", vertex.pos.x, vertex.pos.y, vertex.pos.z, vertex.normal.x, vertex.normal.y, vertex.normal.z);
 			vertices.push_back(vertex);
 		}
@@ -1672,8 +1667,8 @@ namespace based_renderer
 
 		vk::PipelineDepthStencilStateCreateInfo vk_pipeline_depth_stencil_state_create_info{
 			vk::PipelineDepthStencilStateCreateFlags{},
-			vk::True,
-			vk::True,
+			vk::False,
+			vk::False,
 			vk::CompareOp::eGreater,
 			vk::False,
 			vk::False,
