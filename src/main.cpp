@@ -3,8 +3,21 @@
 #include "macros.hpp"
 #include "util.hpp"
 
+// TODO: Figure out a way to separate all of the Windows-specific stuff into a separate file, like main_win32.cpp or something like that.
+
 namespace based_renderer
 {
+	// Defined in vk_util.cpp
+	// We will only ever use them in this file, so there's no reason to make a separate header.
+#if BASED_RENDERER_VK_LAYERS
+	std::vector<char const *> vk_get_instance_layers();
+#endif
+	std::vector<char const *> vk_get_instance_extensions();
+	std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device);
+	std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
+	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
+	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
+
 	// TODO: What about system errors on other systems?
 	// TODO: Is there a cross-platform way to get the last error?
 	static std::system_error win32_system_error() noexcept
@@ -658,16 +671,6 @@ namespace based_renderer
 		#undef BASED_RENDERER_VK_DISABLE_FEATURE
 		#undef BASED_RENDERER_VK_ALLOW_FEATURE
 	}
-
-	// TODO: Put these in their own header.
-#if BASED_RENDERER_VK_LAYERS
-	std::vector<char const *> vk_get_instance_layers();
-#endif
-	std::vector<char const *> vk_get_instance_extensions();
-	std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device);
-	std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
-	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
-	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
 
 	static void main()
 	{
