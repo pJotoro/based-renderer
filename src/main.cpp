@@ -1693,8 +1693,8 @@ namespace based_renderer
 
 		std::vector<vk::CommandBuffer> vk_graphics_command_buffers = vk_device.allocateCommandBuffers({
 			vk_graphics_command_pool, 
-			vk::CommandBufferLevel::ePrimary, 
-			static_cast<uint32_t>(vk_swapchain_images.size()),
+			vk::CommandBufferLevel::ePrimary,
+			static_cast<uint32_t>(vk_swapchain_images.size()), // NOTE: This is assuming that the image count will be 2.
 		});
 
 		vk::CommandBuffer vk_transfer_command_buffer;
