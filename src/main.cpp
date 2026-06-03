@@ -1327,6 +1327,39 @@ namespace based_renderer
 		return device_extensions;
 	}
 
+	// TODO: This is stupid. Find out how queue priorities should be done.
+	static std::array<float, 64> vk_queue_priorities{
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+	};
+
+	static std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties)
+	{
+		std::vector<vk::DeviceQueueCreateInfo> device_queue_infos;
+		device_queue_infos.reserve(queue_family_properties.size());
+
+		for (size_t i = 0; i < queue_family_properties.size(); ++i)
+		{
+			if (queue_family_properties[i].queueCount > 0)
+			{
+				device_queue_infos.push_back(vk::DeviceQueueCreateInfo{
+					{},
+					static_cast<uint32_t>(i),
+					queue_family_properties[i].queueCount,
+					vk_queue_priorities.data(),
+				});
+			}
+		}
+
+		return device_queue_infos;
+	}
+
 	static void main()
 	{
 	#if BASED_RENDERER_VK_LAYERS
@@ -1412,36 +1445,10 @@ namespace based_renderer
 
 		vk_qualify_physical_device_features(vk_physical_device_features);
 
-		std::vector<vk::QueueFamilyProperties> vk_queue_family_properties = vk_physical_device.getQueueFamilyProperties();
-
-		// TODO: This is stupid. Find out how queue priorities should be done.
-		std::array<float, 64> vk_queue_priorities{
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-		};
-
-		std::vector<vk::DeviceQueueCreateInfo> vk_device_queue_infos;
-		vk_device_queue_infos.reserve(vk_queue_family_properties.size());
-		for (size_t i = 0; i < vk_queue_family_properties.size(); ++i)
-		{
-			if (vk_queue_family_properties[i].queueCount > 0)
-			{
-				vk_device_queue_infos.push_back(vk::DeviceQueueCreateInfo{
-					{},
-					static_cast<uint32_t>(i),
-					vk_queue_family_properties[i].queueCount,
-					vk_queue_priorities.data(),
-				});
-			}
-		}
-
 		std::vector<char const *> vk_device_extensions = vk_get_device_extensions(vk_physical_device);
+
+		std::vector<vk::QueueFamilyProperties> vk_queue_family_properties = vk_physical_device.getQueueFamilyProperties();
+		std::vector<vk::DeviceQueueCreateInfo> vk_device_queue_infos = vk_get_device_queue_infos(vk_queue_family_properties);
 
 		vk::Device vk_device = vk_physical_device.createDevice(vk::DeviceCreateInfo{
 			{}, 
