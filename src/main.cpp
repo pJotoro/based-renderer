@@ -1072,17 +1072,19 @@ static cgltf_data *gltf_load(char const *path)
 	return data;
 }
 
+#if 0
 static glm::mat4 gltf_node_transform_local(cgltf_node const *node)
 {
 	glm::mat4 res;
 	cgltf_node_transform_local(node, &res);
 	return res;
 }
+#endif
 
 static glm::mat4 gltf_node_transform_world(cgltf_node const *node)
 {
 	glm::mat4 res;
-	cgltf_node_transform_world(node, &res);
+	cgltf_node_transform_world(node, reinterpret_cast<float *>(&res));
 	return res;
 }
 
@@ -1723,7 +1725,9 @@ static void main()
 		vk_semaphores_signal[i] = vk_device.createSemaphore({});
 	}
 
+	// NOTE: The TODO below was written back when we were still hardcoding the cube.
 	// TODO: Is there something wrong with the way I have set up the depth buffer? When I enable backface culling, the cube doesn't render correctly at all. Or could it simply be the way that the cube faces are listed in the shader? If so, then there isn't actually anything wrong with the way the depth buffer is set up.
+
 	vk::Format vk_depth_format = vk::Format::eD32Sfloat; // NOTE: Support for this always exists. As long as I'm not using a stencil buffer, this will work perfectly fine.
 	vk::Image vk_depth_image = vk_device.createImage({
 		vk::ImageCreateFlags{},
@@ -1886,6 +1890,7 @@ static void main()
 		cgltf_node const &node = box->nodes[i];
 		if (node.name) dprint("{}", node.name);
 	}
+	glm::mat4 box_model = gltf_node_transform_world(&box->nodes[1]);
 	cgltf_scene const *box_scene = box->scene;
 	if (box_scene->name) dprint("{}", box_scene->name);
 
@@ -1904,10 +1909,12 @@ static void main()
 		auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
 		vertex.pos = glm::vec4{*pos, 1.0f};
 		vertex.normal = glm::vec4{*normal, 0.0f};
+#if 0
 		vertex.pos.x = -vertex.pos.x;
 		vertex.normal.x = -vertex.normal.x;
 		vertex.pos.z = -vertex.pos.z;
 		vertex.normal.z = -vertex.normal.z;
+#endif
 		dprint("\n{},{},{} {},{},{}", vertex.pos.x, vertex.pos.y, vertex.pos.z, vertex.normal.x, vertex.normal.y, vertex.normal.z);
 		vertices.push_back(vertex);
 	}
@@ -1977,7 +1984,7 @@ static void main()
 	vk_device.bindBufferMemory(vk_uniform_buffer, vk_uniform_buffer_memory, 0);
 
 	Uniforms uniforms;
-	uniforms.model = glm::mat4{1.0f};
+	uniforms.model = box_model;
 	uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, 3.0f});
 	uniforms.proj = perspective(aspect_ratio);
 	vk_map_memory(vk_device, vk_uniform_buffer_memory, &uniforms, sizeof(uniforms));
