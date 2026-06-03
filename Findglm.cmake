@@ -1,4 +1,7 @@
-# NOTE(pJotoro): This file was taken from Khronos's Vulkan tutorial and modified to not use pkg-config.
+# NOTE(pJotoro): This file was taken from Khronos's Vulkan tutorial. I made the following modifications:
+# - Removed usage of pkg-config.
+# - Replaced usage of FetchContent_Populate with FetchContent_MakeAvailable.
+# - Removed update_glm_cmake_version (seems to only matter for much older CMake versions).
 
 # Findglm.cmake
 #
@@ -16,40 +19,11 @@
 
 include(FetchContent)
 
-message(STATUS "GLM not found, fetching from GitHub...")
 FetchContent_Declare(
   glm
   GIT_REPOSITORY https://github.com/g-truc/glm.git
   GIT_TAG 0.9.9.8  # Use a specific tag for stability
 )
-
-# Define a function to update the CMake minimum required version
-function(update_glm_cmake_version)
-  # Get the source directory
-  FetchContent_GetProperties(glm SOURCE_DIR glm_SOURCE_DIR)
-
-  # Update the minimum required CMake version
-  file(READ "${glm_SOURCE_DIR}/CMakeLists.txt" GLM_CMAKE_CONTENT)
-  string(REPLACE "cmake_minimum_required(VERSION 3.2"
-                 "cmake_minimum_required(VERSION 3.5"
-                 GLM_CMAKE_CONTENT "${GLM_CMAKE_CONTENT}")
-  file(WRITE "${glm_SOURCE_DIR}/CMakeLists.txt" "${GLM_CMAKE_CONTENT}")
-endfunction()
-
-# Set policy to suppress the deprecation warning
-if(POLICY CMP0169)
-  cmake_policy(SET CMP0169 OLD)
-endif()
-
-# First, declare and populate the content
-FetchContent_GetProperties(glm)
-if(NOT glm_POPULATED)
-  FetchContent_Populate(glm)
-  # Update the CMake version before making it available
-  update_glm_cmake_version()
-endif()
-
-# Now make it available (this will process the CMakeLists.txt)
 FetchContent_MakeAvailable(glm)
 
 # Get the include directory from the target

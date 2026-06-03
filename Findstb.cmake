@@ -1,4 +1,6 @@
-# NOTE(pJotoro): This file was taken from Khronos's Vulkan tutorial and modified to not use pkg-config.
+# NOTE(pJotoro): This file was taken from Khronos's Vulkan tutorial. I made the following modifications:
+# - Removed usage of pkg-config.
+# - Replaced usage of FetchContent_Populate with FetchContent_MakeAvailable.
 
 # Findstb.cmake
 #
@@ -21,17 +23,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/nothings/stb.git
   GIT_TAG master  # stb doesn't use version tags, so we use master
 )
-
-# Set policy to suppress the deprecation warning
-if(POLICY CMP0169)
-  cmake_policy(SET CMP0169 OLD)
-endif()
-
-# Populate the content
-FetchContent_GetProperties(stb)
-if(NOT stb_POPULATED)
-  FetchContent_Populate(stb)
-endif()
+FetchContent_MakeAvailable(stb)
 
 # stb is a header-only library with no CMakeLists.txt, so we just need to set the include directory
 set(stb_INCLUDE_DIR ${stb_SOURCE_DIR})
