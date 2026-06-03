@@ -1296,6 +1296,37 @@ namespace based_renderer
 		return instance_extensions;
 	}
 
+	static std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device)
+	{
+		std::vector<char const *> device_extensions;
+
+		device_extensions.push_back("VK_KHR_swapchain");
+		auto device_extension_properties = physical_device.enumerateDeviceExtensionProperties();
+		std::vector<std::string> missing_device_extensions;
+		for (char const *device_extension : device_extensions)
+		{
+			bool found = false;
+			for (vk::ExtensionProperties const &extension_properties : device_extension_properties)
+			{
+				if (std::strcmp(extension_properties.extensionName, device_extension) == 0)
+				{
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+			{
+				missing_device_extensions.push_back(device_extension);
+			}
+		}
+		if (missing_device_extensions.size() > 0)
+		{
+			throw vk::ExtensionNotPresentError{FORMAT_ERROR(to_string(missing_device_extensions))};
+		}
+
+		return device_extensions;
+	}
+
 	static void main()
 	{
 	#if BASED_RENDERER_VK_LAYERS
@@ -1410,30 +1441,7 @@ namespace based_renderer
 			}
 		}
 
-		std::vector<char const *> vk_device_extensions;
-		vk_device_extensions.push_back("VK_KHR_swapchain");
-		auto vk_device_extension_properties = vk_physical_device.enumerateDeviceExtensionProperties();
-		std::vector<std::string> vk_missing_device_extensions;
-		for (char const *device_extension : vk_device_extensions)
-		{
-			bool found = false;
-			for (vk::ExtensionProperties const &extension_properties : vk_device_extension_properties)
-			{
-				if (std::strcmp(extension_properties.extensionName, device_extension) == 0)
-				{
-					found = true;
-					break;
-				}
-			}
-			if (!found)
-			{
-				vk_missing_device_extensions.push_back(device_extension);
-			}
-		}
-		if (vk_missing_device_extensions.size() > 0)
-		{
-			throw vk::ExtensionNotPresentError{FORMAT_ERROR(to_string(vk_missing_device_extensions))};
-		}
+		std::vector<char const *> vk_device_extensions = vk_get_device_extensions(vk_physical_device);
 
 		vk::Device vk_device = vk_physical_device.createDevice(vk::DeviceCreateInfo{
 			{}, 
