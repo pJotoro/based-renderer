@@ -14,9 +14,7 @@ set(VULKAN_SDK "$ENV{VULKAN_SDK}")
 add_library(slang STATIC IMPORTED)
 set_target_properties(slang PROPERTIES
     IMPORTED_LOCATION "${VULKAN_SDK}/Lib/slang.lib"
-    INTERFACE_INCLUDE_DIRECTORIES "$ENV{VULKAN_SDK}/Include")
-
-find_package(glm REQUIRED)
+    INTERFACE_INCLUDE_DIRECTORIES "${VULKAN_SDK}/Include")
 
 find_package(stb REQUIRED)
 
@@ -28,7 +26,7 @@ find_package(stb REQUIRED)
 project(based_renderer CXX)
 add_executable(based_renderer src/main.cpp src/libraries.cpp src/vk_util.cpp) # TODO: Use a wildcard.
 target_precompile_headers(based_renderer PRIVATE src/main_pch.hpp src/vk_util_pch.hpp)
-target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang glm::glm stb::stb)
+target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang stb::stb)
 
 # TODO: Is this the only way to set these options? Or is there a cross-platform way?
 # TODO: What about other compilers? I know you can also use clang and mingw on Windows.
