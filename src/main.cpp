@@ -15,21 +15,16 @@ namespace based_renderer
 	std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
 	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
 	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
-
 	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size);
-
 	template <typename T>
-	static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
+	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
 	{
 		vk_map_memory(device, device_memory, memory.data(), sizeof(T)*memory.size());
 	}
-
-	static std::system_error win32_system_error() noexcept
-	{
-		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
-		std::system_error system_error{error_code};
-		return system_error;
-	}
+	uint32_t vk_find_memory_type_idx(
+		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
+		uint32_t const memory_type_bits,
+		vk::MemoryPropertyFlags const desired_memory_properties);
 
 	// TODO: Remove globals.
 	static bool win32_running;
@@ -39,6 +34,13 @@ namespace based_renderer
 	static int32_t key_a;
 	static int32_t key_d;
 	static glm::ivec2 mouse_pos;
+
+	static std::system_error win32_system_error() noexcept
+	{
+		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
+		std::system_error system_error{error_code};
+		return system_error;
+	}
 
 	LRESULT WINAPI win32_event_callback(
 		HWND   win32_window,
@@ -151,29 +153,6 @@ namespace based_renderer
 		dprint("{}\n", callback_data->pMessage);
 
 		return vk::False;
-	}
-
-	
-
-	static uint32_t vk_find_memory_type_idx(
-		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
-		uint32_t const memory_type_bits,
-		vk::MemoryPropertyFlags const desired_memory_properties)
-	{
-		for (
-			uint32_t memory_type_idx = 0; 
-			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
-			++memory_type_idx)
-		{
-			uint32_t memory_type_bit = 1 << memory_type_idx;		
-			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
-			if ((memory_type_bits&memory_type_bit) && ((desired_memory_properties&memory_properties) == desired_memory_properties))
-			{
-				return memory_type_idx;
-			}
-		}
-
-		throw vk::LogicError{FORMAT_ERROR("Failed to find memory type index with the desired memory properties!")};
 	}
 
 	#define SLANG_CHECK(RESULT) STMT( \

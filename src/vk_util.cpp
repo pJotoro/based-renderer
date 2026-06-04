@@ -173,6 +173,27 @@ namespace based_renderer
 		device.unmapMemory(device_memory);
 	}
 
+	uint32_t vk_find_memory_type_idx(
+		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
+		uint32_t const memory_type_bits,
+		vk::MemoryPropertyFlags const desired_memory_properties)
+	{
+		for (
+			uint32_t memory_type_idx = 0; 
+			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+			++memory_type_idx)
+		{
+			uint32_t memory_type_bit = 1 << memory_type_idx;		
+			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if ((memory_type_bits&memory_type_bit) && ((desired_memory_properties&memory_properties) == desired_memory_properties))
+			{
+				return memory_type_idx;
+			}
+		}
+
+		throw vk::LogicError{FORMAT_ERROR("Failed to find memory type index with the desired memory properties!")};
+	}
+
 	// struct VulkanMemoryTypeInfo
 	// {
 	// 	uint32_t idx;
