@@ -3,29 +3,35 @@
 #include "macros.hpp"
 #include "util.hpp"
 
+// Defined in vk_util.cpp
+// We will only ever use them in this file, so there's no reason to make a separate header.
 namespace based_renderer
 {
-	// Defined in vk_util.cpp
-	// We will only ever use them in this file, so there's no reason to make a separate header.
 #if BASED_RENDERER_VK_LAYERS
 	std::vector<char const *> vk_get_instance_layers();
 #endif
 	std::vector<char const *> vk_get_instance_extensions();
 	std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device);
+	
 	std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
 	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
 	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
+	
 	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size);
 	template <typename T>
 	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
 	{
 		vk_map_memory(device, device_memory, memory.data(), sizeof(T)*memory.size());
 	}
+	
 	uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
 		vk::MemoryPropertyFlags const desired_memory_properties);
+}
 
+namespace based_renderer
+{
 	// TODO: Remove global variable.
 	static HINSTANCE win32_instance;
 
