@@ -16,6 +16,14 @@ namespace based_renderer
 	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
 	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
 
+	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size);
+
+	template <typename T>
+	static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
+	{
+		vk_map_memory(device, device_memory, memory.data(), sizeof(T)*memory.size());
+	}
+
 	static std::system_error win32_system_error() noexcept
 	{
 		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
@@ -366,29 +374,6 @@ int WINAPI WinMain(
 
 namespace based_renderer 
 {
-	static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size)
-	{
-	    void *data;
-		vk::detail::resultCheck(
-			device.mapMemory(
-				device_memory,
-				0, 
-				memory_size,
-				vk::MemoryMapFlags{}, 
-				&data
-			), 
-			"Failed to map memory!"
-		);
-		memcpy(data, memory, memory_size);
-		device.unmapMemory(device_memory);
-	}
-
-	template <typename T>
-	static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
-	{
-		vk_map_memory(device, device_memory, memory.data(), sizeof(T)*memory.size());
-	}
-
 	struct Uniforms
 	{
 		glm::mat4 model;
@@ -410,17 +395,17 @@ namespace based_renderer
 		return res;
 	}
 
-	#if 0
+	#if 1
 	static void update_cube(
 		vk::Device const device, 
 		vk::DeviceMemory const uniforms_memory, 
 		Uniforms &uniforms,
 		float const dt) noexcept
 	{
-		if (should_rotate)
-		{
-			uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
-		}
+		// if (should_rotate)
+		// {
+		// 	uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
+		// }
 
 		// Translate based on whether WASD keys are pressed.
 		int32_t const cube_dir_z = key_s - key_w;
@@ -428,15 +413,15 @@ namespace based_renderer
 		uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
 
 		// Rotate based on mouse delta (doesn't work at all right now).
-		static glm::ivec2 last_mouse_pos{-1, -1};
-		if (last_mouse_pos == glm::ivec2{-1, -1})
-		{
-			last_mouse_pos = mouse_pos;
-		}
-		glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
-		uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.x*dt/(TAU*2048.0f), glm::vec3{1.0f, 0.0f, 0.0f});
-		uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 0.0f, 1.0f});
-		last_mouse_pos = mouse_pos;
+		// static glm::ivec2 last_mouse_pos{-1, -1};
+		// if (last_mouse_pos == glm::ivec2{-1, -1})
+		// {
+		// 	last_mouse_pos = mouse_pos;
+		// }
+		// glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
+		// uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.x*dt/(TAU*2048.0f), glm::vec3{1.0f, 0.0f, 0.0f});
+		// uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 0.0f, 1.0f});
+		// last_mouse_pos = mouse_pos;
 
 		vk_map_memory(device, uniforms_memory, &uniforms, sizeof(uniforms));
 	}
@@ -1783,11 +1768,12 @@ namespace based_renderer
 				}
 			}
 
-			UNUSED(fixed_dt);
 
-	#if 0
+		#if 0
+			UNUSED(fixed_dt);
+		#else
 			update_cube(vk_device, vk_uniform_buffer_memory, uniforms, fixed_dt);
-	#endif
+		#endif
 
 			vk::CommandBuffer cb = vk_graphics_command_buffers[vk_frame_idx];
 			cb.begin({

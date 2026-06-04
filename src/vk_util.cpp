@@ -156,6 +156,23 @@ namespace based_renderer
 		throw vk::LogicError{FORMAT_ERROR("Failed to find queue family idx")};
 	}
 
+	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size)
+	{
+	    void *data;
+		vk::detail::resultCheck(
+			device.mapMemory(
+				device_memory,
+				0, 
+				memory_size,
+				vk::MemoryMapFlags{}, 
+				&data
+			), 
+			"Failed to map memory!"
+		);
+		memcpy(data, memory, memory_size);
+		device.unmapMemory(device_memory);
+	}
+
 	// struct VulkanMemoryTypeInfo
 	// {
 	// 	uint32_t idx;
