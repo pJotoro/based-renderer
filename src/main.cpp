@@ -26,107 +26,8 @@ namespace based_renderer
 		uint32_t const memory_type_bits,
 		vk::MemoryPropertyFlags const desired_memory_properties);
 
-	// TODO: Remove globals.
-	static bool win32_running;
-	static bool should_rotate = true;
-	static int32_t key_w;
-	static int32_t key_s;
-	static int32_t key_a;
-	static int32_t key_d;
-	static glm::ivec2 mouse_pos;
-
-	static std::system_error win32_system_error() noexcept
-	{
-		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
-		std::system_error system_error{error_code};
-		return system_error;
-	}
-
-	LRESULT WINAPI win32_event_callback(
-		HWND   win32_window,
-		UINT   win32_message,
-		WPARAM win32_w_param,
-		LPARAM win32_l_param) noexcept
-	{
-		LRESULT res = 0;
-
-		switch (win32_message)
-		{
-			case WM_DESTROY:
-			case WM_CLOSE: 
-			{
-				win32_running = false;
-			} break;
-			case WM_KEYDOWN: 
-				{
-				uint8_t virtual_key_code = static_cast<uint8_t>(win32_w_param);
-				switch (virtual_key_code)
-				{
-					case VK_SPACE:
-					{
-						should_rotate = !should_rotate;
-					} break;
-					case 'W':
-					{
-						key_w = true;
-					} break;
-					case 'S':
-					{
-						key_s = true;
-					} break;
-					case 'A':
-					{
-						key_a = true;
-					} break;
-					case 'D':
-					{
-						key_d = true;
-					} break;
-					case VK_ESCAPE: 
-					{
-						win32_running = false;
-					} break;
-				}
-			} break;
-			case WM_KEYUP: 
-			{
-				uint8_t virtual_key_code = static_cast<uint8_t>(win32_w_param);
-				switch (virtual_key_code)
-				{
-					case 'W':
-					{
-						key_w = false;
-					} break;
-					case 'S':
-					{
-						key_s = false;
-					} break;
-					case 'A':
-					{
-						key_a = false;
-					} break;
-					case 'D':
-					{
-						key_d = false;
-					} break;
-					case VK_ESCAPE: 
-					{
-						win32_running = false;
-					} break;
-				}
-			} break;
-			case WM_MOUSEMOVE:
-			{
-				memcpy(&mouse_pos, &win32_l_param, sizeof(LPARAM));
-			} break;
-			default: 
-			{
-				res = DefWindowProcW(win32_window, win32_message, win32_w_param, win32_l_param);
-			} break;
-		}
-
-		return res;
-	}
+	// TODO: Remove global variable.
+	static HINSTANCE win32_instance;
 
 	static void win32_message_box(
 		char const *message,
@@ -139,46 +40,6 @@ namespace based_renderer
 			MB_OK
 		);
 	}
-
-	vk::Bool32 VKAPI_PTR vk_debug_callback(
-		vk::DebugUtilsMessageSeverityFlagBitsEXT message_severity,
-		vk::DebugUtilsMessageTypeFlagsEXT message_types,
-		vk::DebugUtilsMessengerCallbackDataEXT const *callback_data,
-		void *user_data) noexcept
-	{
-		UNUSED(message_severity);
-		UNUSED(message_types);
-		UNUSED(user_data);
-
-		dprint("{}\n", callback_data->pMessage);
-
-		return vk::False;
-	}
-
-	#define SLANG_CHECK(RESULT) STMT( \
-		switch (RESULT) \
-		{ \
-			case SLANG_OK: \
-				break; \
-			case SLANG_FAIL: \
-				throw std::runtime_error{FORMAT_ERROR("Slang: failed for unknown reason.")}; \
-			case SLANG_E_NOT_IMPLEMENTED: \
-				throw std::logic_error{FORMAT_ERROR("Slang: function not implemented.")}; \
-			case SLANG_E_NO_INTERFACE: \
-				throw std::logic_error{FORMAT_ERROR("Slang: no interface.")}; \
-			case SLANG_E_ABORT: \
-				throw std::runtime_error{FORMAT_ERROR("Slang: error was aborted.")}; \
-			case SLANG_E_INVALID_HANDLE: \
-				throw std::logic_error{FORMAT_ERROR("Slang: invalid handle")}; \
-			case SLANG_E_INVALID_ARG: \
-				throw std::invalid_argument{FORMAT_ERROR("Slang: invalid argument.")}; \
-			case SLANG_E_OUT_OF_MEMORY: \
-				throw std::runtime_error{FORMAT_ERROR("Slang: ran out of memory.")}; \
-		} \
-	)
-
-	// TODO: Remove global variable.
-	static HINSTANCE win32_instance;
 
 	static void main();
 }
@@ -353,6 +214,123 @@ int WINAPI WinMain(
 
 namespace based_renderer 
 {
+	// TODO: Remove globals.
+	static bool win32_running;
+	static bool should_rotate = true;
+	static int32_t key_w;
+	static int32_t key_s;
+	static int32_t key_a;
+	static int32_t key_d;
+	static glm::ivec2 mouse_pos;
+
+	static std::system_error win32_system_error() noexcept
+	{
+		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
+		std::system_error system_error{error_code};
+		return system_error;
+	}
+
+	LRESULT WINAPI win32_event_callback(
+		HWND   win32_window,
+		UINT   win32_message,
+		WPARAM win32_w_param,
+		LPARAM win32_l_param) noexcept
+	{
+		LRESULT res = 0;
+
+		switch (win32_message)
+		{
+			case WM_DESTROY:
+			case WM_CLOSE: 
+			{
+				win32_running = false;
+			} break;
+			case WM_KEYDOWN: 
+				{
+				uint8_t virtual_key_code = static_cast<uint8_t>(win32_w_param);
+				switch (virtual_key_code)
+				{
+					case VK_SPACE:
+					{
+						should_rotate = !should_rotate;
+					} break;
+					case 'W':
+					{
+						key_w = true;
+					} break;
+					case 'S':
+					{
+						key_s = true;
+					} break;
+					case 'A':
+					{
+						key_a = true;
+					} break;
+					case 'D':
+					{
+						key_d = true;
+					} break;
+					case VK_ESCAPE: 
+					{
+						win32_running = false;
+					} break;
+				}
+			} break;
+			case WM_KEYUP: 
+			{
+				uint8_t virtual_key_code = static_cast<uint8_t>(win32_w_param);
+				switch (virtual_key_code)
+				{
+					case 'W':
+					{
+						key_w = false;
+					} break;
+					case 'S':
+					{
+						key_s = false;
+					} break;
+					case 'A':
+					{
+						key_a = false;
+					} break;
+					case 'D':
+					{
+						key_d = false;
+					} break;
+					case VK_ESCAPE: 
+					{
+						win32_running = false;
+					} break;
+				}
+			} break;
+			case WM_MOUSEMOVE:
+			{
+				memcpy(&mouse_pos, &win32_l_param, sizeof(LPARAM));
+			} break;
+			default: 
+			{
+				res = DefWindowProcW(win32_window, win32_message, win32_w_param, win32_l_param);
+			} break;
+		}
+
+		return res;
+	}
+
+	vk::Bool32 VKAPI_PTR vk_debug_callback(
+		vk::DebugUtilsMessageSeverityFlagBitsEXT message_severity,
+		vk::DebugUtilsMessageTypeFlagsEXT message_types,
+		vk::DebugUtilsMessengerCallbackDataEXT const *callback_data,
+		void *user_data) noexcept
+	{
+		UNUSED(message_severity);
+		UNUSED(message_types);
+		UNUSED(user_data);
+
+		dprint("{}\n", callback_data->pMessage);
+
+		return vk::False;
+	}
+
 	struct Uniforms
 	{
 		glm::mat4 model;
@@ -1408,6 +1386,28 @@ namespace based_renderer
 	    	vk::PipelineLayoutCreateFlags{},
 	    	vk_descriptor_set_layouts,
 	    });
+
+	    #define SLANG_CHECK(RESULT) STMT( \
+	    	switch (RESULT) \
+	    	{ \
+	    		case SLANG_OK: \
+	    			break; \
+	    		case SLANG_FAIL: \
+	    			throw std::runtime_error{FORMAT_ERROR("Slang: failed for unknown reason.")}; \
+	    		case SLANG_E_NOT_IMPLEMENTED: \
+	    			throw std::logic_error{FORMAT_ERROR("Slang: function not implemented.")}; \
+	    		case SLANG_E_NO_INTERFACE: \
+	    			throw std::logic_error{FORMAT_ERROR("Slang: no interface.")}; \
+	    		case SLANG_E_ABORT: \
+	    			throw std::runtime_error{FORMAT_ERROR("Slang: error was aborted.")}; \
+	    		case SLANG_E_INVALID_HANDLE: \
+	    			throw std::logic_error{FORMAT_ERROR("Slang: invalid handle")}; \
+	    		case SLANG_E_INVALID_ARG: \
+	    			throw std::invalid_argument{FORMAT_ERROR("Slang: invalid argument.")}; \
+	    		case SLANG_E_OUT_OF_MEMORY: \
+	    			throw std::runtime_error{FORMAT_ERROR("Slang: ran out of memory.")}; \
+	    	} \
+	    )
 
 		// slang_init
 		Slang::ComPtr<slang::IGlobalSession> slang_global_session;
