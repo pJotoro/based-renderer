@@ -370,21 +370,25 @@ namespace based_renderer
 		// 	uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
 		// }
 
+		uniforms.view = glm::inverse(uniforms.view);
+
 		// Translate based on whether WASD keys are pressed.
 		int32_t const cube_dir_z = key_s - key_w;
 		int32_t const cube_dir_x = key_a - key_d;
 		uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
 
 		// Rotate based on mouse delta (doesn't work at all right now).
-		// static glm::ivec2 last_mouse_pos{-1, -1};
-		// if (last_mouse_pos == glm::ivec2{-1, -1})
-		// {
-		// 	last_mouse_pos = mouse_pos;
-		// }
-		// glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
-		// uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.x*dt/(TAU*2048.0f), glm::vec3{1.0f, 0.0f, 0.0f});
-		// uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 0.0f, 1.0f});
-		// last_mouse_pos = mouse_pos;
+		static glm::ivec2 last_mouse_pos{-1, -1};
+		if (last_mouse_pos == glm::ivec2{-1, -1})
+		{
+			last_mouse_pos = mouse_pos;
+		}
+		glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
+		uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.x*dt/(TAU*2048.0f), glm::vec3{1.0f, 0.0f, 0.0f});
+		uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 0.0f, 1.0f});
+		last_mouse_pos = mouse_pos;
+
+		uniforms.view = glm::inverse(uniforms.view);
 
 		vk_map_memory(device, uniforms_memory, &uniforms, sizeof(uniforms));
 	}
