@@ -3,6 +3,9 @@
 #include "macros.hpp"
 #include "util.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/rotate_normalized_axis.hpp>
+
 // Defined in vk_util.cpp
 // We will only ever use them in this file, so there's no reason to make a separate header.
 namespace based_renderer
@@ -365,10 +368,10 @@ namespace based_renderer
 		Uniforms &uniforms,
 		float const dt) noexcept
 	{
-		// if (should_rotate)
-		// {
-		// 	uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
-		// }
+		if (should_rotate)
+		{
+			uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
+		}
 
 		uniforms.view = glm::inverse(uniforms.view);
 
@@ -384,8 +387,9 @@ namespace based_renderer
 			last_mouse_pos = mouse_pos;
 		}
 		glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
-		uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.x*dt/(TAU*2048.0f), glm::vec3{1.0f, 0.0f, 0.0f});
-		uniforms.view = glm::rotate(uniforms.view, mouse_pos_diff.y*dt/(TAU*2048.0f), glm::vec3{0.0f, 0.0f, 1.0f});
+
+		glm::vec3 angle{mouse_pos_diff.x*dt/(TAU*2048.0f), 0.0f, mouse_pos_diff.y*dt/(TAU*2048.0f)};
+		uniforms.view = glm::rotateNormalizedAxis(uniforms.view, glm::length(angle), glm::normalize(angle));
 		last_mouse_pos = mouse_pos;
 
 		uniforms.view = glm::inverse(uniforms.view);
