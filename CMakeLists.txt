@@ -1,4 +1,4 @@
-# TODO: Once the project is done, lower the minimum required version to the lowest possible number that doesn't cause anything to break.
+# TODO: Once the project is done, lower the minimum required version to the lowest possible number that doesn't cause anything to break. Also tell CMake to treat all CMake code as being of that version.
 cmake_minimum_required(VERSION 4.2 FATAL_ERROR)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -19,18 +19,14 @@ set_target_properties(slang PROPERTIES
 find_package(stb REQUIRED)
 find_package(cgltf REQUIRED)
 
-# TODO: What should be done when it comes to single-header-libraries? For now, it seems like it would be much easier to just copy-paste them into the project, but eventually, wouldn't it make sense to use them in CMake just like other libraries?
-
 # ============================
 
 # ===== Set up project =====
 project(based_renderer CXX)
-add_executable(based_renderer src/main.cpp src/libraries.cpp) # TODO: Use a wildcard.
+add_executable(based_renderer src/main.cpp src/libraries.cpp)
 target_precompile_headers(based_renderer PRIVATE src/main_pch.hpp)
 target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang stb::stb cgltf::cgltf)
 
-# TODO: Is this the only way to set these options? Or is there a cross-platform way?
-# TODO: What about other compilers? I know you can also use clang and mingw on Windows.
 if(MSVC)
 target_compile_options(based_renderer PRIVATE /W4 /WX /diagnostics:column /wd4201 /wd4324)
 target_link_options(based_renderer PRIVATE /subsystem:windows)

@@ -21,7 +21,6 @@
 
 #define BASED_RENDERER_FULLSCREEN 1
 
-// TODO: What about other systems?
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
 
 #define GLM_ENABLE_EXPERIMENTAL
