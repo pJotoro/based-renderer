@@ -25,8 +25,8 @@ find_package(cgltf REQUIRED)
 
 # ===== Set up project =====
 project(based_renderer CXX)
-add_executable(based_renderer src/main.cpp src/libraries.cpp src/vk_util.cpp) # TODO: Use a wildcard.
-target_precompile_headers(based_renderer PRIVATE src/main_pch.hpp src/vk_util_pch.hpp)
+add_executable(based_renderer src/main.cpp src/libraries.cpp) # TODO: Use a wildcard.
+target_precompile_headers(based_renderer PRIVATE src/main_pch.hpp)
 target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang stb::stb cgltf::cgltf)
 
 # TODO: Is this the only way to set these options? Or is there a cross-platform way?
