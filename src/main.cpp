@@ -503,184 +503,184 @@ namespace based_renderer
 	static void vk_modify_physical_device_features(auto &physical_device_features)
 	{
 		std::vector<std::string> missing_features;
-		#define BASED_RENDERER_VK_REQUIRE_FEATURE(FEATURE) STMT( \
+		#define REQUIRE_FEATURE(FEATURE) STMT( \
 			if (!features.FEATURE) \
 			{ \
 				missing_features.push_back(STRINGIFY(FEATURE)); \
 			} \
 		)
-		#define BASED_RENDERER_VK_DISABLE_FEATURE(FEATURE) STMT( \
+		#define DISABLE_FEATURE(FEATURE) STMT( \
 			features.FEATURE = vk::False; \
 		)
 		// You might say: this doesn't do anything. Why define it?
 		// It's so that way, when scrolling through all of the Vulkan
 		// features I might want to use, none of them are missing.
-		#define BASED_RENDERER_VK_ALLOW_FEATURE(FEATURE)
+		#define ALLOW_FEATURE(FEATURE)
 
 		{
 			auto &features = std::get<0>(physical_device_features).features;
-			BASED_RENDERER_VK_DISABLE_FEATURE(robustBufferAccess);
-			BASED_RENDERER_VK_DISABLE_FEATURE(fullDrawIndexUint32);
-			BASED_RENDERER_VK_DISABLE_FEATURE(imageCubeArray);
-			BASED_RENDERER_VK_DISABLE_FEATURE(independentBlend);
-			BASED_RENDERER_VK_DISABLE_FEATURE(geometryShader);
-			BASED_RENDERER_VK_DISABLE_FEATURE(tessellationShader);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sampleRateShading);
-			BASED_RENDERER_VK_DISABLE_FEATURE(dualSrcBlend);
-			BASED_RENDERER_VK_DISABLE_FEATURE(logicOp);
-			BASED_RENDERER_VK_DISABLE_FEATURE(multiDrawIndirect);
-			BASED_RENDERER_VK_DISABLE_FEATURE(drawIndirectFirstInstance);
-			BASED_RENDERER_VK_DISABLE_FEATURE(depthClamp);
-			BASED_RENDERER_VK_DISABLE_FEATURE(depthBiasClamp);
-			BASED_RENDERER_VK_DISABLE_FEATURE(fillModeNonSolid);
-			BASED_RENDERER_VK_DISABLE_FEATURE(depthBounds);
-			BASED_RENDERER_VK_DISABLE_FEATURE(wideLines);
-			BASED_RENDERER_VK_DISABLE_FEATURE(largePoints);
-			BASED_RENDERER_VK_DISABLE_FEATURE(alphaToOne);
-			BASED_RENDERER_VK_DISABLE_FEATURE(multiViewport);
-			BASED_RENDERER_VK_DISABLE_FEATURE(samplerAnisotropy);
-			BASED_RENDERER_VK_DISABLE_FEATURE(textureCompressionETC2);
-			BASED_RENDERER_VK_DISABLE_FEATURE(textureCompressionASTC_LDR);
-			BASED_RENDERER_VK_DISABLE_FEATURE(textureCompressionBC);
-			BASED_RENDERER_VK_DISABLE_FEATURE(occlusionQueryPrecise);
-			BASED_RENDERER_VK_DISABLE_FEATURE(pipelineStatisticsQuery);
-			BASED_RENDERER_VK_DISABLE_FEATURE(vertexPipelineStoresAndAtomics);
-			BASED_RENDERER_VK_DISABLE_FEATURE(fragmentStoresAndAtomics);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderTessellationAndGeometryPointSize);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderImageGatherExtended);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageImageExtendedFormats);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageImageMultisample);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageImageReadWithoutFormat);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageImageWriteWithoutFormat);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderUniformBufferArrayDynamicIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderSampledImageArrayDynamicIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageBufferArrayDynamicIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageImageArrayDynamicIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderClipDistance);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderCullDistance);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderFloat64);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderInt64);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderInt16);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderResourceResidency);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderResourceMinLod);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseBinding);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidencyBuffer);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidencyImage2D);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidencyImage3D);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidency2Samples);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidency4Samples);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidency8Samples);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidency16Samples);
-			BASED_RENDERER_VK_DISABLE_FEATURE(sparseResidencyAliased);
-			BASED_RENDERER_VK_DISABLE_FEATURE(variableMultisampleRate);
-			BASED_RENDERER_VK_DISABLE_FEATURE(inheritedQueries);
+			DISABLE_FEATURE(robustBufferAccess);
+			DISABLE_FEATURE(fullDrawIndexUint32);
+			DISABLE_FEATURE(imageCubeArray);
+			DISABLE_FEATURE(independentBlend);
+			DISABLE_FEATURE(geometryShader);
+			DISABLE_FEATURE(tessellationShader);
+			DISABLE_FEATURE(sampleRateShading);
+			DISABLE_FEATURE(dualSrcBlend);
+			DISABLE_FEATURE(logicOp);
+			DISABLE_FEATURE(multiDrawIndirect);
+			DISABLE_FEATURE(drawIndirectFirstInstance);
+			DISABLE_FEATURE(depthClamp);
+			DISABLE_FEATURE(depthBiasClamp);
+			DISABLE_FEATURE(fillModeNonSolid);
+			DISABLE_FEATURE(depthBounds);
+			DISABLE_FEATURE(wideLines);
+			DISABLE_FEATURE(largePoints);
+			DISABLE_FEATURE(alphaToOne);
+			DISABLE_FEATURE(multiViewport);
+			DISABLE_FEATURE(samplerAnisotropy);
+			DISABLE_FEATURE(textureCompressionETC2);
+			DISABLE_FEATURE(textureCompressionASTC_LDR);
+			DISABLE_FEATURE(textureCompressionBC);
+			DISABLE_FEATURE(occlusionQueryPrecise);
+			DISABLE_FEATURE(pipelineStatisticsQuery);
+			DISABLE_FEATURE(vertexPipelineStoresAndAtomics);
+			DISABLE_FEATURE(fragmentStoresAndAtomics);
+			DISABLE_FEATURE(shaderTessellationAndGeometryPointSize);
+			DISABLE_FEATURE(shaderImageGatherExtended);
+			DISABLE_FEATURE(shaderStorageImageExtendedFormats);
+			DISABLE_FEATURE(shaderStorageImageMultisample);
+			DISABLE_FEATURE(shaderStorageImageReadWithoutFormat);
+			DISABLE_FEATURE(shaderStorageImageWriteWithoutFormat);
+			DISABLE_FEATURE(shaderUniformBufferArrayDynamicIndexing);
+			DISABLE_FEATURE(shaderSampledImageArrayDynamicIndexing);
+			DISABLE_FEATURE(shaderStorageBufferArrayDynamicIndexing);
+			DISABLE_FEATURE(shaderStorageImageArrayDynamicIndexing);
+			DISABLE_FEATURE(shaderClipDistance);
+			DISABLE_FEATURE(shaderCullDistance);
+			DISABLE_FEATURE(shaderFloat64);
+			DISABLE_FEATURE(shaderInt64);
+			DISABLE_FEATURE(shaderInt16);
+			DISABLE_FEATURE(shaderResourceResidency);
+			DISABLE_FEATURE(shaderResourceMinLod);
+			DISABLE_FEATURE(sparseBinding);
+			DISABLE_FEATURE(sparseResidencyBuffer);
+			DISABLE_FEATURE(sparseResidencyImage2D);
+			DISABLE_FEATURE(sparseResidencyImage3D);
+			DISABLE_FEATURE(sparseResidency2Samples);
+			DISABLE_FEATURE(sparseResidency4Samples);
+			DISABLE_FEATURE(sparseResidency8Samples);
+			DISABLE_FEATURE(sparseResidency16Samples);
+			DISABLE_FEATURE(sparseResidencyAliased);
+			DISABLE_FEATURE(variableMultisampleRate);
+			DISABLE_FEATURE(inheritedQueries);
 		}
 		{
 			auto &features = std::get<1>(physical_device_features);
-			BASED_RENDERER_VK_DISABLE_FEATURE(storageBuffer16BitAccess);
-			BASED_RENDERER_VK_DISABLE_FEATURE(uniformAndStorageBuffer16BitAccess);
-			BASED_RENDERER_VK_DISABLE_FEATURE(storagePushConstant16);
-			BASED_RENDERER_VK_DISABLE_FEATURE(storageInputOutput16);
-			BASED_RENDERER_VK_DISABLE_FEATURE(multiview);
-			BASED_RENDERER_VK_DISABLE_FEATURE(multiviewGeometryShader);
-			BASED_RENDERER_VK_DISABLE_FEATURE(multiviewTessellationShader);
-			BASED_RENDERER_VK_DISABLE_FEATURE(variablePointersStorageBuffer);
-			BASED_RENDERER_VK_DISABLE_FEATURE(variablePointers);
-			BASED_RENDERER_VK_DISABLE_FEATURE(protectedMemory);
-			BASED_RENDERER_VK_DISABLE_FEATURE(samplerYcbcrConversion);
-			BASED_RENDERER_VK_REQUIRE_FEATURE(shaderDrawParameters); // Slang requires this.
+			DISABLE_FEATURE(storageBuffer16BitAccess);
+			DISABLE_FEATURE(uniformAndStorageBuffer16BitAccess);
+			DISABLE_FEATURE(storagePushConstant16);
+			DISABLE_FEATURE(storageInputOutput16);
+			DISABLE_FEATURE(multiview);
+			DISABLE_FEATURE(multiviewGeometryShader);
+			DISABLE_FEATURE(multiviewTessellationShader);
+			DISABLE_FEATURE(variablePointersStorageBuffer);
+			DISABLE_FEATURE(variablePointers);
+			DISABLE_FEATURE(protectedMemory);
+			DISABLE_FEATURE(samplerYcbcrConversion);
+			REQUIRE_FEATURE(shaderDrawParameters); // Slang requires this.
 		}
 		{
 			auto &features = std::get<2>(physical_device_features);
-			BASED_RENDERER_VK_DISABLE_FEATURE(samplerMirrorClampToEdge);
-			BASED_RENDERER_VK_DISABLE_FEATURE(drawIndirectCount);
-			BASED_RENDERER_VK_DISABLE_FEATURE(storageBuffer8BitAccess);
-			BASED_RENDERER_VK_DISABLE_FEATURE(uniformAndStorageBuffer8BitAccess);
-			BASED_RENDERER_VK_DISABLE_FEATURE(storagePushConstant8);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderBufferInt64Atomics);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderSharedInt64Atomics);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderFloat16);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderInt8);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderUniformBufferArrayNonUniformIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderSampledImageArrayNonUniformIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageBufferArrayNonUniformIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageImageArrayNonUniformIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind); // TODO: If I remember correctly, my laptop does not support this feature, but it supports basically all the other "UpdateAfterBind" features. Does this matter? Can I still put the uniform buffer in the same descriptor set as every other descriptor, as long as I don't update it after binding?
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingPartiallyBound);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingVariableDescriptorCount);
-			BASED_RENDERER_VK_DISABLE_FEATURE(runtimeDescriptorArray);
-			BASED_RENDERER_VK_DISABLE_FEATURE(samplerFilterMinmax);
-			BASED_RENDERER_VK_DISABLE_FEATURE(scalarBlockLayout);
-			BASED_RENDERER_VK_DISABLE_FEATURE(imagelessFramebuffer);
-			BASED_RENDERER_VK_DISABLE_FEATURE(uniformBufferStandardLayout);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderSubgroupExtendedTypes);
-			BASED_RENDERER_VK_DISABLE_FEATURE(separateDepthStencilLayouts);
-			BASED_RENDERER_VK_DISABLE_FEATURE(hostQueryReset);
-			BASED_RENDERER_VK_DISABLE_FEATURE(timelineSemaphore);
-			BASED_RENDERER_VK_DISABLE_FEATURE(bufferDeviceAddress);
-			BASED_RENDERER_VK_DISABLE_FEATURE(bufferDeviceAddressCaptureReplay);
-			BASED_RENDERER_VK_DISABLE_FEATURE(bufferDeviceAddressMultiDevice);
-			BASED_RENDERER_VK_REQUIRE_FEATURE(vulkanMemoryModel); // TODO: Do we necessarily need these?
-			BASED_RENDERER_VK_REQUIRE_FEATURE(vulkanMemoryModelDeviceScope);
-			BASED_RENDERER_VK_REQUIRE_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderOutputViewportIndex);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderOutputLayer);
-			BASED_RENDERER_VK_DISABLE_FEATURE(subgroupBroadcastDynamicId);
+			DISABLE_FEATURE(samplerMirrorClampToEdge);
+			DISABLE_FEATURE(drawIndirectCount);
+			DISABLE_FEATURE(storageBuffer8BitAccess);
+			DISABLE_FEATURE(uniformAndStorageBuffer8BitAccess);
+			DISABLE_FEATURE(storagePushConstant8);
+			DISABLE_FEATURE(shaderBufferInt64Atomics);
+			DISABLE_FEATURE(shaderSharedInt64Atomics);
+			DISABLE_FEATURE(shaderFloat16);
+			DISABLE_FEATURE(shaderInt8);
+			DISABLE_FEATURE(descriptorIndexing);
+			DISABLE_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
+			DISABLE_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
+			DISABLE_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
+			DISABLE_FEATURE(shaderUniformBufferArrayNonUniformIndexing);
+			DISABLE_FEATURE(shaderSampledImageArrayNonUniformIndexing);
+			DISABLE_FEATURE(shaderStorageBufferArrayNonUniformIndexing);
+			DISABLE_FEATURE(shaderStorageImageArrayNonUniformIndexing);
+			DISABLE_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
+			DISABLE_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
+			DISABLE_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
+			DISABLE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind); // TODO: If I remember correctly, my laptop does not support this feature, but it supports basically all the other "UpdateAfterBind" features. Does this matter? Can I still put the uniform buffer in the same descriptor set as every other descriptor, as long as I don't update it after binding?
+			DISABLE_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
+			DISABLE_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
+			DISABLE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
+			DISABLE_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
+			DISABLE_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
+			DISABLE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
+			DISABLE_FEATURE(descriptorBindingPartiallyBound);
+			DISABLE_FEATURE(descriptorBindingVariableDescriptorCount);
+			DISABLE_FEATURE(runtimeDescriptorArray);
+			DISABLE_FEATURE(samplerFilterMinmax);
+			DISABLE_FEATURE(scalarBlockLayout);
+			DISABLE_FEATURE(imagelessFramebuffer);
+			DISABLE_FEATURE(uniformBufferStandardLayout);
+			DISABLE_FEATURE(shaderSubgroupExtendedTypes);
+			DISABLE_FEATURE(separateDepthStencilLayouts);
+			DISABLE_FEATURE(hostQueryReset);
+			DISABLE_FEATURE(timelineSemaphore);
+			DISABLE_FEATURE(bufferDeviceAddress);
+			DISABLE_FEATURE(bufferDeviceAddressCaptureReplay);
+			DISABLE_FEATURE(bufferDeviceAddressMultiDevice);
+			REQUIRE_FEATURE(vulkanMemoryModel); // TODO: Do we necessarily need these?
+			REQUIRE_FEATURE(vulkanMemoryModelDeviceScope);
+			REQUIRE_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
+			DISABLE_FEATURE(shaderOutputViewportIndex);
+			DISABLE_FEATURE(shaderOutputLayer);
+			DISABLE_FEATURE(subgroupBroadcastDynamicId);
 		}
 		{
 			auto &features = std::get<3>(physical_device_features);
-			BASED_RENDERER_VK_DISABLE_FEATURE(robustImageAccess);
-			BASED_RENDERER_VK_DISABLE_FEATURE(inlineUniformBlock);
-			BASED_RENDERER_VK_DISABLE_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
-			BASED_RENDERER_VK_ALLOW_FEATURE(pipelineCreationCacheControl);
-			BASED_RENDERER_VK_DISABLE_FEATURE(privateData);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderDemoteToHelperInvocation);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderTerminateInvocation);
-			BASED_RENDERER_VK_DISABLE_FEATURE(subgroupSizeControl);
-			BASED_RENDERER_VK_DISABLE_FEATURE(computeFullSubgroups);
-			BASED_RENDERER_VK_REQUIRE_FEATURE(synchronization2);
-			BASED_RENDERER_VK_DISABLE_FEATURE(textureCompressionASTC_HDR);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderZeroInitializeWorkgroupMemory);
-			BASED_RENDERER_VK_REQUIRE_FEATURE(dynamicRendering);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderIntegerDotProduct);
-			BASED_RENDERER_VK_DISABLE_FEATURE(maintenance4);
+			DISABLE_FEATURE(robustImageAccess);
+			DISABLE_FEATURE(inlineUniformBlock);
+			DISABLE_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
+			ALLOW_FEATURE(pipelineCreationCacheControl);
+			DISABLE_FEATURE(privateData);
+			DISABLE_FEATURE(shaderDemoteToHelperInvocation);
+			DISABLE_FEATURE(shaderTerminateInvocation);
+			DISABLE_FEATURE(subgroupSizeControl);
+			DISABLE_FEATURE(computeFullSubgroups);
+			REQUIRE_FEATURE(synchronization2);
+			DISABLE_FEATURE(textureCompressionASTC_HDR);
+			DISABLE_FEATURE(shaderZeroInitializeWorkgroupMemory);
+			REQUIRE_FEATURE(dynamicRendering);
+			DISABLE_FEATURE(shaderIntegerDotProduct);
+			DISABLE_FEATURE(maintenance4);
 		}
 		{
 			auto &features = std::get<4>(physical_device_features);
-			BASED_RENDERER_VK_DISABLE_FEATURE(globalPriorityQuery);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderSubgroupRotate);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderSubgroupRotateClustered);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderFloatControls2);
-			BASED_RENDERER_VK_DISABLE_FEATURE(shaderExpectAssume);
-			BASED_RENDERER_VK_DISABLE_FEATURE(rectangularLines);
-			BASED_RENDERER_VK_DISABLE_FEATURE(bresenhamLines);
-			BASED_RENDERER_VK_DISABLE_FEATURE(smoothLines);
-			BASED_RENDERER_VK_DISABLE_FEATURE(stippledRectangularLines);
-			BASED_RENDERER_VK_DISABLE_FEATURE(stippledBresenhamLines);
-			BASED_RENDERER_VK_DISABLE_FEATURE(stippledSmoothLines);
-			BASED_RENDERER_VK_DISABLE_FEATURE(vertexAttributeInstanceRateDivisor);
-			BASED_RENDERER_VK_DISABLE_FEATURE(vertexAttributeInstanceRateZeroDivisor);
-			BASED_RENDERER_VK_DISABLE_FEATURE(indexTypeUint8);
-			BASED_RENDERER_VK_DISABLE_FEATURE(dynamicRenderingLocalRead);
-			BASED_RENDERER_VK_DISABLE_FEATURE(maintenance5);
-			BASED_RENDERER_VK_DISABLE_FEATURE(maintenance6);
-			BASED_RENDERER_VK_DISABLE_FEATURE(pipelineProtectedAccess);
-			BASED_RENDERER_VK_DISABLE_FEATURE(pipelineRobustness);
-			BASED_RENDERER_VK_DISABLE_FEATURE(hostImageCopy);
-			BASED_RENDERER_VK_DISABLE_FEATURE(pushDescriptor);
+			DISABLE_FEATURE(globalPriorityQuery);
+			DISABLE_FEATURE(shaderSubgroupRotate);
+			DISABLE_FEATURE(shaderSubgroupRotateClustered);
+			DISABLE_FEATURE(shaderFloatControls2);
+			DISABLE_FEATURE(shaderExpectAssume);
+			DISABLE_FEATURE(rectangularLines);
+			DISABLE_FEATURE(bresenhamLines);
+			DISABLE_FEATURE(smoothLines);
+			DISABLE_FEATURE(stippledRectangularLines);
+			DISABLE_FEATURE(stippledBresenhamLines);
+			DISABLE_FEATURE(stippledSmoothLines);
+			DISABLE_FEATURE(vertexAttributeInstanceRateDivisor);
+			DISABLE_FEATURE(vertexAttributeInstanceRateZeroDivisor);
+			DISABLE_FEATURE(indexTypeUint8);
+			DISABLE_FEATURE(dynamicRenderingLocalRead);
+			DISABLE_FEATURE(maintenance5);
+			DISABLE_FEATURE(maintenance6);
+			DISABLE_FEATURE(pipelineProtectedAccess);
+			DISABLE_FEATURE(pipelineRobustness);
+			DISABLE_FEATURE(hostImageCopy);
+			DISABLE_FEATURE(pushDescriptor);
 		}
 
 		if (missing_features.size() > 0)
@@ -688,9 +688,9 @@ namespace based_renderer
 			throw vk::FeatureNotPresentError{FORMAT_ERROR(to_string(missing_features))};
 		}
 
-		#undef BASED_RENDERER_VK_REQUIRE_FEATURE
-		#undef BASED_RENDERER_VK_DISABLE_FEATURE
-		#undef BASED_RENDERER_VK_ALLOW_FEATURE
+		#undef REQUIRE_FEATURE
+		#undef DISABLE_FEATURE
+		#undef ALLOW_FEATURE
 	}
 
 	static void main()
