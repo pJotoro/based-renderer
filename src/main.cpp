@@ -447,11 +447,6 @@ namespace based_renderer
 
 		uniforms.view = glm::inverse(uniforms.view);
 
-		// Translate based on whether WASD keys are pressed.
-		int32_t const cube_dir_z = key_s - key_w;
-		int32_t const cube_dir_x = key_a - key_d;
-		uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
-
 		// Rotate based on mouse delta (doesn't work at all right now).
 		static glm::ivec2 last_mouse_pos{-1, -1};
 		if (last_mouse_pos == glm::ivec2{-1, -1})
@@ -463,6 +458,11 @@ namespace based_renderer
 		glm::vec3 angle{mouse_pos_diff.x*dt/(TAU*2048.0f), 0.0f, mouse_pos_diff.y*dt/(TAU*2048.0f)};
 		uniforms.view = glm::rotateNormalizedAxis(uniforms.view, glm::length(angle), glm::normalize(angle));
 		last_mouse_pos = mouse_pos;
+
+		// Translate based on whether WASD keys are pressed.
+		int32_t const cube_dir_z = key_s - key_w;
+		int32_t const cube_dir_x = key_a - key_d;
+		uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
 
 		uniforms.view = glm::inverse(uniforms.view);
 
