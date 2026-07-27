@@ -1,3 +1,9 @@
+/*
+Conventions:
+
+- World space coordinate system: x=right, y=forward, z=up, right-handed
+*/
+
 #include "main_pch.hpp"
 
 #define UNUSED(X) (void)(X)
@@ -488,17 +494,17 @@ namespace based_renderer
 	static glm::mat4 gltf_node_transform_local(cgltf_node const *node)
 	{
 		glm::mat4 res;
-		cgltf_node_transform_local(node, &res);
+		cgltf_node_transform_local(node, reinterpret_cast<float *>(&res));
 		return res;
 	}
-	#endif
-
+	#else
 	static glm::mat4 gltf_node_transform_world(cgltf_node const *node)
 	{
 		glm::mat4 res;
 		cgltf_node_transform_world(node, reinterpret_cast<float *>(&res));
 		return res;
 	}
+	#endif
 
 	static void vk_modify_physical_device_features(auto &physical_device_features)
 	{
@@ -1157,6 +1163,10 @@ namespace based_renderer
 	#endif
 
 		//The box's binary is formatted like this: first all the vertices, then all the normals, then all the indices.
+		// TODO: Load a gltf file in a way that isn't a complete clusterfuck.
+
+		// I think I've figured out the problem. The problem is that not every index has a valid vertex. Especially many of the later ones don't have one. Clearly, I just don't understand the gltf format. I should really just spend some time reading the spec of gltf so that way I know what I am doing.
+
 		cgltf_data const *box = gltf_load("assets/Box.glb");
 		cgltf_mesh const &box_mesh = box->meshes[0];
 		dprint("{}", box_mesh.name);
@@ -1167,9 +1177,10 @@ namespace based_renderer
 		{
 			cgltf_accessor const &accessor = box->accessors[i];
 			if (accessor.name) dprint("{}", accessor.name);
-			if (accessor.buffer_view->type != cgltf_buffer_view_type_indices)
+			if (accessor.buffer_view->type == cgltf_buffer_view_type_vertices)
 			{
-				box_vertex_count = std::max(box_vertex_count, accessor.count);
+				box_vertex_count = accessor.count;
+				break;
 			}
 		}
 		vk::DeviceSize box_vertex_buffer_size = 0;
@@ -1201,6 +1212,10 @@ namespace based_renderer
 
 		struct Vertex
 		{
+			// TODO: Does it matter if we send these as vec4 or vec3?
+			// Like, does it just pad it out if we use vec3, making it
+			// no different either way? Is it slightly faster than using
+			// vec4?
 			glm::vec4 pos;
 			glm::vec4 normal;
 		};
@@ -1210,16 +1225,19 @@ namespace based_renderer
 		{
 			Vertex vertex;
 			// TODO: How would this be made generic?
-			auto normal = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[1].offset + i*box->accessors[1].stride);
-			auto pos = reinterpret_cast<glm::vec3 const *const>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
-			vertex.pos = glm::vec4{*pos, 1.0f};
-			vertex.normal = glm::vec4{*normal, 0.0f};
-		#if 1
-			vertex.pos.x = -vertex.pos.x;
-			vertex.normal.x = -vertex.normal.x;
-			vertex.pos.z = -vertex.pos.z;
-			vertex.normal.z = -vertex.normal.z;
-		#endif
+			glm::vec3 normal = *reinterpret_cast<glm::vec3 const *>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[1].offset + i*box->accessors[1].stride);
+			glm::vec3 pos = *reinterpret_cast<glm::vec3 const *>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
+			vertex.pos = glm::vec4{pos, 1.0f};
+			vertex.normal = glm::vec4{normal, 0.0f};
+			glm::mat4 conversion{
+				1.0f, 0.0f, 0.0f, 0.0f, 
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f,
+			};
+			vertex.pos = conversion*vertex.pos;
+			vertex.normal = conversion*vertex.normal;
+		
 			dprint("\n{},{},{} {},{},{}", vertex.pos.x, vertex.pos.y, vertex.pos.z, vertex.normal.x, vertex.normal.y, vertex.normal.z);
 			vertices.push_back(vertex);
 		}

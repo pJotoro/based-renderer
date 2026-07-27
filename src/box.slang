@@ -34,12 +34,15 @@ Pixel vs(Vertex vertex)
 [shader("pixel")]
 float4 ps(Pixel vertex) : SV_TARGET
 {
-	// FGED Eq 7.26
-    //float3 view_dir = float3(0.0, 0.0, -1.0);
-    float4 light_dir = float4(0.0, 0.0, -1.0, 0.0);
-    //float3 halfway_dir = normalize(view_dir + light_dir);
-    float diffuse = saturate(dot(vertex.normal, light_dir));
-    //float alpha = 10.0;
-    //float specular = pow(saturate(dot(vertex.normal, halfway_dir)), alpha);
-    return diffuse;
+	// // FGED Eq 7.26
+    // //float3 view_dir = float3(0.0, 0.0, -1.0);
+    // float4 light_dir = float4(0.0, 0.0, -1.0, 0.0);
+    // //float3 halfway_dir = normalize(view_dir + light_dir);
+    // float diffuse = saturate(dot(vertex.normal, light_dir));
+    // //float alpha = 10.0;
+    // //float specular = pow(saturate(dot(vertex.normal, halfway_dir)), alpha);
+    // return diffuse;
+
+    // I'm taking a break from lighting stuff because I still need to spend more time on it!
+    return float4(0.5, 0.4, 0.3, 1.0);
 }

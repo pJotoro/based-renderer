@@ -19,6 +19,7 @@
 #include <glm/ext/vector_float2.hpp> // vec2
 #include <glm/ext/vector_float3.hpp> // vec3
 #include <glm/ext/vector_float4.hpp> // vec4
+#include <glm/ext/matrix_float3x3.hpp> // mat3
 #include <glm/ext/matrix_float4x4.hpp> // mat4
 #include <glm/ext/matrix_transform.hpp> // translate, rotate
 #include <glm/ext/matrix_clip_space.hpp> // perspective
