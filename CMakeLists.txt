@@ -9,6 +9,7 @@ set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE) # HACK: For some 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}") # Needed in order for CMake to find .cmake files in the current directory.
 
 find_package(Vulkan 1.4.0 REQUIRED)
+# TODO: Warn if the Vulkan SDK version is lower than the one I'm using.
 set(VULKAN_SDK "$ENV{VULKAN_SDK}")
 
 add_library(slang STATIC IMPORTED)

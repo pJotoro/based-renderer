@@ -483,11 +483,46 @@ namespace based_renderer
 		cgltf_result res = cgltf_parse_file(&options, path, &data);
 		if (res != cgltf_result_success)
 		{
-			// TODO: Change this to make it tell you which file failed to load.
-			throw std::runtime_error{FORMAT_ERROR("Failed to load gltf file")};
+			throw std::runtime_error{std::format("{}({}): Failed to load {}.", __FUNCTION__, __LINE__, path)};
 		}
 
 		return data;
+	}
+
+	// TODO: Would it make sense to make this into two functions: gltf_process_root_node and gltf_process_child_node?
+	static void gltf_process_node(cgltf_node *node)
+	{
+		for (size_t child_idx = 0; child_idx < node->children_count; ++child_idx)
+		{
+			gltf_process_node(node->children[child_idx]);
+		}
+
+		// TODO: Process skin.
+		// TODO: Process mesh.
+		// TODO: Process camera.
+	}
+
+	static void gltf_process_data(cgltf_data *data)
+	{
+		// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#concepts
+		for (size_t scene_idx = 0; scene_idx < data->scenes_count; ++scene_idx)
+		{
+			cgltf_scene *scene = &data->scenes[scene_idx];
+			
+			for (size_t node_idx = 0; node_idx < scene->nodes_count; ++node_idx)
+			{
+				gltf_process_node(scene->nodes[node_idx]);
+			}
+
+			// TODO: Process extras.
+
+			for (size_t extension_idx = 0; extension_idx < scene->extensions_count; ++extension_idx)
+			{
+				cgltf_extension *extension = &scene->extensions[extension_idx];
+				// TODO: Process extensions.
+				UNUSED(extension);
+			}
+		}
 	}
 
 	#if 0
