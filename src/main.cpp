@@ -486,9 +486,18 @@ namespace based_renderer
 		return data;
 	}
 
-	struct scene_t
+	struct buffer_info_t
 	{
+    	void *data;
+		vk::DeviceSize size; // in bytes
+    	vk::BufferUsageFlags usage;
+    	vk::Format format;
+    	uint32_t stride;
+	};
 
+	struct gltf_process_data_result_t
+	{
+		std::vector<buffer_info_t> buffer_infos;
 	};
 
 	// TODO: Would it make sense to make this into two functions: gltf_process_root_node and gltf_process_child_node?
@@ -504,9 +513,59 @@ namespace based_renderer
 		// TODO: Process camera.
 	}
 
-	static std::vector<scene_t> gltf_process_data(cgltf_data *data)
+	#define PTR_ADD(PTR, AMOUNT) (reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(PTR) + AMOUNT))
+
+	/*
+	NOTE TO SELF FOR TOMORROW:
+
+	The only reason this is taking so long is because you did not read through the documentation properly beforehand. You should do that. That is the very first thing you should do tomorrow.
+	*/
+
+	static gltf_process_data_result_t gltf_process_data(cgltf_data *data)
 	{
-		std::vector<scene_t> res;
+		gltf_process_data_result_t res{};
+		res.buffer_infos.reserve(data->accessors_count);
+		for (size_t accessor_idx = 0; accessor_idx < data->accessors_count; ++accessor_idx)
+		{
+			cgltf_accessor *accessor = &data->accessors[accessor_idx];
+
+			buffer_info_t buffer_create_info{};
+
+			// TODO: Is this correct?
+			size_t stride;
+			if (accessor->stride == 0 && accessor->buffer_view->stride == 0)
+			{
+				stride = gltf_stride(accessor->component_type, accessor->type);
+			}
+			else if (accessor->buffer_view->stride != 0)
+			{
+				stride = accessor->buffer_view->stride;
+			}
+			else
+			{
+				stride = accessor->stride;
+			}
+
+			buffer_create_info.data = PTR_ADD(
+				accessor->buffer_view->buffer->data, 
+				accessor->offset + accessor->buffer_view->offset);
+			buffer_create_info.size = buffer_view->size;
+			switch (buffer_view->type)
+			{
+				case cgltf_buffer_view_type_vertices:
+					buffer_create_info.usage = vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eVertexBuffer;
+					break;
+				case cgltf_buffer_view_type_indices:
+					buffer_create_info.usage = vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eIndexBuffer;
+					break;
+				case cgltf_buffer_view_type_invalid:
+					throw std::runtime_error{FORMAT_ERROR("Invalid buffer view type")};
+			}
+			switch ()
+		    	vk::Format format;
+		    	uint32_t stride;
+			};
+		}
 
 		// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#concepts
 		for (size_t scene_idx = 0; scene_idx < data->scenes_count; ++scene_idx)
