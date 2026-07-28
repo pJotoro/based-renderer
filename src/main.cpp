@@ -113,9 +113,6 @@ namespace based_renderer
 		uint32_t const memory_type_bits,
 		vk::MemoryPropertyFlags const desired_memory_properties);
 
-	// TODO: Remove global variable.
-	static HINSTANCE win32_instance;
-
 	static void win32_message_box(
 		char const *message,
 		char const *title) noexcept
@@ -137,11 +134,10 @@ int WINAPI WinMain(
 	LPSTR win32_command_line,
 	int	win32_show_command)
 {
+	UNUSED(win32_instance);
 	UNUSED(win32_prev_instance);
 	UNUSED(win32_command_line);
 	UNUSED(win32_show_command);
-
-	based_renderer::win32_instance = win32_instance;
 
 	try
 	{
@@ -301,21 +297,20 @@ int WINAPI WinMain(
 
 namespace based_renderer 
 {
-	// TODO: Remove globals.
-	static bool win32_running;
-	static bool should_rotate = true;
-	static int32_t key_w;
-	static int32_t key_s;
-	static int32_t key_a;
-	static int32_t key_d;
-	static glm::ivec2 mouse_pos;
-
-	static std::system_error win32_system_error() noexcept
+	struct context_t
 	{
-		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
-		std::system_error system_error{error_code};
-		return system_error;
-	}
+		bool running;
+		bool should_rotate = true;
+		int32_t key_w;
+		int32_t key_s;
+		int32_t key_a;
+		int32_t key_d;
+		glm::ivec2 mouse_pos;
+
+		glm::uvec2 const client_dimensions;
+		float const aspect_ratio;
+		float const fixed_dt;
+	};
 
 	LRESULT WINAPI win32_event_callback(
 		HWND   win32_window,
@@ -324,13 +319,14 @@ namespace based_renderer
 		LPARAM win32_l_param) noexcept
 	{
 		LRESULT res = 0;
+		context_t &ctx = *reinterpret_cast<context_t *>(GetPropW(win32_window, L"based_renderer::context_t"));
 
 		switch (win32_message)
 		{
 			case WM_DESTROY:
 			case WM_CLOSE: 
 			{
-				win32_running = false;
+				ctx.running = false;
 			} break;
 			case WM_KEYDOWN: 
 				{
@@ -339,27 +335,27 @@ namespace based_renderer
 				{
 					case VK_SPACE:
 					{
-						should_rotate = !should_rotate;
+						ctx.should_rotate = !ctx.should_rotate;
 					} break;
 					case 'W':
 					{
-						key_w = true;
+						ctx.key_w = true;
 					} break;
 					case 'S':
 					{
-						key_s = true;
+						ctx.key_s = true;
 					} break;
 					case 'A':
 					{
-						key_a = true;
+						ctx.key_a = true;
 					} break;
 					case 'D':
 					{
-						key_d = true;
+						ctx.key_d = true;
 					} break;
 					case VK_ESCAPE: 
 					{
-						win32_running = false;
+						ctx.running = false;
 					} break;
 				}
 			} break;
@@ -370,29 +366,29 @@ namespace based_renderer
 				{
 					case 'W':
 					{
-						key_w = false;
+						ctx.key_w = false;
 					} break;
 					case 'S':
 					{
-						key_s = false;
+						ctx.key_s = false;
 					} break;
 					case 'A':
 					{
-						key_a = false;
+						ctx.key_a = false;
 					} break;
 					case 'D':
 					{
-						key_d = false;
+						ctx.key_d = false;
 					} break;
 					case VK_ESCAPE: 
 					{
-						win32_running = false;
+						ctx.running = false;
 					} break;
 				}
 			} break;
 			case WM_MOUSEMOVE:
 			{
-				memcpy(&mouse_pos, &win32_l_param, sizeof(LPARAM));
+				memcpy(&ctx.mouse_pos, &win32_l_param, sizeof(LPARAM));
 			} break;
 			default: 
 			{
@@ -418,7 +414,7 @@ namespace based_renderer
 		return vk::False;
 	}
 
-	struct Uniforms
+	struct uniforms_t
 	{
 		glm::mat4 model;
 		glm::mat4 view;
@@ -441,34 +437,35 @@ namespace based_renderer
 
 	#if 1
 	static void update_cube(
+		context_t &ctx,
 		vk::Device const device, 
 		vk::DeviceMemory const uniforms_memory, 
-		Uniforms &uniforms,
-		float const dt) noexcept
+		uniforms_t &uniforms)
 	{
-		if (should_rotate)
+		if (ctx.should_rotate)
 		{
-			uniforms.model = glm::rotate(uniforms.model, dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
+			uniforms.model = glm::rotate(uniforms.model, ctx.fixed_dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
 		}
 
 		uniforms.view = glm::inverse(uniforms.view);
 
 		// Rotate based on mouse delta (doesn't work at all right now).
+		// TODO: Add mouse delta to ctx.
 		static glm::ivec2 last_mouse_pos{-1, -1};
 		if (last_mouse_pos == glm::ivec2{-1, -1})
 		{
-			last_mouse_pos = mouse_pos;
+			last_mouse_pos = ctx.mouse_pos;
 		}
-		glm::vec2 mouse_pos_diff = glm::vec2{mouse_pos - last_mouse_pos};
+		glm::vec2 mouse_pos_diff = glm::vec2{ctx.mouse_pos - last_mouse_pos};
 
-		glm::vec3 angle{mouse_pos_diff.x*dt/(TAU*2048.0f), 0.0f, mouse_pos_diff.y*dt/(TAU*2048.0f)};
+		glm::vec3 angle{mouse_pos_diff.x*ctx.fixed_dt/(TAU*2048.0f), 0.0f, mouse_pos_diff.y*ctx.fixed_dt/(TAU*2048.0f)};
 		uniforms.view = glm::rotateNormalizedAxis(uniforms.view, glm::length(angle), glm::normalize(angle));
-		last_mouse_pos = mouse_pos;
+		last_mouse_pos = ctx.mouse_pos;
 
 		// Translate based on whether WASD keys are pressed.
-		int32_t const cube_dir_z = key_s - key_w;
-		int32_t const cube_dir_x = key_a - key_d;
-		uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*dt, 0.0f, static_cast<float>(cube_dir_z)*dt});
+		int32_t const cube_dir_z = ctx.key_s - ctx.key_w;
+		int32_t const cube_dir_x = ctx.key_a - ctx.key_d;
+		uniforms.view = glm::translate(uniforms.view, glm::vec3{static_cast<float>(cube_dir_x)*ctx.fixed_dt, 0.0f, static_cast<float>(cube_dir_z)*ctx.fixed_dt});
 
 		uniforms.view = glm::inverse(uniforms.view);
 
@@ -489,6 +486,11 @@ namespace based_renderer
 		return data;
 	}
 
+	struct scene_t
+	{
+
+	};
+
 	// TODO: Would it make sense to make this into two functions: gltf_process_root_node and gltf_process_child_node?
 	static void gltf_process_node(cgltf_node *node)
 	{
@@ -502,8 +504,10 @@ namespace based_renderer
 		// TODO: Process camera.
 	}
 
-	static void gltf_process_data(cgltf_data *data)
+	static std::vector<scene_t> gltf_process_data(cgltf_data *data)
 	{
+		std::vector<scene_t> res;
+
 		// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#concepts
 		for (size_t scene_idx = 0; scene_idx < data->scenes_count; ++scene_idx)
 		{
@@ -523,17 +527,19 @@ namespace based_renderer
 				UNUSED(extension);
 			}
 		}
+
+		return res;
 	}
 
 	#if 0
-	static glm::mat4 gltf_node_transform_local(cgltf_node const *node)
+	static glm::mat4 gltf_node_transform_local(cgltf_node const *node) noexcept
 	{
 		glm::mat4 res;
 		cgltf_node_transform_local(node, reinterpret_cast<float *>(&res));
 		return res;
 	}
 	#else
-	static glm::mat4 gltf_node_transform_world(cgltf_node const *node)
+	static glm::mat4 gltf_node_transform_world(cgltf_node const *node) noexcept
 	{
 		glm::mat4 res;
 		cgltf_node_transform_world(node, reinterpret_cast<float *>(&res));
@@ -734,6 +740,13 @@ namespace based_renderer
 		#undef ALLOW_FEATURE
 	}
 
+	static std::system_error win32_system_error() noexcept
+	{
+		std::error_code error_code{static_cast<int>(GetLastError()), std::system_category()};
+		std::system_error system_error{error_code};
+		return system_error;
+	}
+
 	static void main()
 	{
 	#if BASED_RENDERER_VK_LAYERS
@@ -868,6 +881,8 @@ namespace based_renderer
 		int32_t const monitor_width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
 		int32_t const monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
 
+		HINSTANCE const win32_instance = GetModuleHandleW(nullptr);
+
 		WNDCLASSEXW win32_window_class{
 			.cbSize = sizeof(WNDCLASSEXW),
 			.style = 0,
@@ -934,16 +949,21 @@ namespace based_renderer
 			throw win32_system_error();
 		}
 
-		uint32_t const client_width = static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left);
-		uint32_t const client_height = static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top);
-		float const aspect_ratio = static_cast<float>(client_width)/static_cast<float>(client_height);
-
 	    DEVMODEW win32_dev_mode = DEVMODEW{sizeof(DEVMODEW)};
 	    if (!EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &win32_dev_mode))
 	    {
 	    	throw win32_system_error();
 	    }
-	    float const fixed_dt = 1.0f/static_cast<float>(win32_dev_mode.dmDisplayFrequency);
+
+	    context_t ctx{
+	    	.client_dimensions = glm::uvec2{
+	    		static_cast<uint32_t>(win32_client_rect.right - win32_client_rect.left),
+	    		static_cast<uint32_t>(win32_client_rect.bottom - win32_client_rect.top),
+	    	},
+	    	.aspect_ratio = static_cast<float>(win32_client_rect.right - win32_client_rect.left)/static_cast<float>(win32_client_rect.bottom - win32_client_rect.top),
+	    	.fixed_dt = 1.0f/static_cast<float>(win32_dev_mode.dmDisplayFrequency),
+	    };
+	    SetPropW(win32_window, L"based_renderer::context_t", &ctx);
 
 		vk::SurfaceKHR vk_surface = vk_instance.createWin32SurfaceKHR({
 			{},
@@ -969,12 +989,12 @@ namespace based_renderer
 
 		vk::Extent2D vk_swapchain_extent;
 		vk_swapchain_extent.width  = std::clamp(
-			client_width, 
+			ctx.client_dimensions.x, 
 			vk_surface_capabilities.minImageExtent.width, 
 			vk_surface_capabilities.maxImageExtent.width
 		);
 		vk_swapchain_extent.height = std::clamp(
-			client_height, 
+			ctx.client_dimensions.y, 
 			vk_surface_capabilities.minImageExtent.height, 
 			vk_surface_capabilities.maxImageExtent.height
 		);
@@ -1079,7 +1099,7 @@ namespace based_renderer
 			vk::ImageCreateFlags{},
 			vk::ImageType::e2D,
 			vk_depth_format, 
-			vk::Extent3D{client_width, client_height, 1},
+			vk::Extent3D{ctx.client_dimensions.x, ctx.client_dimensions.y, 1},
 			1,
 			1,
 			vk::SampleCountFlagBits::e1,
@@ -1245,7 +1265,7 @@ namespace based_renderer
 		cgltf_scene const *box_scene = box->scene;
 		if (box_scene->name) dprint("{}", box_scene->name);
 
-		struct Vertex
+		struct vertex_t
 		{
 			// TODO: Does it matter if we send these as vec4 or vec3?
 			// Like, does it just pad it out if we use vec3, making it
@@ -1254,11 +1274,11 @@ namespace based_renderer
 			glm::vec4 pos;
 			glm::vec4 normal;
 		};
-		std::vector<Vertex> vertices;
+		std::vector<vertex_t> vertices;
 		vertices.reserve(box_vertex_count);
 		for (size_t i = 0; i < box_vertex_count; ++i)
 		{
-			Vertex vertex;
+			vertex_t vertex;
 			// TODO: How would this be made generic?
 			glm::vec3 normal = *reinterpret_cast<glm::vec3 const *>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[1].offset + i*box->accessors[1].stride);
 			glm::vec3 pos = *reinterpret_cast<glm::vec3 const *>(reinterpret_cast<uint8_t const *const>(box->bin) + box->accessors[2].offset + i*box->accessors[2].stride);
@@ -1325,7 +1345,7 @@ namespace based_renderer
 		// NOTE: I am writing this code assuming that there exists a memory type index with memory properties host visible, host coherent and device local. This is not necessarily always the case!
 		vk::Buffer vk_uniform_buffer = vk_device.createBuffer({
 			vk::BufferCreateFlags{},
-			sizeof(Uniforms),
+			sizeof(uniforms_t),
 			vk::BufferUsageFlagBits::eUniformBuffer,
 		});
 		vk::MemoryRequirements vk_uniform_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_uniform_buffer);
@@ -1341,10 +1361,10 @@ namespace based_renderer
 		});
 		vk_device.bindBufferMemory(vk_uniform_buffer, vk_uniform_buffer_memory, 0);
 
-		Uniforms uniforms;
+		uniforms_t uniforms;
 		uniforms.model = glm::mat4{1.0f};
 		uniforms.view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, 3.0f});
-		uniforms.proj = perspective(aspect_ratio);
+		uniforms.proj = perspective(ctx.aspect_ratio);
 		vk_map_memory(vk_device, vk_uniform_buffer_memory, &uniforms, sizeof(uniforms));
 
 		vk::Buffer vk_vertex_buffer = vk_device.createBuffer({
@@ -1435,7 +1455,7 @@ namespace based_renderer
 	    	vk::DescriptorBufferInfo{
 	    		vk_uniform_buffer,
 	    		0,
-	    		sizeof(Uniforms),
+	    		sizeof(uniforms_t),
 	    	},
 	    };
 
@@ -1504,7 +1524,7 @@ namespace based_renderer
 	    	vk::DescriptorBufferInfo{
 	    		vk_uniform_buffer,
 	    		0,
-	    		sizeof(Uniforms),
+	    		sizeof(uniforms_t),
 	    	},
 	    };
 
@@ -1698,7 +1718,7 @@ namespace based_renderer
 		std::array<vk::VertexInputBindingDescription, 1> vk_vertex_input_binding_descriptions{
 			vk::VertexInputBindingDescription{
 				0,
-				sizeof(Vertex),
+				sizeof(vertex_t),
 				vk::VertexInputRate::eVertex,
 			}
 		};
@@ -1708,13 +1728,13 @@ namespace based_renderer
 				0,
 				0,
 				vk::Format::eR32G32B32A32Sfloat,
-				offsetof(Vertex, pos),
+				offsetof(vertex_t, pos),
 			},
 			vk::VertexInputAttributeDescription{
 				1,
 				0,
 				vk::Format::eR32G32B32A32Sfloat,
-				offsetof(Vertex, normal),
+				offsetof(vertex_t, normal),
 			},
 		};
 
@@ -1846,8 +1866,8 @@ namespace based_renderer
 
 		size_t vk_frame_idx = 0;
 
-		win32_running = true;
-		while (win32_running) 
+		ctx.running = true;
+		while (ctx.running) 
 		{
 			MSG win32_message;
 			if (PeekMessageW(&win32_message, win32_window, 0, 0, PM_REMOVE))
@@ -1887,11 +1907,7 @@ namespace based_renderer
 			}
 
 
-		#if 0
-			UNUSED(fixed_dt);
-		#else
-			update_cube(vk_device, vk_uniform_buffer_memory, uniforms, fixed_dt);
-		#endif
+			update_cube(ctx, vk_device, vk_uniform_buffer_memory, uniforms);
 
 			vk::CommandBuffer cb = vk_graphics_command_buffers[vk_frame_idx];
 			cb.begin({
