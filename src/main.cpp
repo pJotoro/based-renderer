@@ -617,41 +617,6 @@ namespace based_renderer
 				.size = (accessor->buffer_view->stride != 0 ? accessor->buffer_view->stride : accessor->stride) * accessor->count, // TODO: Is this correct?
 				.usage = vk::BufferUsageFlagBits::eTransferDst|(accessor->buffer_view->type == cgltf_buffer_view_type_vertices ? vk::BufferUsageFlagBits::eVertexBuffer : BufferUsageFlagBits::eIndexBuffer),
 			};
-
-			// TODO: Is this correct?
-			size_t stride;
-			if (accessor->stride == 0 && accessor->buffer_view->stride == 0)
-			{
-				stride = gltf_stride(accessor->component_type, accessor->type);
-			}
-			else if (accessor->buffer_view->stride != 0)
-			{
-				stride = accessor->buffer_view->stride;
-			}
-			else
-			{
-				stride = accessor->stride;
-			}
-
-			buffer_create_info.data = PTR_ADD(
-				accessor->buffer_view->buffer->data, 
-				accessor->offset + accessor->buffer_view->offset);
-			buffer_create_info.size = buffer_view->size;
-			switch (buffer_view->type)
-			{
-				case cgltf_buffer_view_type_vertices:
-					buffer_create_info.usage = vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eVertexBuffer;
-					break;
-				case cgltf_buffer_view_type_indices:
-					buffer_create_info.usage = vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eIndexBuffer;
-					break;
-				case cgltf_buffer_view_type_invalid:
-					throw std::runtime_error{FORMAT_ERROR("Invalid buffer view type")};
-			}
-			switch ()
-		    	vk::Format format;
-		    	uint32_t stride;
-			};
 		}
 
 		// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#concepts
