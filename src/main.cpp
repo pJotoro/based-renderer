@@ -92,23 +92,24 @@ namespace based_renderer
 	// }
 
 #if BASED_RENDERER_VK_LAYERS
-	std::vector<char const *> vk_get_instance_layers();
+	static std::vector<char const *> vk_get_instance_layers();
 #endif
-	std::vector<char const *> vk_get_instance_extensions();
-	std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device);
+	static std::vector<char const *> vk_get_instance_extensions();
+	static std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device);
 	
-	std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
-	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
-	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
+	static std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
+	static std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties);
+	static size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags);
 	
-	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size);
+	static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size);
+	
 	template <typename T>
-	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
+	static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, std::vector<T> const &memory)
 	{
 		vk_map_memory(device, device_memory, memory.data(), sizeof(T)*memory.size());
 	}
 	
-	uint32_t vk_find_memory_type_idx(
+	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
 		vk::MemoryPropertyFlags const desired_memory_properties);
@@ -491,14 +492,95 @@ namespace based_renderer
     	void *data;
 		vk::DeviceSize size; // in bytes
     	vk::BufferUsageFlags usage;
-    	vk::Format format;
-    	uint32_t stride;
+    	std::vector<vk::VertexInputBindingDescription2EXT> bindings;
+    	std::vector<vk::VertexInputAttributeDescription2EXT> attributes;
 	};
 
 	struct gltf_process_data_result_t
 	{
 		std::vector<buffer_info_t> buffer_infos;
 	};
+
+	static vk::Format vk_format(cgltf_type type, cgltf_component_type component_type) noexcept
+	{
+		if (type == cgltf_type_invalid || type == cgltf_primitive_type_invalid)
+		{
+			return vk::Format::eUndefined;
+		}
+
+		switch (type)
+		{
+			case cgltf_type_scalar:
+				switch (component_type)
+				{
+					case cgltf_component_type_r_8:
+						return vk::Format::eR8Sint;
+					case cgltf_component_type_r_8u:
+						return vk::Format::eR8Uint;
+					case cgltf_component_type_r_16:
+						return vk::Format::eR16Sint;
+					case cgltf_component_type_r_16u:
+						return vk::Format::eR16Uint;
+					case cgltf_component_type_r_32u:
+						return vk::Format::eR32Uint;
+					case cgltf_component_type_r_32f:
+						return vk::Format::eR32Sfloat;
+				}
+			case cgltf_type_vec2:
+			case cgltf_type_mat2:
+				switch (component_type)
+				{
+					case cgltf_component_type_r_8:
+						return vk::Format::eR8G8Sint;
+					case cgltf_component_type_r_8u:
+						return vk::Format::eR8G8Uint;
+					case cgltf_component_type_r_16:
+						return vk::Format::eR16G16Sint;
+					case cgltf_component_type_r_16u:
+						return vk::Format::eR16G16Uint;
+					case cgltf_component_type_r_32u:
+						return vk::Format::eR32G32Uint;
+					case cgltf_component_type_r_32f:
+						return vk::Format::eR32G32Sfloat;
+				}
+			case cgltf_type_vec3:
+			case cgltf_type_mat3:
+				switch (component_type)
+				{
+					case cgltf_component_type_r_8:
+						return vk::Format::eR8G8B8Sint;
+					case cgltf_component_type_r_8u:
+						return vk::Format::eR8G8B8Uint;
+					case cgltf_component_type_r_16:
+						return vk::Format::eR16G16B16Sint;
+					case cgltf_component_type_r_16u:
+						return vk::Format::eR16G16B16Uint;
+					case cgltf_component_type_r_32u:
+						return vk::Format::eR32G32B32Uint;
+					case cgltf_component_type_r_32f:
+						return vk::Format::eR32G32B32Sfloat;
+				}
+			case cgltf_type_vec4:
+			case cgltf_type_mat4:
+				switch (component_type)
+				{
+					case cgltf_component_type_r_8:
+						return vk::Format::eR8G8B8A8Sint;
+					case cgltf_component_type_r_8u:
+						return vk::Format::eR8G8B8A8Uint;
+					case cgltf_component_type_r_16:
+						return vk::Format::eR16G16B16A16Sint;
+					case cgltf_component_type_r_16u:
+						return vk::Format::eR16G16B16A16Uint;
+					case cgltf_component_type_r_32u:
+						return vk::Format::eR32G32B32A32Uint;
+					case cgltf_component_type_r_32f:
+						return vk::Format::eR32G32B32A32Sfloat;
+				}
+		}
+
+		return vk::Format::eUndefined;
+	}
 
 	// TODO: Would it make sense to make this into two functions: gltf_process_root_node and gltf_process_child_node?
 	static void gltf_process_node(cgltf_node *node)
@@ -509,27 +591,32 @@ namespace based_renderer
 		}
 
 		// TODO: Process skin.
-		// TODO: Process mesh.
+
+		// Process mesh.
+		{
+			cgltf_mesh *mesh = node->mesh;
+		}
+
 		// TODO: Process camera.
 	}
 
 	#define PTR_ADD(PTR, AMOUNT) (reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(PTR) + AMOUNT))
 
-	/*
-	NOTE TO SELF FOR TOMORROW:
-
-	The only reason this is taking so long is because you did not read through the documentation properly beforehand. You should do that. That is the very first thing you should do tomorrow.
-	*/
-
-	static gltf_process_data_result_t gltf_process_data(cgltf_data *data)
+	static gltf_process_data_result_t gltf_process_data(cgltf_data const *data)
 	{
 		gltf_process_data_result_t res{};
 		res.buffer_infos.reserve(data->accessors_count);
+
+		// NEXT TIME YOU CODE: Shouldn't you be looping through the meshes, since they are what contain the primitives, which themselves contain attribute information?
 		for (size_t accessor_idx = 0; accessor_idx < data->accessors_count; ++accessor_idx)
 		{
 			cgltf_accessor *accessor = &data->accessors[accessor_idx];
 
-			buffer_info_t buffer_create_info{};
+			buffer_info_t buffer_create_info{
+				.data = PTR_ADD(accessor->buffer_view->buffer->data, accessor->offset + accessor->buffer_view->offset),
+				.size = (accessor->buffer_view->stride != 0 ? accessor->buffer_view->stride : accessor->stride) * accessor->count, // TODO: Is this correct?
+				.usage = vk::BufferUsageFlagBits::eTransferDst|(accessor->buffer_view->type == cgltf_buffer_view_type_vertices ? vk::BufferUsageFlagBits::eVertexBuffer : BufferUsageFlagBits::eIndexBuffer),
+			};
 
 			// TODO: Is this correct?
 			size_t stride;
@@ -598,12 +685,12 @@ namespace based_renderer
 		return res;
 	}
 	#else
-	static glm::mat4 gltf_node_transform_world(cgltf_node const *node) noexcept
-	{
-		glm::mat4 res;
-		cgltf_node_transform_world(node, reinterpret_cast<float *>(&res));
-		return res;
-	}
+	// static glm::mat4 gltf_node_transform_world(cgltf_node const *node) noexcept
+	// {
+	// 	glm::mat4 res;
+	// 	cgltf_node_transform_world(node, reinterpret_cast<float *>(&res));
+	// 	return res;
+	// }
 	#endif
 
 	static void vk_modify_physical_device_features(auto &physical_device_features)
@@ -1282,6 +1369,9 @@ namespace based_renderer
 		// I think I've figured out the problem. The problem is that not every index has a valid vertex. Especially many of the later ones don't have one. Clearly, I just don't understand the gltf format. I should really just spend some time reading the spec of gltf so that way I know what I am doing.
 
 		cgltf_data const *box = gltf_load("assets/Box.glb");
+		gltf_process_data_result_t res = gltf_process_data(box);
+		UNUSED(res);
+	#if 0
 		cgltf_mesh const &box_mesh = box->meshes[0];
 		dprint("{}", box_mesh.name);
 		cgltf_material const &box_material = box->materials[0]; // It seems like I can safely ignore the material. The only thing set is the alpha cutoff.
@@ -1355,11 +1445,12 @@ namespace based_renderer
 			dprint("\n{},{},{} {},{},{}", vertex.pos.x, vertex.pos.y, vertex.pos.z, vertex.normal.x, vertex.normal.y, vertex.normal.z);
 			vertices.push_back(vertex);
 		}
+	#endif
 
 		vk::Buffer vk_vertex_staging_buffer = vk_device.createBuffer({
 			vk::BufferCreateFlags{},
-			sizeof(vertices[0])*vertices.size(),
-			vk::BufferUsageFlagBits::eTransferSrc,
+			//sizeof(vertices[0])*vertices.size(),
+			//vk::BufferUsageFlagBits::eTransferSrc,
 		});
 		vk::MemoryRequirements vk_vertex_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_vertex_staging_buffer);
 		vk::DeviceMemory vk_vertex_staging_buffer_memory = vk_device.allocateMemory({
@@ -1372,12 +1463,12 @@ namespace based_renderer
 			),
 		});
 		vk_device.bindBufferMemory(vk_vertex_staging_buffer, vk_vertex_staging_buffer_memory, 0);
-		vk_map_memory(vk_device, vk_vertex_staging_buffer_memory, vertices);
+		//vk_map_memory(vk_device, vk_vertex_staging_buffer_memory, vertices);
 
 		vk::Buffer vk_index_staging_buffer = vk_device.createBuffer({
 			vk::BufferCreateFlags{},
-			box_index_buffer_size,
-			vk::BufferUsageFlagBits::eTransferSrc,
+			//box_index_buffer_size,
+			//vk::BufferUsageFlagBits::eTransferSrc,
 		});
 		vk::MemoryRequirements vk_index_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_index_staging_buffer);
 		vk::DeviceMemory vk_index_staging_buffer_memory = vk_device.allocateMemory({
@@ -1428,8 +1519,8 @@ namespace based_renderer
 
 		vk::Buffer vk_vertex_buffer = vk_device.createBuffer({
 			vk::BufferCreateFlags{},
-			box_vertex_buffer_size,
-			vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eVertexBuffer,
+			//box_vertex_buffer_size,
+			//vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eVertexBuffer,
 		});
 		vk::MemoryRequirements vk_vertex_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_vertex_buffer);
 		vk::DeviceMemory vk_vertex_buffer_memory = vk_device.allocateMemory({
@@ -1444,8 +1535,8 @@ namespace based_renderer
 
 		vk::Buffer vk_index_buffer = vk_device.createBuffer({
 			vk::BufferCreateFlags{},
-			box_index_buffer_size,
-			vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eIndexBuffer,
+			//box_index_buffer_size,
+			//vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eIndexBuffer,
 		});
 		vk::MemoryRequirements vk_index_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_index_buffer);
 		vk::DeviceMemory vk_index_buffer_memory = vk_device.allocateMemory({
@@ -1777,8 +1868,8 @@ namespace based_renderer
 		std::array<vk::VertexInputBindingDescription, 1> vk_vertex_input_binding_descriptions{
 			vk::VertexInputBindingDescription{
 				0,
-				sizeof(vertex_t),
-				vk::VertexInputRate::eVertex,
+				//sizeof(vertex_t),
+				//vk::VertexInputRate::eVertex,
 			}
 		};
 
@@ -1787,13 +1878,13 @@ namespace based_renderer
 				0,
 				0,
 				vk::Format::eR32G32B32A32Sfloat,
-				offsetof(vertex_t, pos),
+				//offsetof(vertex_t, pos),
 			},
 			vk::VertexInputAttributeDescription{
 				1,
 				0,
 				vk::Format::eR32G32B32A32Sfloat,
-				offsetof(vertex_t, normal),
+				//offsetof(vertex_t, normal),
 			},
 		};
 
@@ -1987,7 +2078,7 @@ namespace based_renderer
 						0,
 						vk_vertex_staging_buffer,
 						0,
-						box_vertex_buffer_size,
+						//box_vertex_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
 						vk::PipelineStageFlags2{},
@@ -1998,7 +2089,7 @@ namespace based_renderer
 						0,
 						vk_index_staging_buffer,
 						0,
-						box_index_buffer_size,
+						//box_index_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
 						vk::PipelineStageFlags2{},
@@ -2009,7 +2100,7 @@ namespace based_renderer
 						0,
 						vk_vertex_buffer,
 						0,
-						box_vertex_buffer_size,
+						//box_vertex_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
 						vk::PipelineStageFlags2{},
@@ -2020,7 +2111,7 @@ namespace based_renderer
 						0,
 						vk_index_buffer,
 						0,
-						box_index_buffer_size,
+						//box_index_buffer_size,
 					},
 				};
 
@@ -2095,7 +2186,7 @@ namespace based_renderer
 					vk::BufferCopy{
 						0,
 						0,
-						box_vertex_buffer_size,
+						//box_vertex_buffer_size,
 					},
 				};
 
@@ -2105,7 +2196,7 @@ namespace based_renderer
 					vk::BufferCopy{
 						0,
 						0,
-						box_index_buffer_size,
+						//box_index_buffer_size,
 					},
 				};
 
@@ -2121,7 +2212,7 @@ namespace based_renderer
 						0,
 						vk_vertex_buffer,
 						0,
-						box_vertex_buffer_size,
+						//box_vertex_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
 						vk::PipelineStageFlagBits2::eTransfer,
@@ -2132,7 +2223,7 @@ namespace based_renderer
 						0,
 						vk_index_buffer,
 						0,
-						box_index_buffer_size,
+						//box_index_buffer_size,
 					},
 				};
 
@@ -2405,7 +2496,7 @@ namespace based_renderer
 	}
 
 #if BASED_RENDERER_VK_LAYERS
-	std::vector<char const *> vk_get_instance_layers()
+	static std::vector<char const *> vk_get_instance_layers()
 	{
 		std::vector<char const *> instance_layers;
 
@@ -2427,7 +2518,7 @@ namespace based_renderer
 	}
 #endif
 
-	std::vector<char const *> vk_get_instance_extensions()
+	static std::vector<char const *> vk_get_instance_extensions()
 	{
 		std::vector<char const *> instance_extensions;
 
@@ -2462,7 +2553,7 @@ namespace based_renderer
 		return instance_extensions;
 	}
 
-	std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device)
+	static std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device)
 	{
 		std::vector<char const *> device_extensions;
 
@@ -2505,7 +2596,7 @@ namespace based_renderer
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 	};
 
-	std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties)
+	static std::vector<vk::DeviceQueueCreateInfo> vk_get_device_queue_infos(std::vector<vk::QueueFamilyProperties> const &queue_family_properties)
 	{
 		std::vector<vk::DeviceQueueCreateInfo> device_queue_infos;
 		device_queue_infos.reserve(queue_family_properties.size());
@@ -2526,7 +2617,7 @@ namespace based_renderer
 		return device_queue_infos;
 	}
 
-	std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties)
+	static std::vector<std::vector<vk::Queue>> vk_get_queues(vk::Device const device, std::vector<vk::QueueFamilyProperties> const &queue_family_properties)
 	{
 		std::vector<std::vector<vk::Queue>> queues{queue_family_properties.size()};
 
@@ -2542,7 +2633,7 @@ namespace based_renderer
 		return queues;
 	}
 
-	size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags)
+	static size_t vk_find_queue_family_idx(std::vector<vk::QueueFamilyProperties> const &queue_family_properties, vk::QueueFlagBits const flags)
 	{
 		for (size_t i = 0; i < queue_family_properties.size(); ++i)
 		{
@@ -2555,7 +2646,7 @@ namespace based_renderer
 		throw vk::LogicError{FORMAT_ERROR("Failed to find queue family idx")};
 	}
 
-	void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size)
+	static void vk_map_memory(vk::Device const device, vk::DeviceMemory const device_memory, void const *memory, vk::DeviceSize const memory_size)
 	{
 	    void *data;
 		vk::detail::resultCheck(
@@ -2572,7 +2663,7 @@ namespace based_renderer
 		device.unmapMemory(device_memory);
 	}
 
-	uint32_t vk_find_memory_type_idx(
+	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
 		vk::MemoryPropertyFlags const desired_memory_properties)
