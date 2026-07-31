@@ -489,9 +489,9 @@ namespace based_renderer
 
 	struct buffer_info_t
 	{
-    	void *data;
-		vk::DeviceSize size; // in bytes
-    	vk::BufferUsageFlags usage;
+    	void const *data;
+		vk::DeviceSize const size; // in bytes
+    	vk::BufferUsageFlags const usage;
     	std::vector<vk::VertexInputBindingDescription2EXT> bindings;
     	std::vector<vk::VertexInputAttributeDescription2EXT> attributes;
 	};
@@ -501,7 +501,7 @@ namespace based_renderer
 		std::vector<buffer_info_t> buffer_infos;
 	};
 
-	static vk::Format vk_format(cgltf_type type, cgltf_component_type component_type) noexcept
+	static vk::Format vk_format(cgltf_type const type, cgltf_component_type const component_type) noexcept
 	{
 		if (type == cgltf_type_invalid || type == cgltf_primitive_type_invalid)
 		{
@@ -602,15 +602,31 @@ namespace based_renderer
 
 	#define PTR_ADD(PTR, AMOUNT) (reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(PTR) + AMOUNT))
 
+	/*
+	Things we must be able to infer from the gltf data (# means I already know how to do it; ~ means I don't, but it doesn't matter yet):
+	# Which camera to use.
+	~ Which shaders do use.
+	# Vertex input.
+	# Input assembly.
+	~ Tessellation state.
+	~ Rasterization state.
+	~ Multisample state.
+	*/
+
 	static gltf_process_data_result_t gltf_process_data(cgltf_data const *data)
 	{
 		gltf_process_data_result_t res{};
-		res.buffer_infos.reserve(data->accessors_count);
 
-		// NEXT TIME YOU CODE: Shouldn't you be looping through the meshes, since they are what contain the primitives, which themselves contain attribute information?
-		for (size_t accessor_idx = 0; accessor_idx < data->accessors_count; ++accessor_idx)
+		for (size_t mesh_idx = 0; mesh_idx < data->meshes_count; ++mesh_idx)
 		{
-			cgltf_accessor *accessor = &data->accessors[accessor_idx];
+			cgltf_mesh *mesh = &data->meshs[mesh_idx];
+			for (size_t primitive_idx = 0; primitive_idx < mesh->primitives_count; ++primitive_idx)
+			{
+				cgltf_primitive *primitive = &mesh->primitives[primitive_idx];
+				
+
+
+			}
 
 			buffer_info_t buffer_create_info{
 				.data = PTR_ADD(accessor->buffer_view->buffer->data, accessor->offset + accessor->buffer_view->offset),
@@ -618,6 +634,17 @@ namespace based_renderer
 				.usage = vk::BufferUsageFlagBits::eTransferDst|(accessor->buffer_view->type == cgltf_buffer_view_type_vertices ? vk::BufferUsageFlagBits::eVertexBuffer : BufferUsageFlagBits::eIndexBuffer),
 			};
 		}
+
+		// for (size_t accessor_idx = 0; accessor_idx < data->accessors_count; ++accessor_idx)
+		// {
+		// 	cgltf_accessor *accessor = &data->accessors[accessor_idx];
+
+		// 	buffer_info_t buffer_create_info{
+		// 		.data = PTR_ADD(accessor->buffer_view->buffer->data, accessor->offset + accessor->buffer_view->offset),
+		// 		.size = (accessor->buffer_view->stride != 0 ? accessor->buffer_view->stride : accessor->stride) * accessor->count, // TODO: Is this correct?
+		// 		.usage = vk::BufferUsageFlagBits::eTransferDst|(accessor->buffer_view->type == cgltf_buffer_view_type_vertices ? vk::BufferUsageFlagBits::eVertexBuffer : BufferUsageFlagBits::eIndexBuffer),
+		// 	};
+		// }
 
 		// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#concepts
 		for (size_t scene_idx = 0; scene_idx < data->scenes_count; ++scene_idx)
