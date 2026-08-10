@@ -2420,11 +2420,13 @@ namespace based_renderer
 
 					.loadOp = vk::AttachmentLoadOp::eClear,
 					.storeOp = vk::AttachmentStoreOp::eStore,
-					.clearValue = vk::ClearColorValue{
-						.float32 = {0.0f, 0.0f, 0.0f, 1.0f},
-					},
 				},
 			};
+			// TODO: Figure out a way to do this inside the designated initializer.
+			vk_rendering_attachment_infos[0].clearValue.color.float32[0] = 0.0f;
+			vk_rendering_attachment_infos[0].clearValue.color.float32[1] = 0.0f;
+			vk_rendering_attachment_infos[0].clearValue.color.float32[2] = 0.0f;
+			vk_rendering_attachment_infos[0].clearValue.color.float32[3] = 1.0f;
 
 			vk::RenderingAttachmentInfo vk_depth_attachment_info{
 				.imageView = vk_depth_image_view,
@@ -2436,11 +2438,10 @@ namespace based_renderer
 
 				.loadOp = vk::AttachmentLoadOp::eClear,
 				.storeOp = vk::AttachmentStoreOp::eDontCare,
-				.clearValue = vk::ClearDepthStencilValue{
-					.depth = 0.0f, 
-					.stencil = 0,
-				},
 			};
+			// TODO: Figure out a way to do this inside the designated initializer.
+			vk_depth_attachment_info.clearValue.depthStencil.depth = 0.0f;
+			vk_depth_attachment_info.clearValue.depthStencil.stencil = 0;
 
 			cb.beginRendering({
 				.flags = vk::RenderingFlags{},

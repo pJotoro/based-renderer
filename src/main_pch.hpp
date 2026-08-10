@@ -17,6 +17,8 @@
 #error TODO: Implement other platforms.
 #endif
 #define VULKAN_HPP_NO_CONSTRUCTORS
+#define VULKAN_HPP_NO_SETTERS
+#define VULKAN_HPP_HAS_UNRESTRICTED_UNIONS
 #include <vulkan/vulkan.hpp>
 
 #include <slang/slang-com-ptr.h>
