@@ -31,5 +31,7 @@ target_link_libraries(based_renderer PRIVATE Vulkan::Vulkan slang stb::stb cgltf
 if(MSVC)
 target_compile_options(based_renderer PRIVATE /W4 /WX /diagnostics:column /wd4201 /wd4324)
 target_link_options(based_renderer PRIVATE /subsystem:windows)
+else()
+    message(FATAL_ERROR "TODO: Implement other platforms." )
 endif()
 # ==========================

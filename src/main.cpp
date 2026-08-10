@@ -29,9 +29,6 @@ Conventions:
 
 #define VK_KHR_platform_surface "VK_KHR_win32_surface"
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/rotate_normalized_axis.hpp>
-
 namespace based_renderer
 {
 	// Works just like std::print, except it prints to the debug console.
@@ -503,7 +500,7 @@ namespace based_renderer
 
 	static vk::Format vk_format(cgltf_type const type, cgltf_component_type const component_type) noexcept
 	{
-		if (type == cgltf_type_invalid || type == cgltf_primitive_type_invalid)
+		if (type == cgltf_type_invalid || component_type == cgltf_component_type_invalid)
 		{
 			return vk::Format::eUndefined;
 		}
@@ -894,42 +891,43 @@ namespace based_renderer
 		std::vector<char const *> vk_instance_extensions = vk_get_instance_extensions();
 
 		vk::ApplicationInfo vk_app_info{
-			"based_renderer",
-			VK_API_VERSION_1_0,
-			"based_renderer",
-			VK_API_VERSION_1_0,
-			VK_API_VERSION_1_4,
+			.pApplicationName = "based_renderer",
+			.applicationVersion = VK_API_VERSION_1_0,
+			.pEngineName = "based_renderer",
+			.engineVersion = VK_API_VERSION_1_0,
+			.apiVersion = VK_API_VERSION_1_4,
 		};
 
 	#if BASED_RENDERER_VK_DEBUG_OUTPUT
 		vk::DebugUtilsMessengerCreateInfoEXT vk_debug_output_info{
-			{},
-			{
+			.flags = vk::DebugUtilsMessengerCreateFlagsEXT{},
+			.messageSeverity = {
 				vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | 
 				vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | 
 				vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | 
 				vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
 			},
-			{
+			.messageType = {
 				vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | 
 				vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
 			},
-			vk_debug_callback
+			.pfnUserCallback = vk_debug_callback,
+			.pUserData = nullptr,
 		};
 	#endif
 
 		vk::InstanceCreateInfo vk_instance_create_info{
-			{},
-			&vk_app_info,
+			.flags = {},
+			.pApplicationInfo = &vk_app_info,
 	#if BASED_RENDERER_VK_LAYERS
-			static_cast<uint32_t>(vk_instance_layers.size()),
-			vk_instance_layers.data(),
+			.enabledLayerCount = static_cast<uint32_t>(vk_instance_layers.size()),
+			.ppEnabledLayerNames = vk_instance_layers.data(),
 	#else
-			0,
-			nullptr,
+			.enabledLayerCount = 0,
+			.ppEnabledLayerNames = nullptr,
 	#endif
-			static_cast<uint32_t>(vk_instance_extensions.size()),
-			vk_instance_extensions.data(),
+			.enabledExtensionCount = static_cast<uint32_t>(vk_instance_extensions.size()),
+			.ppEnabledExtensionNames = vk_instance_extensions.data(),
 		};
 
 	#if BASED_RENDERER_VK_DEBUG_OUTPUT
@@ -975,12 +973,12 @@ namespace based_renderer
 		std::vector<vk::DeviceQueueCreateInfo> vk_device_queue_infos = vk_get_device_queue_infos(vk_queue_family_properties);
 
 		vk::Device vk_device = vk_physical_device.createDevice(vk::DeviceCreateInfo{
-			{}, 
-			vk_device_queue_infos,
-			{},
-			vk_device_extensions,
-			{},
-			&std::get<0>(vk_physical_device_features),
+			.pNext = &std::get<0>(vk_physical_device_features),
+			.flags = {},
+			.queueCreateInfoCount = static_cast<uint32_t>(vk_device_queue_infos.size()),
+			.pQueueCreateInfos = vk_device_queue_infos.data(),
+			.enabledExtensionCount = static_cast<uint32_t>(vk_device_extensions.size()),
+			.ppEnabledExtensionNames = vk_device_extensions.data(),
 		});
 
 		// Each queue family gets its own std::vector, whether or not it has any queues.
@@ -993,16 +991,16 @@ namespace based_renderer
 		vk::Queue const vk_transfer_queue = vk_queues[vk_transfer_queue_family_idx][0];
 
 		vk::CommandPool vk_graphics_command_pool = vk_device.createCommandPool({
-			vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eTransient|vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
-			static_cast<uint32_t>(vk_graphics_queue_family_idx),
+			.flags = vk::CommandPoolCreateFlagBits::eTransient|vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+			.queueFamilyIndex = static_cast<uint32_t>(vk_graphics_queue_family_idx),
 		});
 
 		vk::CommandPool vk_transfer_command_pool;
 		if (vk_graphics_queue_family_idx != vk_transfer_queue_family_idx)
 		{
 			vk_transfer_command_pool = vk_device.createCommandPool({
-				vk::CommandPoolCreateFlags(),
-				static_cast<uint32_t>(vk_transfer_queue_family_idx),
+				.flags = vk::CommandPoolCreateFlags{},
+				.queueFamilyIndex = static_cast<uint32_t>(vk_transfer_queue_family_idx),
 			});
 		}
 		else
@@ -1104,9 +1102,9 @@ namespace based_renderer
 	    SetPropW(win32_window, L"based_renderer::context_t", &ctx);
 
 		vk::SurfaceKHR vk_surface = vk_instance.createWin32SurfaceKHR({
-			{},
-			win32_instance,
-			win32_window,
+			.flags = {},
+			.hinstance = win32_instance,
+			.hwnd = win32_window,
 		});
 
 		std::optional<size_t> vk_present_queue_family_idx;
@@ -1154,24 +1152,25 @@ namespace based_renderer
 						vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
 		vk::SwapchainCreateInfoKHR vk_swapchain_create_info{
-			vk::SwapchainCreateFlagsKHR(),
-			vk_surface,
+			.flags = vk::SwapchainCreateFlagsKHR(),
+			.surface = vk_surface,
 			// TODO: Right now, you are still basically assuming that the image count will be 2.
 			// IIRC, having an image count higher than two actually complicates synchronization somewhat.
 			// I might be wrong though. In any case, it's worth looking into.
-			std::clamp(2u, vk_surface_capabilities.minImageCount, vk_surface_capabilities.maxImageCount),
-			vk_swapchain_format,
-			vk::ColorSpaceKHR::eSrgbNonlinear,
-			vk_swapchain_extent,
-			1,
-			vk::ImageUsageFlagBits::eColorAttachment,
-			vk::SharingMode::eExclusive,
-			{},
-			vk_pre_transform,
-			vk_composite_alpha,
-			vk_swapchain_present_mode,
-			true,
-			nullptr,
+			.minImageCount = std::clamp(2u, vk_surface_capabilities.minImageCount, vk_surface_capabilities.maxImageCount),
+			.imageFormat = vk_swapchain_format,
+			.imageColorSpace = vk::ColorSpaceKHR::eSrgbNonlinear,
+			.imageExtent = vk_swapchain_extent,
+			.imageArrayLayers = 1,
+			.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+			.imageSharingMode = vk::SharingMode::eExclusive,
+			.queueFamilyIndexCount = 0,
+			.pQueueFamilyIndices = nullptr,
+			.preTransform = vk_pre_transform,
+			.compositeAlpha = vk_composite_alpha,
+			.presentMode = vk_swapchain_present_mode,
+			.clipped = true,
+			.oldSwapchain = nullptr,
 		};
 
 		vk::SwapchainKHR vk_swapchain = vk_device.createSwapchainKHR(vk_swapchain_create_info);
@@ -1181,12 +1180,12 @@ namespace based_renderer
 		std::vector<vk::ImageView> vk_swapchain_image_views;
 		vk_swapchain_image_views.reserve(vk_swapchain_images.size());
 		vk::ImageViewCreateInfo vk_image_view_create_info{
-			{}, 
-			{},
-			vk::ImageViewType::e2D, 
-			vk_swapchain_format, 
-			{}, 
-			{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
+			.flags = vk::ImageViewCreateFlags{}, 
+			.image = nullptr,
+			.viewType = vk::ImageViewType::e2D, 
+			.format = vk_swapchain_format, 
+			.components = vk::ComponentMapping{}, 
+			.subresourceRange = vk::ImageSubresourceRange{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
 		};
 		for (vk::Image image : vk_swapchain_images)
 		{
@@ -1195,18 +1194,18 @@ namespace based_renderer
 		}
 
 		std::vector<vk::CommandBuffer> vk_graphics_command_buffers = vk_device.allocateCommandBuffers({
-			vk_graphics_command_pool, 
-			vk::CommandBufferLevel::ePrimary,
-			static_cast<uint32_t>(vk_swapchain_images.size()), // NOTE: This is assuming that the image count will be 2.
+			.commandPool = vk_graphics_command_pool, 
+			.level = vk::CommandBufferLevel::ePrimary,
+			.commandBufferCount = static_cast<uint32_t>(vk_swapchain_images.size()), // NOTE: This is assuming that the image count will be 2.
 		});
 
 		vk::CommandBuffer vk_transfer_command_buffer;
 		if (vk_graphics_command_pool != vk_transfer_command_pool)
 		{
 			std::vector<vk::CommandBuffer> v = vk_device.allocateCommandBuffers({
-				vk_transfer_command_pool, 
-				vk::CommandBufferLevel::ePrimary, 
-				1,
+				.commandPool = vk_transfer_command_pool, 
+				.level = vk::CommandBufferLevel::ePrimary, 
+				.commandBufferCount = 1,
 			});
 			vk_transfer_command_buffer = v[0];
 		}
@@ -1218,7 +1217,9 @@ namespace based_renderer
 		std::vector<vk::Fence> vk_fences{vk_swapchain_images.size()};
 		for (vk::Fence &fence : vk_fences) 
 		{
-			fence = vk_device.createFence({{vk::FenceCreateFlagBits::eSignaled}});
+			fence = vk_device.createFence({
+				.flags = vk::FenceCreateFlagBits::eSignaled,
+			});
 		}
 
 		std::vector<vk::Semaphore> vk_semaphores_wait{vk_swapchain_images.size()};
@@ -1234,20 +1235,24 @@ namespace based_renderer
 
 		vk::Format vk_depth_format = vk::Format::eD32Sfloat; // NOTE: Support for this always exists. As long as I'm not using a stencil buffer, this will work perfectly fine.
 		vk::Image vk_depth_image = vk_device.createImage({
-			vk::ImageCreateFlags{},
-			vk::ImageType::e2D,
-			vk_depth_format, 
-			vk::Extent3D{ctx.client_dimensions.x, ctx.client_dimensions.y, 1},
-			1,
-			1,
-			vk::SampleCountFlagBits::e1,
-			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eDepthStencilAttachment,
+			.flags = vk::ImageCreateFlags{},
+			.imageType = vk::ImageType::e2D,
+			.format = vk_depth_format, 
+			.extent = vk::Extent3D{ctx.client_dimensions.x, ctx.client_dimensions.y, 1},
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = vk::SampleCountFlagBits::e1,
+			.tiling = vk::ImageTiling::eOptimal,
+			.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+			.sharingMode = vk::SharingMode::eExclusive,
+			.queueFamilyIndexCount = 0,
+			.pQueueFamilyIndices = nullptr,
+			.initialLayout = vk::ImageLayout::eUndefined,
 		});
 		vk::MemoryRequirements vk_depth_image_memory_requirements = vk_device.getImageMemoryRequirements(vk_depth_image);
 		vk::DeviceMemory vk_depth_image_memory = vk_device.allocateMemory({
-			vk_depth_image_memory_requirements.size,
-			vk_find_memory_type_idx(
+			.allocationSize = vk_depth_image_memory_requirements.size,
+			.memoryTypeIndex = vk_find_memory_type_idx(
 				vk_physical_device_memory_properties,
 				vk_depth_image_memory_requirements.memoryTypeBits,
 				vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -1255,17 +1260,17 @@ namespace based_renderer
 		});
 		vk_device.bindImageMemory(vk_depth_image, vk_depth_image_memory, 0);
 		vk::ImageView vk_depth_image_view = vk_device.createImageView({
-			vk::ImageViewCreateFlags{},
-			vk_depth_image,
-			vk::ImageViewType::e2D,
-			vk_depth_format,
-			vk::ComponentMapping{},
-			vk::ImageSubresourceRange{
-				vk::ImageAspectFlagBits::eDepth,
-				0,
-				1,
-				0,
-				1
+			.flags = vk::ImageViewCreateFlags{},
+			.image = vk_depth_image,
+			.viewType = vk::ImageViewType::e2D,
+			.format = vk_depth_format,
+			.components = vk::ComponentMapping{},
+			.subresourceRange = vk::ImageSubresourceRange{
+				.aspectMask = vk::ImageAspectFlagBits::eDepth,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
 			},
 		});
 
@@ -1440,14 +1445,17 @@ namespace based_renderer
 	#endif
 
 		vk::Buffer vk_vertex_staging_buffer = vk_device.createBuffer({
-			vk::BufferCreateFlags{},
-			//sizeof(vertices[0])*vertices.size(),
-			//vk::BufferUsageFlagBits::eTransferSrc,
+			.flags = vk::BufferCreateFlags{},
+			//.size = sizeof(vertices[0])*vertices.size(),
+			//.usage = vk::BufferUsageFlagBits::eTransferSrc,
+			//.sharingMode = vk::SharingMode::eExclusive,
+			//.queueFamilyIndexCount = 0,
+			//.pQueueFamilyIndices = nullptr,
 		});
 		vk::MemoryRequirements vk_vertex_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_vertex_staging_buffer);
 		vk::DeviceMemory vk_vertex_staging_buffer_memory = vk_device.allocateMemory({
-			vk_vertex_staging_buffer_memory_requirements.size,
-			vk_find_memory_type_idx(
+			.allocationSize = vk_vertex_staging_buffer_memory_requirements.size,
+			.memoryTypeIndex = vk_find_memory_type_idx(
 				vk_physical_device_memory_properties,
 				vk_vertex_staging_buffer_memory_requirements.memoryTypeBits,
 				vk::MemoryPropertyFlagBits::eHostVisible|
@@ -1458,14 +1466,17 @@ namespace based_renderer
 		//vk_map_memory(vk_device, vk_vertex_staging_buffer_memory, vertices);
 
 		vk::Buffer vk_index_staging_buffer = vk_device.createBuffer({
-			vk::BufferCreateFlags{},
-			//box_index_buffer_size,
-			//vk::BufferUsageFlagBits::eTransferSrc,
+			.flags = vk::BufferCreateFlags{},
+			//.size = box_index_buffer_size,
+			//.usage = vk::BufferUsageFlagBits::eTransferSrc,
+			//.sharingMode = vk::SharingMode::eExclusive,
+			//.queueFamilyIndexCount = 0,
+			//.pQueueFamilyIndices = nullptr,
 		});
 		vk::MemoryRequirements vk_index_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_index_staging_buffer);
 		vk::DeviceMemory vk_index_staging_buffer_memory = vk_device.allocateMemory({
-			vk_index_staging_buffer_memory_requirements.size,
-			vk_find_memory_type_idx(
+			.allocationSize = vk_index_staging_buffer_memory_requirements.size,
+			.memoryTypeIndex = vk_find_memory_type_idx(
 				vk_physical_device_memory_properties,
 				vk_index_staging_buffer_memory_requirements.memoryTypeBits,
 				vk::MemoryPropertyFlagBits::eHostVisible|
@@ -1486,14 +1497,17 @@ namespace based_renderer
 
 		// NOTE: I am writing this code assuming that there exists a memory type index with memory properties host visible, host coherent and device local. This is not necessarily always the case!
 		vk::Buffer vk_uniform_buffer = vk_device.createBuffer({
-			vk::BufferCreateFlags{},
-			sizeof(uniforms_t),
-			vk::BufferUsageFlagBits::eUniformBuffer,
+			.flags = vk::BufferCreateFlags{},
+			.size = sizeof(uniforms_t),
+			.usage = vk::BufferUsageFlagBits::eUniformBuffer,
+			//.sharingMode = vk::SharingMode::eExclusive,
+			//.queueFamilyIndexCount = 0,
+			//.pQueueFamilyIndices = nullptr,
 		});
 		vk::MemoryRequirements vk_uniform_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_uniform_buffer);
 		vk::DeviceMemory vk_uniform_buffer_memory = vk_device.allocateMemory({
-			vk_uniform_buffer_memory_requirements.size,
-			vk_find_memory_type_idx(
+			.allocationSize = vk_uniform_buffer_memory_requirements.size,
+			.memoryTypeIndex = vk_find_memory_type_idx(
 				vk_physical_device_memory_properties,
 				vk_uniform_buffer_memory_requirements.memoryTypeBits,
 				vk::MemoryPropertyFlagBits::eDeviceLocal|
@@ -1510,14 +1524,17 @@ namespace based_renderer
 		vk_map_memory(vk_device, vk_uniform_buffer_memory, &uniforms, sizeof(uniforms));
 
 		vk::Buffer vk_vertex_buffer = vk_device.createBuffer({
-			vk::BufferCreateFlags{},
-			//box_vertex_buffer_size,
-			//vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eVertexBuffer,
+			.flags = vk::BufferCreateFlags{},
+			//.size = box_vertex_buffer_size,
+			//.usage = vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eVertexBuffer,
+			//.sharingMode = vk::SharingMode::eExclusive,
+			//.queueFamilyIndexCount = 0,
+			//.pQueueFamilyIndices = nullptr,
 		});
 		vk::MemoryRequirements vk_vertex_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_vertex_buffer);
 		vk::DeviceMemory vk_vertex_buffer_memory = vk_device.allocateMemory({
-			vk_vertex_buffer_memory_requirements.size,
-			vk_find_memory_type_idx(
+			.allocationSize = vk_vertex_buffer_memory_requirements.size,
+			.memoryTypeIndex = vk_find_memory_type_idx(
 				vk_physical_device_memory_properties,
 				vk_vertex_buffer_memory_requirements.memoryTypeBits,
 				vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -1526,14 +1543,17 @@ namespace based_renderer
 		vk_device.bindBufferMemory(vk_vertex_buffer, vk_vertex_buffer_memory, 0);
 
 		vk::Buffer vk_index_buffer = vk_device.createBuffer({
-			vk::BufferCreateFlags{},
-			//box_index_buffer_size,
-			//vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eIndexBuffer,
+			.flags = vk::BufferCreateFlags{},
+			//.size = box_index_buffer_size,
+			//.usage = vk::BufferUsageFlagBits::eTransferDst|vk::BufferUsageFlagBits::eIndexBuffer,
+			//.sharingMode = vk::SharingMode::eExclusive,
+			//.queueFamilyIndexCount = 0,
+			//.pQueueFamilyIndices = nullptr,
 		});
 		vk::MemoryRequirements vk_index_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_index_buffer);
 		vk::DeviceMemory vk_index_buffer_memory = vk_device.allocateMemory({
-			vk_index_buffer_memory_requirements.size,
-			vk_find_memory_type_idx(
+			.allocationSize = vk_index_buffer_memory_requirements.size,
+			.memoryTypeIndex = vk_find_memory_type_idx(
 				vk_physical_device_memory_properties,
 				vk_index_buffer_memory_requirements.memoryTypeBits,
 				vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -1631,61 +1651,70 @@ namespace based_renderer
 
 		std::array<vk::DescriptorSetLayoutBinding, 1> vk_descriptor_set_layout_binding_uniform_buffer{
 			vk::DescriptorSetLayoutBinding{
-				0,
-				vk::DescriptorType::eUniformBuffer,
-				1,
-				vk::ShaderStageFlagBits::eVertex,
+				.binding = 0,
+				.descriptorType = vk::DescriptorType::eUniformBuffer,
+				.descriptorCount = 1,
+				.stageFlags = vk::ShaderStageFlagBits::eVertex,
+				.pImmutableSamplers = nullptr,
 			},
 		};
 
-		std::array<vk::DescriptorSetLayout, 1> vk_descriptor_set_layouts{};
+		std::array<vk::DescriptorSetLayout, 1>vk_descriptor_set_layouts{};
 	    vk_descriptor_set_layouts[0] = vk_device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{
-	    	vk::DescriptorSetLayoutCreateFlags{},
-	    	vk_descriptor_set_layout_binding_uniform_buffer,
+	    	.flags = vk::DescriptorSetLayoutCreateFlags{},
+	    	.bindingCount = static_cast<uint32_t>(vk_descriptor_set_layout_binding_uniform_buffer.size()),
+	    	.pBindings = vk_descriptor_set_layout_binding_uniform_buffer.data(),
 	    });
 
 	    std::array<vk::DescriptorPoolSize, 1> vk_descriptor_pool_sizes{
 	    	vk::DescriptorPoolSize{
-	    		vk::DescriptorType::eUniformBuffer,
-	    		1,
+	    		.type = vk::DescriptorType::eUniformBuffer,
+	    		.descriptorCount = 1,
 	    	},
 	    };
 
 	    vk::DescriptorPool vk_descriptor_pool = vk_device.createDescriptorPool(vk::DescriptorPoolCreateInfo{
-	    	vk::DescriptorPoolCreateFlags{},
-	    	static_cast<uint32_t>(vk_descriptor_pool_sizes.size()),
-	    	vk_descriptor_pool_sizes,
+	    	.flags = vk::DescriptorPoolCreateFlags{},
+	    	.maxSets = static_cast<uint32_t>(vk_descriptor_pool_sizes.size()),
+	    	.poolSizeCount = static_cast<uint32_t>(vk_descriptor_pool_sizes.size()),
+	    	.pPoolSizes = vk_descriptor_pool_sizes.data(),
 	    });
 
 	    std::vector<vk::DescriptorSet> vk_descriptor_sets = vk_device.allocateDescriptorSets({
-	    	vk_descriptor_pool,
-	    	vk_descriptor_set_layouts,
+	    	.descriptorPool = vk_descriptor_pool,
+	    	.descriptorSetCount = static_cast<uint32_t>(vk_descriptor_set_layouts.size()),
+	    	.pSetLayouts = vk_descriptor_set_layouts.data(),
 	    });
 
 	    std::array<vk::DescriptorBufferInfo, 1> vk_descriptor_buffer_infos{
 	    	vk::DescriptorBufferInfo{
-	    		vk_uniform_buffer,
-	    		0,
-	    		sizeof(uniforms_t),
+	    		.buffer = vk_uniform_buffer,
+	    		.offset = 0,
+	    		.range = sizeof(uniforms_t),
 	    	},
 	    };
 
 	    std::array<vk::WriteDescriptorSet, 1> vk_descriptor_writes{
 	    	vk::WriteDescriptorSet{
-	    		vk_descriptor_sets[0],
-	    		0, 0,
-	    		vk::DescriptorType::eUniformBuffer,
-	    		{},
-	    		vk_descriptor_buffer_infos,
-	    		{},
+	    		.dstSet = vk_descriptor_sets[0],
+	    		.dstBinding = 0, 
+	    		.dstArrayElement = 0,
+	    		.descriptorCount = static_cast<uint32_t>(vk_descriptor_buffer_infos.size()),
+	    		.descriptorType = vk::DescriptorType::eUniformBuffer,
+	    		.pImageInfo = nullptr,
+	    		.pBufferInfo = vk_descriptor_buffer_infos.data(),
+	    		.pTexelBufferView = nullptr,
 	    	},
 	    };
 
 	    vk_device.updateDescriptorSets(vk_descriptor_writes, {});
 
 	    vk::PipelineLayout vk_pipeline_layout = vk_device.createPipelineLayout(vk::PipelineLayoutCreateInfo{
-	    	vk::PipelineLayoutCreateFlags{},
-	    	vk_descriptor_set_layouts,
+	    	.flags = vk::PipelineLayoutCreateFlags{},
+	    	.setLayoutCount = static_cast<uint32_t>(vk_descriptor_set_layouts.size()),
+	    	.pSetLayouts = vk_descriptor_set_layouts.data(),
+	    	.pushConstantRangeCount = 0,
+	    	.pPushConstantRanges = nullptr,
 	    });
 
 	    #define SLANG_CHECK(RESULT) STMT( \
@@ -1755,7 +1784,11 @@ namespace based_renderer
 			vk_pipeline_cache_flag_bits = vk::PipelineCacheCreateFlagBits::eExternallySynchronized;
 		}
 		vk::PipelineCache vk_pipeline_cache = vk_device.createPipelineCache(
-			{vk_pipeline_cache_flag_bits}
+			{
+				.flags = vk_pipeline_cache_flag_bits
+				.initialDataSize = 0,
+				.pInitialData = nullptr,
+			}
 		);
 
 		Slang::ComPtr<slang::IModule> slang_module;
@@ -1801,15 +1834,16 @@ namespace based_renderer
 			));
 		}
 		vk::ShaderModule vk_vertex_shader_module = vk_device.createShaderModule({
-			{},
-			static_cast<uint32_t>(slang_spirv_code_vs->getBufferSize()),
-			static_cast<uint32_t const *>(slang_spirv_code_vs->getBufferPointer()),
+			.flags = vk::ShaderModuleCreateFlags{},
+			.codeSize = static_cast<uint32_t>(slang_spirv_code_vs->getBufferSize()),
+			.pCode = static_cast<uint32_t const *>(slang_spirv_code_vs->getBufferPointer()),
 		});
 		vk::PipelineShaderStageCreateInfo vk_vertex_shader_stage_create_info{
-			{},
-			vk::ShaderStageFlagBits::eVertex,
-			vk_vertex_shader_module,
-			"main",
+			.flags = vk::PipelineShaderStageCreateFlags{},
+			.stage = vk::ShaderStageFlagBits::eVertex,
+			.module = vk_vertex_shader_module,
+			.pName = "main",
+			.pSpecializationInfo = nullptr,
 		};
 
 		Slang::ComPtr<slang::IBlob> slang_spirv_code_ps;
@@ -1841,15 +1875,16 @@ namespace based_renderer
 			));
 		}
 		vk::ShaderModule vk_fragment_shader_module = vk_device.createShaderModule({
-			{},
-			static_cast<uint32_t>(slang_spirv_code_ps->getBufferSize()),
-			static_cast<uint32_t const *>(slang_spirv_code_ps->getBufferPointer()),
+			.flags = vk::ShaderModuleCreateFlags{},
+			.codeSize = static_cast<uint32_t>(slang_spirv_code_ps->getBufferSize()),
+			.pCode = static_cast<uint32_t const *>(slang_spirv_code_ps->getBufferPointer()),
 		});
 		vk::PipelineShaderStageCreateInfo vk_fragment_shader_stage_create_info{
-			{},
-			vk::ShaderStageFlagBits::eFragment,
-			vk_fragment_shader_module,
-			"main",
+			.flags = vk::PipelineShaderStageCreateFlags{},
+			.stage = vk::ShaderStageFlagBits::eFragment,
+			.module = vk_fragment_shader_module,
+			.pName = "main",
+			.pSpecializationInfo = nullptr,
 		};
 
 		std::array<vk::PipelineShaderStageCreateInfo, 2> vk_shader_stage_create_infos{
@@ -1859,95 +1894,106 @@ namespace based_renderer
 
 		std::array<vk::VertexInputBindingDescription, 1> vk_vertex_input_binding_descriptions{
 			vk::VertexInputBindingDescription{
-				0,
-				//sizeof(vertex_t),
-				//vk::VertexInputRate::eVertex,
+				.binding = 0,
+				//.stride = sizeof(vertex_t),
+				//.inputRate = vk::VertexInputRate::eVertex,
 			}
 		};
 
 		std::array<vk::VertexInputAttributeDescription, 2> vk_vertex_input_attribute_descriptions{
 			vk::VertexInputAttributeDescription{
-				0,
-				0,
-				vk::Format::eR32G32B32A32Sfloat,
-				//offsetof(vertex_t, pos),
+				.location = 0,
+				.binding = 0,
+				.format = vk::Format::eR32G32B32A32Sfloat,
+				//.offset = offsetof(vertex_t, pos),
 			},
 			vk::VertexInputAttributeDescription{
-				1,
-				0,
-				vk::Format::eR32G32B32A32Sfloat,
-				//offsetof(vertex_t, normal),
+				.location = 1,
+				.binding = 0,
+				.format = vk::Format::eR32G32B32A32Sfloat,
+				//.offset = offsetof(vertex_t, normal),
 			},
 		};
 
 		vk::PipelineVertexInputStateCreateInfo vk_vertex_input_state_create_info{
-			vk::PipelineVertexInputStateCreateFlags{},
-			vk_vertex_input_binding_descriptions,
-			vk_vertex_input_attribute_descriptions,
+			.flags = vk::PipelineVertexInputStateCreateFlags{},
+			.vertexBindingDescriptionCount = static_cast<uint32_t>(vk_vertex_input_binding_descriptions.size()),
+			.pVertexBindingDescriptions =vk_vertex_input_binding_descriptions.data(),
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(vk_vertex_input_attribute_descriptions.size()),
+			.pVertexAttributeDescriptions =vk_vertex_input_attribute_descriptions.data(),
 		};
 
 		vk::PipelineInputAssemblyStateCreateInfo vk_pipeline_input_assembly_state_create_info{
-			{},
-			vk::PrimitiveTopology::eTriangleList,
+			.flags = vk::PipelineInputAssemblyStateCreateFlags{},
+			.topology = vk::PrimitiveTopology::eTriangleList,
+			.primitiveRestartEnable = vk::False,
 		};
 
 		std::array<vk::Viewport, 1> vk_viewports{
 			vk::Viewport{
-				0.0f,
-				0.0f,
-				static_cast<float>(vk_swapchain_extent.width),
-				static_cast<float>(vk_swapchain_extent.height),
-				0.0f,
-				1.0f,
+				.x = 0.0f,
+				.y = 0.0f,
+				.width = static_cast<float>(vk_swapchain_extent.width),
+				.height = static_cast<float>(vk_swapchain_extent.height),
+				.minDepth = 0.0f,
+				.maxDepth = 1.0f,
 			},
 		};
 
 		std::array<vk::Rect2D, 1> vk_scissors{
 			vk::Rect2D{
-				vk::Offset2D{0, 0},
-				vk_swapchain_extent,
+				.offset = vk::Offset2D{0, 0},
+				.extent = vk_swapchain_extent,
 			},
 		};
 
 		vk::PipelineViewportStateCreateInfo vk_pipeline_viewport_state_create_info{
-			vk::PipelineViewportStateCreateFlags{},
-			vk_viewports,
-			vk_scissors,
+			.flags = vk::PipelineViewportStateCreateFlags{},
+			.viewportCount = static_cast<uint32_t>(vk_viewports.size()),
+			.pViewports = vk_viewports.data(),
+			.scissorCount = static_cast<uint32_t>(vk_scissors.size()),
+			.pScissors = vk_scissors.data(),
+
 		};
 
 		vk::PipelineRasterizationStateCreateInfo vk_pipeline_rasterization_state_create_info{
-			vk::PipelineRasterizationStateCreateFlags{},
-			vk::False,
-			vk::False,
-			vk::PolygonMode::eFill,
-			vk::CullModeFlagBits::eNone,
-			vk::FrontFace::eCounterClockwise,
-			vk::False,
-			0.0f,
-			0.0f,
-			0.0f,
-			1.0f,
+			.flags = vk::PipelineRasterizationStateCreateFlags{},
+			.depthClampEnable = vk::False,
+			.rasterizerDiscardEnable = vk::False,
+			.polygonMode = vk::PolygonMode::eFill,
+			.cullMode = vk::CullModeFlagBits::eNone,
+			.frontFace = vk::FrontFace::eCounterClockwise,
+			.depthBiasEnable = vk::False,
+			.depthBiasConstantFactor = 0.0f,
+			.depthBiasClamp = 0.0f,
+			.depthBiasSlopeFactor = 0.0f,
+			.lineWidth = 1.0f,
 		};
 		vk::PipelineMultisampleStateCreateInfo vk_pipeline_multisample_state_create_info{};
 
 		vk::PipelineDepthStencilStateCreateInfo vk_pipeline_depth_stencil_state_create_info{
-			vk::PipelineDepthStencilStateCreateFlags{},
-			vk::True,
-			vk::True,
-			vk::CompareOp::eGreater,
-			vk::False,
-			vk::False,
+			.flags = vk::PipelineDepthStencilStateCreateFlags{},
+			.depthTestEnable = vk::True,
+			.depthWriteEnable = vk::True,
+			.depthCompareOp = vk::CompareOp::eGreater, // Because we are using a projection matrix which reverses the depth/z-axis.
+			.depthBoundsTestEnable = vk::False,
+			.stencilTestEnable = vk::False,
+			.front = vk::StencilOp{},
+			.back = vk::StencilOp{},
+			.minDepthBounds = 0.0f,
+			.maxDepthBounds = 0.0f,
 		};
 
 		std::array<vk::PipelineColorBlendAttachmentState, 1> vk_pipeline_color_blend_attachment_states{
 			vk::PipelineColorBlendAttachmentState{
-				vk::False,
-				vk::BlendFactor::eZero,
-				vk::BlendFactor::eZero,
-				vk::BlendOp::eAdd,
-				vk::BlendFactor::eZero,
-				vk::BlendFactor::eZero,
-				vk::BlendOp::eAdd,
+				.blendEnable = vk::False,
+				.srcColorBlendFactor = vk::BlendFactor::eZero,
+				.dstColorBlendFactor = vk::BlendFactor::eZero,
+				.colorBlendOp = vk::BlendOp::eAdd,
+				.srcAlphaBlendFactor = vk::BlendFactor::eZero,
+				.dstAlphaBlendFactor = vk::BlendFactor::eZero,
+				.alphaBlendOp = vk::BlendOp::eAdd,
+				.colorWriteMask = 
 				vk::ColorComponentFlagBits::eR|
 				vk::ColorComponentFlagBits::eG|
 				vk::ColorComponentFlagBits::eB|
@@ -1956,10 +2002,12 @@ namespace based_renderer
 		};
 
 		vk::PipelineColorBlendStateCreateInfo vk_pipeline_color_blend_state_create_info{
-			vk::PipelineColorBlendStateCreateFlags{},
-			{},
-			vk::LogicOp::eClear,
-			vk_pipeline_color_blend_attachment_states,
+			.flags = vk::PipelineColorBlendStateCreateFlags{},
+			.logicOpEnable = vk::False,
+			.logicOp = vk::LogicOp::eClear,
+			.attachmentCount = static_cast<uint32_t>(vk_pipeline_color_blend_attachment_states.size()),
+			.pAttachments = vk_pipeline_color_blend_attachment_states.data(),
+			.blendConstants = {},
 		};
 
 		vk::PipelineDynamicStateCreateInfo vk_pipeline_dynamic_state_create_info{};
@@ -1969,34 +2017,36 @@ namespace based_renderer
 		};
 
 		vk::PipelineRenderingCreateInfo vk_pipeline_rendering_create_info{
-			0,
-			vk_color_attachment_formats,
-			vk_depth_format,
-			// vk_stencil_format,
+			.viewMask = 0,
+			.colorAttachmentCount = static_cast<uint32_t>(vk_color_attachment_formats.size()),
+			.pColorAttachmentFormats = vk_color_attachment_formats.data(),
+			.depthAttachmentFormat = vk_depth_format,
+			//.stencilAttachmentFormat = vk_stencil_format,
 		};
 
 		vk::GraphicsPipelineCreateInfo vk_graphics_pipeline_create_info{
+			.pNext = &vk_pipeline_rendering_create_info,
 	#if BASED_RENDERER_VK_DISABLE_PIPELINE_OPTIMIZATION
-			vk::PipelineCreateFlagBits::eDisableOptimization,
+			.flags = vk::PipelineCreateFlagBits::eDisableOptimization,
 	#else
-			{},
+			.flags = {},
 	#endif
-			vk_shader_stage_create_infos,
-			&vk_vertex_input_state_create_info,
-			&vk_pipeline_input_assembly_state_create_info,
-			nullptr,
-			&vk_pipeline_viewport_state_create_info,
-			&vk_pipeline_rasterization_state_create_info,
-			&vk_pipeline_multisample_state_create_info,
-			&vk_pipeline_depth_stencil_state_create_info,
-			&vk_pipeline_color_blend_state_create_info,
-			&vk_pipeline_dynamic_state_create_info,
-			vk_pipeline_layout,
-			{},
-			{},
-			{},
-			{},
-			&vk_pipeline_rendering_create_info,
+			.stageCount = static_cast<uint32_t>(vk_shader_stage_create_infos.size())
+			.pStages = vk_shader_stage_create_infos.data(),
+			.pVertexInputState = &vk_vertex_input_state_create_info,
+			.pInputAssemblyState = &vk_pipeline_input_assembly_state_create_info,
+			.pTessellationState = nullptr,
+			.pViewportState = &vk_pipeline_viewport_state_create_info,
+			.pRasterizationState = &vk_pipeline_rasterization_state_create_info,
+			.pMultisampleState = &vk_pipeline_multisample_state_create_info,
+			.pDepthStencilState = &vk_pipeline_depth_stencil_state_create_info,
+			.pColorBlendState = &vk_pipeline_color_blend_state_create_info,
+			.pDynamicState = &vk_pipeline_dynamic_state_create_info,
+			.layout = vk_pipeline_layout,
+			.renderPass = nullptr,
+			.subpass = 0,
+			.basePipelineHandle = nullptr,
+			.basePipelineIndex = 0,
 		};
 
 		auto vk_pipelines = *vk_device.createGraphicsPipelines(
@@ -2053,7 +2103,8 @@ namespace based_renderer
 
 			vk::CommandBuffer cb = vk_graphics_command_buffers[vk_frame_idx];
 			cb.begin({
-				vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+				.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+				.pInheritanceInfo = nullptr,
 			});
 
 			// It might seem unnecessarily verbose that I am doing things this way. Why not just create the array once, and then modify it based on the value of "staged"? In my experience, I have found that when I am not this explicit about things in Vulkan, it makes it a lot harder to find mistakes.
@@ -2062,87 +2113,87 @@ namespace based_renderer
 			{
 				std::array<vk::BufferMemoryBarrier2, 4> buffer_barriers{
 					vk::BufferMemoryBarrier2{
-						vk::PipelineStageFlags2{},
-						vk::AccessFlags2{},
-						vk::PipelineStageFlagBits2::eTransfer,
-						vk::AccessFlagBits2::eTransferRead,
-						0,
-						0,
-						vk_vertex_staging_buffer,
-						0,
-						//box_vertex_buffer_size,
+						.srcStageMask = vk::PipelineStageFlags2{},
+						.srcAccessMask = vk::AccessFlags2{},
+						.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+						.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.buffer = vk_vertex_staging_buffer,
+						.offset = 0,
+						//.size = box_vertex_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
-						vk::PipelineStageFlags2{},
-						vk::AccessFlags2{},
-						vk::PipelineStageFlagBits2::eTransfer,
-						vk::AccessFlagBits2::eTransferRead,
-						0,
-						0,
-						vk_index_staging_buffer,
-						0,
-						//box_index_buffer_size,
+						.srcStageMask = vk::PipelineStageFlags2{},
+						.srcAccessMask = vk::AccessFlags2{},
+						.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+						.dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.buffer = vk_index_staging_buffer,
+						.offset = 0,
+						//.size = box_index_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
-						vk::PipelineStageFlags2{},
-						vk::AccessFlags2{},
-						vk::PipelineStageFlagBits2::eTransfer,
-						vk::AccessFlagBits2::eTransferWrite,
-						0,
-						0,
-						vk_vertex_buffer,
-						0,
-						//box_vertex_buffer_size,
+						.srcStageMask = vk::PipelineStageFlags2{},
+						.srcAccessMask = vk::AccessFlags2{},
+						.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+						.dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.buffer = vk_vertex_buffer,
+						.offset = 0,
+						//.size = box_vertex_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
-						vk::PipelineStageFlags2{},
-						vk::AccessFlags2{},
-						vk::PipelineStageFlagBits2::eTransfer,
-						vk::AccessFlagBits2::eTransferWrite,
-						0,
-						0,
-						vk_index_buffer,
-						0,
-						//box_index_buffer_size,
+						.srcStageMask = vk::PipelineStageFlags2{},
+						.srcAccessMask = vk::AccessFlags2{},
+						.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+						.dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.buffer = vk_index_buffer,
+						.offset = 0,
+						//.size = box_index_buffer_size,
 					},
 				};
 
 				// TODO: Does it really make sense to just shove as much as possible into one call to pipelineBarrier2? I feel like it probably doesn't. These images don't have to get transitioned at this point. They could be transitioned after copying the buffers.
 				std::array<vk::ImageMemoryBarrier2, 2> image_barriers{
 					vk::ImageMemoryBarrier2{
-						vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-						vk::AccessFlags2{},
-						vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-						vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
-						vk::ImageLayout::eUndefined,
-						vk::ImageLayout::eColorAttachmentOptimal,
-						0, // TODO: srcQueueFamilyIdx
-						0, // TODO: dstQueueFamilyIdx
-						vk_swapchain_images[vk_image_idx],
-						vk::ImageSubresourceRange{
-							vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
-							0,
-							1,
-							0,
-							1,
+						.srcStageMask = vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+						.srcAccessMask = vk::AccessFlags2{},
+						.dstStageMask = vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
+						.dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+						.oldLayout = vk::ImageLayout::eUndefined,
+						.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = vk_swapchain_images[vk_image_idx],
+						.subresourceRange = vk::ImageSubresourceRange{
+							.aspectMask = vk::ImageAspectFlagBits::eColor,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1,
 						},
 					},
 					vk::ImageMemoryBarrier2{
-						vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-						vk::AccessFlags2{},
-						vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-						vk::AccessFlags2{vk::AccessFlagBits2::eDepthStencilAttachmentWrite},
-						vk::ImageLayout::eUndefined,
-						vk::ImageLayout::eDepthAttachmentOptimal,
-						0, // TODO: srcQueueFamilyIdx
-						0, // TODO: dstQueueFamilyIdx
-						vk_depth_image,
-						vk::ImageSubresourceRange{
-							vk::ImageAspectFlags{vk::ImageAspectFlagBits::eDepth},
-							0,
-							1,
-							0,
-							1,
+						.srcStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests|vk::PipelineStageFlagBits2::eLateFragmentTests,
+						.srcAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+						.dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests|vk::PipelineStageFlagBits2::eLateFragmentTests,
+						.dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+						.oldLayout = vk::ImageLayout::eUndefined,
+						.newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = vk_depth_image,
+						.subresourceRange = vk::ImageSubresourceRange{
+							.aspectMask = vk::ImageAspectFlagBits::eDepth,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1,
 						},
 					},
 	#if 0
@@ -2153,32 +2204,35 @@ namespace based_renderer
 						vk::AccessFlagBits2::eTransferWrite,
 						vk::ImageLayout::eUndefined,
 						vk::ImageLayout::eTransferDstOptimal,
-						0, // TODO: srcQueueFamilyIdx
-						0, // TODO: dstQueueFamilyIdx
+						0,
+						0,
 						vk_image,
 						vk::ImageSubresourceRange{
-							vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
-							0,
-							1,
-							0,
-							1,
+							.aspectMask = vk::ImageAspectFlagBits::eColor,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1,
 						},
 					},
 	#endif
 				};
 
 				cb.pipelineBarrier2({
-					vk::DependencyFlags{},
-					{},
-					buffer_barriers,
-					image_barriers,
+					.dependencyFlags = vk::DependencyFlags{},
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = static_cast<uint32_t>(buffer_barriers.size()),
+					.pBufferMemoryBarriers = buffer_barriers.data(),
+					.imageMemoryBarrierCount = static_cast<uint32_t>(image_barriers.size()),
+					.pImageMemoryBarriers = image_barriers.data(),
 				});
 
 				std::array<vk::BufferCopy, 1> vertex_buffer_regions{
 					vk::BufferCopy{
-						0,
-						0,
-						//box_vertex_buffer_size,
+						.srcOffset = 0,
+						.dstOffset = 0,
+						//.size = box_vertex_buffer_size,
 					},
 				};
 
@@ -2186,9 +2240,9 @@ namespace based_renderer
 
 				std::array<vk::BufferCopy, 1> index_buffer_regions{
 					vk::BufferCopy{
-						0,
-						0,
-						//box_index_buffer_size,
+						.srcOffset = 0,
+						.dstOffset = 0,
+						//.size = box_index_buffer_size,
 					},
 				};
 
@@ -2196,34 +2250,37 @@ namespace based_renderer
 
 				std::array<vk::BufferMemoryBarrier2, 2> buffer_barriers2{
 					vk::BufferMemoryBarrier2{
-						vk::PipelineStageFlagBits2::eTransfer,
-						vk::AccessFlagBits2::eTransferWrite,
-						vk::PipelineStageFlagBits2::eVertexAttributeInput,
-						vk::AccessFlagBits2::eVertexAttributeRead,
-						0,
-						0,
-						vk_vertex_buffer,
-						0,
-						//box_vertex_buffer_size,
+						.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+						.srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+						.dstStageMask = vk::PipelineStageFlagBits2::eVertexAttributeInput,
+						.dstAccessMask = vk::AccessFlagBits2::eVertexAttributeRead,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.buffer = vk_vertex_buffer,
+						.offset = 0,
+						//.size = box_vertex_buffer_size,
 					},
 					vk::BufferMemoryBarrier2{
-						vk::PipelineStageFlagBits2::eTransfer,
-						vk::AccessFlagBits2::eTransferWrite,
-						vk::PipelineStageFlagBits2::eIndexInput,
-						vk::AccessFlagBits2::eIndexRead,
-						0,
-						0,
-						vk_index_buffer,
-						0,
-						//box_index_buffer_size,
+						.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+						.srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+						.dstStageMask = vk::PipelineStageFlagBits2::eIndexInput,
+						.dstAccessMask = vk::AccessFlagBits2::eIndexRead
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.buffer = vk_index_buffer,
+						.offset = 0,
+						//.size = box_index_buffer_size,
 					},
 				};
 
 				cb.pipelineBarrier2({
-					vk::DependencyFlags{},
-					{},
-					buffer_barriers2,
-					{},
+					.dependencyFlags = vk::DependencyFlags{},
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = static_cast<uint32_t>(buffer_barriers2.size()),
+					.pBufferMemoryBarriers = buffer_barriers2.data(),
+					.imageMemoryBarrierCount = 0,
+					.pImageMemoryBarriers = nullptr,
 				});
 
 	#if 0
@@ -2287,30 +2344,33 @@ namespace based_renderer
 			{
 				std::array<vk::ImageMemoryBarrier2, 1> image_barriers{
 					vk::ImageMemoryBarrier2{
-						vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-						vk::AccessFlags2{},
-						vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-						vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
-						vk::ImageLayout::eUndefined,
-						vk::ImageLayout::eColorAttachmentOptimal,
-						0, // TODO: srcQueueFamilyIdx
-						0, // TODO: dstQueueFamilyIdx
-						vk_swapchain_images[vk_image_idx],
-						vk::ImageSubresourceRange{
-							vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
-							0,
-							1,
-							0,
-							1,
+						.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+						.srcAccessMask = vk::AccessFlags2{},
+						.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+						.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+						.oldLayout = vk::ImageLayout::eUndefined,
+						.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = vk_swapchain_images[vk_image_idx],
+						.subresourceRange = vk::ImageSubresourceRange{
+							.aspectMask = vk::ImageAspectFlagBits::eColor,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1,
 						},
 					},
 				};
 
 				cb.pipelineBarrier2({
-					vk::DependencyFlags{},
-					{},
-					{},
-					image_barriers,
+					.dependencyFlags = vk::DependencyFlags{},
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = 0,
+					.pBufferMemoryBarriers = nullptr,
+					.imageMemoryBarrierCount = static_cast<uint32_t>(image_barriers.size()),
+					.pImageMemoryBarriers = image_barriers.data(),
 				});
 
 				staged += 1;
@@ -2319,72 +2379,81 @@ namespace based_renderer
 			{
 				std::array<vk::ImageMemoryBarrier2, 1> image_barriers{
 					vk::ImageMemoryBarrier2{
-						vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-						vk::AccessFlags2{},
-						vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-						vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
-						vk::ImageLayout::ePresentSrcKHR,
-						vk::ImageLayout::eColorAttachmentOptimal,
-						0, // TODO: srcQueueFamilyIdx
-						0, // TODO: dstQueueFamilyIdx
-						vk_swapchain_images[vk_image_idx],
-						vk::ImageSubresourceRange{
-							vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
-							0,
-							1,
-							0,
-							1,
+						.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+						.srcAccessMask = vk::AccessFlags2{},
+						.dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+						.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+						.oldLayout = vk::ImageLayout::ePresentSrcKHR,
+						.newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = vk_swapchain_images[vk_image_idx],
+						.subresourceRange = vk::ImageSubresourceRange{
+							.aspectMask = vk::ImageAspectFlagBits::eColor,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1,
 						},
 					},
 				};
 
 				cb.pipelineBarrier2({
-					vk::DependencyFlags{},
-					{},
-					{},
-					image_barriers,
+					.dependencyFlags = vk::DependencyFlags{},
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = 0,
+					.pBufferMemoryBarriers = nullptr,
+					.imageMemoryBarrierCount = static_cast<uint32_t>(image_barriers.size()),
+					.pImageMemoryBarriers = image_barriers.data(),
 				});
 			}
 
 			std::array<vk::RenderingAttachmentInfo, 1> vk_rendering_attachment_infos{
 				vk::RenderingAttachmentInfo{
-					vk_swapchain_image_views[vk_image_idx],
-					vk::ImageLayout::eColorAttachmentOptimal,
+					.imageView = vk_swapchain_image_views[vk_image_idx],
+					.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 
-					vk::ResolveModeFlagBits::eNone,
-					vk::ImageView{},
-					vk::ImageLayout::eUndefined,
+					.resolveMode = vk::ResolveModeFlagBits::eNone,
+					.resolveImageView = vk::ImageView{},
+					.resolveImageLayout = vk::ImageLayout::eUndefined,
 
-					vk::AttachmentLoadOp::eClear,
-					vk::AttachmentStoreOp::eStore,
-					vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
+					.loadOp = vk::AttachmentLoadOp::eClear,
+					.storeOp = vk::AttachmentStoreOp::eStore,
+					.clearValue = vk::ClearColorValue{
+						.float32 = {0.0f, 0.0f, 0.0f, 1.0f},
+					},
 				},
 			};
 
 			vk::RenderingAttachmentInfo vk_depth_attachment_info{
-				vk_depth_image_view,
-				vk::ImageLayout::eDepthAttachmentOptimal,
+				.imageView = vk_depth_image_view,
+				.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
 
-				vk::ResolveModeFlagBits::eNone,
-				vk::ImageView{},
-				vk::ImageLayout::eUndefined,
+				.resolveMode = vk::ResolveModeFlagBits::eNone,
+				.resolveImageView = vk::ImageView{},
+				.resolveImageLayout = vk::ImageLayout::eUndefined,
 
-				vk::AttachmentLoadOp::eClear,
-				vk::AttachmentStoreOp::eDontCare,
-				vk::ClearDepthStencilValue(0.0f, 0),
+				.loadOp = vk::AttachmentLoadOp::eClear,
+				.storeOp = vk::AttachmentStoreOp::eDontCare,
+				.clearValue = vk::ClearDepthStencilValue{
+					.depth = 0.0f, 
+					.stencil = 0,
+				},
 			};
 
 			cb.beginRendering({
-				vk::RenderingFlags{},
-				vk::Rect2D{
-					vk::Offset2D{0, 0},
-					vk_swapchain_extent,
+				.flags = vk::RenderingFlags{},
+				.renderArea = vk::Rect2D{
+					.offset = vk::Offset2D{0, 0},
+					.extent = vk_swapchain_extent,
 				},
-				1,
-				0,
-				vk_rendering_attachment_infos,
-				&vk_depth_attachment_info,
-				//&vk_stencil_attachment_info,
+				.layerCount = 1,
+				.viewMask = 0,
+				.colorAttachmentCount = static_cast<uint32_t>(vk_rendering_attachment_infos.size()),
+				.pColorAttachments = vk_rendering_attachment_infos.data(),
+				.pDepthAttachment = &vk_depth_attachment_info,
+				//.pStencilAttachment = &vk_stencil_attachment_info,
 			});
 
 			cb.bindPipeline(
@@ -2409,30 +2478,33 @@ namespace based_renderer
 			{
 				std::array<vk::ImageMemoryBarrier2, 1> image_barriers{
 					vk::ImageMemoryBarrier2{
-						vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
-						vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
-						vk::PipelineStageFlags2{},
-						vk::AccessFlags2{},
-						vk::ImageLayout::eColorAttachmentOptimal,
-						vk::ImageLayout::ePresentSrcKHR,
-						0, // TODO
-						0, // TODO
-						vk_swapchain_images[vk_image_idx],
-						vk::ImageSubresourceRange{
-							vk::ImageAspectFlags{vk::ImageAspectFlagBits::eColor},
-							0,
-							1,
-							0,
-							1,
+						.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+						.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+						.dstStageMask = vk::PipelineStageFlags2{},
+						.dstAccessMask = vk::AccessFlags2{},
+						.oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+						.newLayout = vk::ImageLayout::ePresentSrcKHR,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = vk_swapchain_images[vk_image_idx],
+						.subresourceRange = vk::ImageSubresourceRange{
+							.aspectMask = vk::ImageAspectFlagBits::eColor,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1,
 						},
 					},
 				};
 
 				cb.pipelineBarrier2({
-					vk::DependencyFlags{},
-					{},
-					{},
-					image_barriers,
+					.dependencyFlags = vk::DependencyFlags{},
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = 0,
+					.pBufferMemoryBarriers = nullptr,
+					.imageMemoryBarrierCount = static_cast<uint32_t>(image_barriers.size()),
+					.pImageMemoryBarriers = image_barriers.data(),
 				});
 			}
 
@@ -2440,32 +2512,37 @@ namespace based_renderer
 
 			std::array<vk::SemaphoreSubmitInfo, 1> vk_wait_semaphore_infos{
 				vk::SemaphoreSubmitInfo{
-					vk_semaphores_wait[vk_frame_idx],
-					0,
-					vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+					.semaphore = vk_semaphores_wait[vk_frame_idx],
+					.value = 0,
+					.stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+					.deviceIndex = 0,
 				},
 			};
 
 			std::array<vk::CommandBufferSubmitInfo, 1> vk_command_buffer_submit_infos{
-				{
-					cb,
+				vk::CommandBufferSubmitInfo{
+					.commandBuffer = cb,
+					.deviceMask = 0,
 				},
 			};
 
 			std::array<vk::SemaphoreSubmitInfo, 1> vk_signal_semaphore_infos{
 				vk::SemaphoreSubmitInfo{
-					vk_semaphores_signal[vk_frame_idx],
-					0,
-					vk::PipelineStageFlagBits2::eAllCommands, // This is needed, or else the present will start before all commands have finished.
+					.semaphore = vk_semaphores_signal[vk_frame_idx],
+					.value = 0,
+					.stageMask = vk::PipelineStageFlagBits2::eAllCommands, // This is needed, or else the present will start before all commands have finished.
 				},
 			};
 
 			std::array<vk::SubmitInfo2, 1> vk_submit_infos{
 				vk::SubmitInfo2{
-					{},
-					vk_wait_semaphore_infos,
-					vk_command_buffer_submit_infos,
-					vk_signal_semaphore_infos,
+					.flags = vk::SubmitFlags{},
+					.waitSemaphoreInfoCount = static_cast<uint32_t>(vk_wait_semaphore_infos.size()),
+					.pWaitSemaphoreInfos = vk_wait_semaphore_infos.data(),
+					.commandBufferInfoCount = static_cast<uint32_t>(vk_command_buffer_submit_infos.size()),
+					.pCommandBufferInfos = vk_command_buffer_submit_infos.data(),
+					.signalSemaphoreInfoCount = static_cast<uint32_t>(vk_signal_semaphore_infos.size()),
+					.pSignalSemaphoreInfos = vk_signal_semaphore_infos.data(),
 				}
 			};
 			vk_graphics_queue.submit2(vk_submit_infos, vk_fences[vk_frame_idx]);
@@ -2476,10 +2553,12 @@ namespace based_renderer
 			std::array<vk::Result, 1> vk_present_results;
 			// TODO: Use the present queue.
 			vk::detail::resultCheck(vk_graphics_queue.presentKHR({
-				vk_present_wait_semaphores,
-				vk_present_swapchains,
-				vk_present_image_indices,
-				vk_present_results
+				.waitSemaphoreCount = static_cast<uint32_t>(vk_present_wait_semaphores.size()),
+				.pWaitSemaphores = vk_present_wait_semaphores.data(),
+				.swapchainCount = static_cast<uint32_t>(vk_present_swapchains.size()),
+				.pSwapchains = vk_present_swapchains.data(),
+				.pImageIndices = vk_present_image_indices.data(),
+				.pResults = vk_present_results.data(),
 			}), "Failed to present.");
 			vk::detail::resultCheck(vk_present_results[0], "Failed to present.");
 
@@ -2598,10 +2677,10 @@ namespace based_renderer
 			if (queue_family_properties[i].queueCount > 0)
 			{
 				device_queue_infos.push_back(vk::DeviceQueueCreateInfo{
-					{},
-					static_cast<uint32_t>(i),
-					queue_family_properties[i].queueCount,
-					vk_queue_priorities.data(),
+					.flags = vk::DeviceQueueCreateFlags{},
+					.queueFamilyIndex = static_cast<uint32_t>(i),
+					.queueCount = queue_family_properties[i].queueCount,
+					.pQueuePriorities = vk_queue_priorities.data(),
 				});
 			}
 		}

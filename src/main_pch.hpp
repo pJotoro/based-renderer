@@ -11,14 +11,19 @@
 #undef min
 #endif
 
+#ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
+#else
+#error TODO: Implement other platforms.
+#endif
+#define VULKAN_HPP_NO_CONSTRUCTORS
 #include <vulkan/vulkan.hpp>
 
 #include <slang/slang-com-ptr.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
-// #include <glm/ext/matrix_transform.hpp> // translate, rotate
-// #include <glm/ext/matrix_clip_space.hpp> // perspective
+#include <glm/gtx/rotate_normalized_axis.hpp>
 
 #include <algorithm>
 #include <format>
