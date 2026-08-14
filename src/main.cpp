@@ -1249,6 +1249,14 @@ namespace based_renderer
 			.pQueueFamilyIndices = nullptr,
 			.initialLayout = vk::ImageLayout::eUndefined,
 		});
+
+		// TODO: Read this next time you want to do some memory allocation.
+		// Buffers and images should be put in a memory type with device local, not host visible, and with as much memory as possible.
+		// Staging buffers should be put in a memory type without device local, with host visible, and with as much memory as possible. If possible, the memory type should not allow host coherent since that is wasting space for uniform buffers that actually need that.
+		// Uniform buffers should be put in a memory type with device local and host visible/coherent, and with as little memory as possible. No matter what, it is always guarunteed that there is a memory type with host visible and host coherent, but not necessarily also device local. However, this is fine, as it doesn't really change how the uniform buffer gets used.
+		// For all of the above, if possible, a memory type should be chosen without host cached, as it is not really necessary for how I plan to do things. That is, I'm not planning on doing a lot of host memory accesses to GPU memory.
+		// Additionally, lazily allocated memory should also be avoided.
+
 		vk::MemoryRequirements vk_depth_image_memory_requirements = vk_device.getImageMemoryRequirements(vk_depth_image);
 		vk::DeviceMemory vk_depth_image_memory = vk_device.allocateMemory({
 			.allocationSize = vk_depth_image_memory_requirements.size,
