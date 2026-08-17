@@ -994,6 +994,8 @@ namespace based_renderer
 			.queueFamilyIndex = static_cast<uint32_t>(vk_graphics_queue_family_idx),
 		});
 
+		// TODO: Eventually, we might want to intentionally use a different queue family for transfer if possible, even if we don't *have* to, so that way we can do transfer operations on a separate thread. Don't worry about it yet though.
+
 		vk::CommandPool vk_transfer_command_pool;
 		if (vk_graphics_queue_family_idx != vk_transfer_queue_family_idx)
 		{
@@ -1004,7 +1006,7 @@ namespace based_renderer
 		}
 		else
 		{
-			vk_transfer_command_pool = vk_graphics_command_pool;
+			// Just don't use the transfer command pool then!
 		}
 
 		HMONITOR win32_monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
@@ -1106,7 +1108,8 @@ namespace based_renderer
 			.hwnd = win32_window,
 		});
 
-		std::optional<size_t> vk_present_queue_family_idx;
+		// In practice, there is no way this will fail. It would make no sense for an implementation to support surfaces and swapchains, without actually having a queue family that supports presentation.
+		size_t vk_present_queue_family_idx = 0;
 		for (size_t i = 0; i < vk_queue_family_properties.size(); ++i)
 		{
 			if (vk_physical_device.getSurfaceSupportKHR(static_cast<uint32_t>(i), vk_surface))
@@ -1115,12 +1118,12 @@ namespace based_renderer
 				break;
 			}
 		}
-		vk::Queue vk_present_queue = vk_queues[vk_present_queue_family_idx.value()][0];
+		vk::Queue vk_present_queue = vk_queues[vk_present_queue_family_idx][0];
 
-		auto vk_surface_formats = vk_physical_device.getSurfaceFormatsKHR(vk_surface);
+		std::vector<vk::SurfaceFormatKHR> vk_surface_formats = vk_physical_device.getSurfaceFormatsKHR(vk_surface); // TODO: This is considered legacy functionality. This might not matter, but it's still worth looking into eventually.
 		vk::Format vk_swapchain_format = vk_surface_formats.front().format; // TODO
 
-		auto vk_surface_capabilities = vk_physical_device.getSurfaceCapabilitiesKHR(vk_surface);
+		vk::SurfaceCapabilitiesKHR vk_surface_capabilities = vk_physical_device.getSurfaceCapabilitiesKHR(vk_surface); // TODO: This is considered legacy functionality. This might not matter, but it's still worth looking into eventually.
 
 		vk::Extent2D vk_swapchain_extent;
 		vk_swapchain_extent.width  = std::clamp(
@@ -1141,6 +1144,7 @@ namespace based_renderer
 			vk::SurfaceTransformFlagBitsKHR::eIdentity : 
 			vk_surface_capabilities.currentTransform;
 
+		// TODO: I don't think it matters which of these options we choose, except that it shouldn't be opaque if possible. You should look into this more to make sure at some point though.
 		vk::CompositeAlphaFlagBitsKHR vk_composite_alpha = 
 			(vk_surface_capabilities.supportedCompositeAlpha & vk::CompositeAlphaFlagBitsKHR::ePreMultiplied) ? 
 				vk::CompositeAlphaFlagBitsKHR::ePreMultiplied : 
