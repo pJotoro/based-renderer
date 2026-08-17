@@ -18,7 +18,6 @@ Conventions:
 #endif
 
 #define BASED_RENDERER_VK_DEBUG BASED_RENDERER_DEBUG
-#define BASED_RENDERER_VK_LAYERS 0
 #define BASED_RENDERER_VK_DEBUG_OUTPUT BASED_RENDERER_VK_DEBUG
 #define BASED_RENDERER_VK_DISABLE_PIPELINE_OPTIMIZATION BASED_RENDERER_VK_DEBUG
 
@@ -88,9 +87,6 @@ namespace based_renderer
 	// 	return res;
 	// }
 
-#if BASED_RENDERER_VK_LAYERS
-	static std::vector<char const *> vk_get_instance_layers();
-#endif
 	static std::vector<char const *> vk_get_instance_extensions();
 	static std::vector<char const *> vk_get_device_extensions(vk::PhysicalDevice const physical_device);
 	
@@ -456,6 +452,7 @@ namespace based_renderer
 			uniforms.model = glm::rotate(uniforms.model, ctx.fixed_dt, glm::normalize(glm::vec3{3.0f, 2.0f, 1.0f}));
 		}
 
+		// TODO: Inverting the view matrix should only require transposing the upper 3x3 matrix and negating the translation values.
 		uniforms.view = glm::inverse(uniforms.view);
 
 		// Rotate based on mouse delta (doesn't work at all right now).
@@ -895,10 +892,6 @@ namespace based_renderer
 
 	static void main()
 	{
-	#if BASED_RENDERER_VK_LAYERS
-		std::vector<char const *> vk_instance_layers = vk_get_instance_layers();
-	#endif
-
 		std::vector<char const *> vk_instance_extensions = vk_get_instance_extensions();
 
 		vk::ApplicationInfo vk_app_info{
@@ -930,13 +923,8 @@ namespace based_renderer
 		vk::InstanceCreateInfo vk_instance_create_info{
 			.flags = {},
 			.pApplicationInfo = &vk_app_info,
-	#if BASED_RENDERER_VK_LAYERS
-			.enabledLayerCount = static_cast<uint32_t>(vk_instance_layers.size()),
-			.ppEnabledLayerNames = vk_instance_layers.data(),
-	#else
 			.enabledLayerCount = 0,
 			.ppEnabledLayerNames = nullptr,
-	#endif
 			.enabledExtensionCount = static_cast<uint32_t>(vk_instance_extensions.size()),
 			.ppEnabledExtensionNames = vk_instance_extensions.data(),
 		};
@@ -1204,7 +1192,7 @@ namespace based_renderer
 		std::vector<vk::CommandBuffer> vk_graphics_command_buffers = vk_device.allocateCommandBuffers({
 			.commandPool = vk_graphics_command_pool, 
 			.level = vk::CommandBufferLevel::ePrimary,
-			.commandBufferCount = static_cast<uint32_t>(vk_swapchain_images.size()), // NOTE: This is assuming that the image count will be 2.
+			.commandBufferCount = static_cast<uint32_t>(vk_swapchain_images.size()),
 		});
 
 		vk::CommandBuffer vk_transfer_command_buffer;
@@ -2091,6 +2079,7 @@ namespace based_renderer
 				std::numeric_limits<uint64_t>::max()), "Failed to wait for fence.");
 			vk_device.resetFences({vk_fences[vk_frame_idx]});
 
+			// TODO: Does this actually have to happen after waitForFences?
 			uint32_t vk_image_idx = *vk_device.acquireNextImageKHR(
 				vk_swapchain, 
 				std::numeric_limits<uint64_t>::max(), 
@@ -2171,7 +2160,6 @@ namespace based_renderer
 					},
 				};
 
-				// TODO: Does it really make sense to just shove as much as possible into one call to pipelineBarrier2? I feel like it probably doesn't. These images don't have to get transitioned at this point. They could be transitioned after copying the buffers.
 				std::array<vk::ImageMemoryBarrier2, 2> image_barriers{
 					vk::ImageMemoryBarrier2{
 						.srcStageMask = vk::PipelineStageFlags2{vk::PipelineStageFlagBits2::eColorAttachmentOutput},
@@ -2544,7 +2532,8 @@ namespace based_renderer
 				vk::SemaphoreSubmitInfo{
 					.semaphore = vk_semaphores_signal[vk_frame_idx],
 					.value = 0,
-					.stageMask = vk::PipelineStageFlagBits2::eAllCommands, // This is needed, or else the present will start before all commands have finished.
+					.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+					.deviceIndex = 0,
 				},
 			};
 
@@ -2579,29 +2568,6 @@ namespace based_renderer
 			vk_frame_idx = (vk_frame_idx + 1) % vk_swapchain_images.size();
 		}
 	}
-
-#if BASED_RENDERER_VK_LAYERS
-	static std::vector<char const *> vk_get_instance_layers()
-	{
-		std::vector<char const *> instance_layers;
-
-		std::vector<vk::LayerProperties> layer_properties = vk::enumerateInstanceLayerProperties();
-		for (vk::LayerProperties const &layer_property : layer_properties)
-		{
-			// TODO: Don't check for each of these every single time. There is no reason to do that.
-			if (std::strcmp(layer_property.layerName, "VK_LAYER_LUNARG_monitor") == 0)
-			{
-				instance_layers.push_back("VK_LAYER_LUNARG_monitor");
-			}
-			else if (std::strcmp(layer_property.layerName, "VK_LAYER_KHRONOS_validation") == 0)
-			{
-				instance_layers.push_back("VK_LAYER_KHRONOS_validation");
-			}
-		}
-
-		return instance_layers;
-	}
-#endif
 
 	static std::vector<char const *> vk_get_instance_extensions()
 	{
