@@ -427,16 +427,21 @@ namespace based_renderer
 
 	float constexpr TAU = 6.28318530717958647693f;
 
-	// See projection.docx
-	static glm::mat4 perspective(float const aspect_ratio) noexcept
+	// FGED Listing 6.4
+	static glm::mat4 perspective(
+		float const fov_y, 
+		float const aspect_ratio, 
+		float const near_plane, 
+		float const epsilon) noexcept
 	{
-		glm::mat4 res{1.0f};
-		res[0][0] = 1.73205080756887729353f/aspect_ratio;
-		res[1][1] = 1.73205080756887729353f;
-		res[2][2] = 2.0e-20f;
-		res[3][2] = 0.09999999999999999998f;
-		res[2][3] = 1.0f;
-		return res;
+		float const proj_plane = 1.0f / tanf(fov_y * 0.5f);
+
+		return glm::mat4{
+			proj_plane / aspect_ratio, 0.0f, 0.0f, 0.0f,
+			0.0f, proj_plane, 0.0f, 0.0f,
+			0.0f, 0.0f, epsilon, near_plane * (1.0f - epsilon),
+			0.0f, 0.0f, 1.0f, 0.0f,
+		};
 	}
 
 	#if 1
@@ -2722,7 +2727,6 @@ namespace based_renderer
 				return i;
 			}
 		}
-		// TODO: Is there a different error we should be using here?
 		throw vk::LogicError{FORMAT_ERROR("Failed to find queue family idx")};
 	}
 
