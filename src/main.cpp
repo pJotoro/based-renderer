@@ -1135,7 +1135,7 @@ namespace based_renderer
 			vk_surface_capabilities.maxImageExtent.height
 		);
 
-		vk::PresentModeKHR vk_swapchain_present_mode = vk::PresentModeKHR::eFifo; // TODO
+		vk::PresentModeKHR vk_swapchain_present_mode = vk::PresentModeKHR::eFifo; // NOTE: This is always supported.
 
 		vk::SurfaceTransformFlagBitsKHR vk_pre_transform = 
 			(vk_surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity) ? 
@@ -1154,10 +1154,7 @@ namespace based_renderer
 		vk::SwapchainCreateInfoKHR vk_swapchain_create_info{
 			.flags = vk::SwapchainCreateFlagsKHR(),
 			.surface = vk_surface,
-			// TODO: Right now, you are still basically assuming that the image count will be 2.
-			// IIRC, having an image count higher than two actually complicates synchronization somewhat.
-			// I might be wrong though. In any case, it's worth looking into.
-			.minImageCount = std::clamp(2u, vk_surface_capabilities.minImageCount, vk_surface_capabilities.maxImageCount),
+			.minImageCount = 2,
 			.imageFormat = vk_swapchain_format,
 			.imageColorSpace = vk::ColorSpaceKHR::eSrgbNonlinear,
 			.imageExtent = vk_swapchain_extent,
@@ -2089,9 +2086,6 @@ namespace based_renderer
 				vk_semaphores_wait[vk_frame_idx]
 			);
 
-			// We only show the window once we've arrived back at the first frame.
-			// This only makes sense if there are just two frames, that is, one backbuffer
-			// and one frontbuffer. Which is to say, it is to be thrown away!
 			if (vk_image_idx == 0) 
 			{
 				static int win32_window_ready = -1;
