@@ -109,6 +109,12 @@ namespace based_renderer
 	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
+		vk::MemoryPropertyFlags const required_memory_properties);
+
+	static uint32_t vk_find_memory_type_idx(
+		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
+		uint32_t const memory_type_bits,
+		vk::MemoryPropertyFlags const required_memory_properties,
 		vk::MemoryPropertyFlags const desired_memory_properties);
 
 	static void win32_message_box(
@@ -2740,6 +2746,28 @@ namespace based_renderer
 	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
+		vk::MemoryPropertyFlags const required_memory_properties)
+	{
+		for (
+			uint32_t memory_type_idx = 0; 
+			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+			++memory_type_idx)
+		{
+			uint32_t memory_type_bit = 1 << memory_type_idx;		
+			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if ((memory_type_bits&memory_type_bit) && ((required_memory_properties&memory_properties) == required_memory_properties))
+			{
+				return memory_type_idx;
+			}
+		}
+
+		throw vk::LogicError{FORMAT_ERROR("Failed to find memory type index with the required memory properties!")};
+	}
+
+	static uint32_t vk_find_memory_type_idx(
+		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
+		uint32_t const memory_type_bits,
+		vk::MemoryPropertyFlags const required_memory_properties,
 		vk::MemoryPropertyFlags const desired_memory_properties)
 	{
 		for (
@@ -2755,7 +2783,20 @@ namespace based_renderer
 			}
 		}
 
-		throw vk::LogicError{FORMAT_ERROR("Failed to find memory type index with the desired memory properties!")};
+		for (
+			uint32_t memory_type_idx = 0; 
+			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
+			++memory_type_idx)
+		{
+			uint32_t memory_type_bit = 1 << memory_type_idx;		
+			vk::MemoryPropertyFlags memory_properties = physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if ((memory_type_bits&memory_type_bit) && ((required_memory_properties&memory_properties) == required_memory_properties))
+			{
+				return memory_type_idx;
+			}
+		}
+
+		throw vk::LogicError{FORMAT_ERROR("Failed to find memory type index with the required memory properties!")};
 	}
 
 	// struct VulkanMemoryTypeInfo
