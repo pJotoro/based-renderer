@@ -1230,9 +1230,6 @@ namespace based_renderer
 			vk_semaphores_signal[i] = vk_device.createSemaphore({});
 		}
 
-		// NOTE: The TODO below was written back when we were still hardcoding the cube.
-		// TODO: Is there something wrong with the way I have set up the depth buffer? When I enable backface culling, the cube doesn't render correctly at all. Or could it simply be the way that the cube faces are listed in the shader? If so, then there isn't actually anything wrong with the way the depth buffer is set up.
-
 		vk::Format vk_depth_format = vk::Format::eD32Sfloat; // NOTE: Support for this always exists. As long as I'm not using a stencil buffer, this will work perfectly fine.
 		vk::Image vk_depth_image = vk_device.createImage({
 			.flags = vk::ImageCreateFlags{},
@@ -1281,92 +1278,6 @@ namespace based_renderer
 				.layerCount = 1,
 			},
 		});
-
-	#if 0
-		int32_t stone_image_width;
-		int32_t stone_image_height;
-		int32_t stone_image_channels;
-		int32_t stone_image_desired_channels = 4;
-		uint8_t *stone_image_file_data = stbi_load(
-			"assets/stone.jpg", 
-			&stone_image_width, 
-			&stone_image_height, 
-			&stone_image_channels, 
-			stone_image_desired_channels);
-		if (!stone_image_file_data)
-		{
-			throw std::runtime_error{FORMAT_ERROR("Failed to load assets/stone.jpg")};
-		}
-
-		vk::Buffer vk_staging_buffer = vk_device.createBuffer({
-			vk::BufferCreateFlags{},
-			static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
-			vk::BufferUsageFlagBits::eTransferSrc,
-		});
-		vk::MemoryRequirements vk_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_staging_buffer);
-		vk::DeviceMemory vk_staging_buffer_memory = vk_device.allocateMemory({
-			vk_staging_buffer_memory_requirements.size,
-			vk_find_memory_type_idx(
-				vk_physical_device_memory_properties,
-				vk_staging_buffer_memory_requirements.memoryTypeBits,
-				vk::MemoryPropertyFlagBits::eHostVisible|
-				vk::MemoryPropertyFlagBits::eHostCoherent
-			),
-		});
-		vk_device.bindBufferMemory(vk_staging_buffer, vk_staging_buffer_memory, 0);
-		{
-			void *data;
-			vk::detail::resultCheck(
-				vk_device.mapMemory(
-					vk_staging_buffer_memory,
-					0, 
-					static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
-					vk::MemoryMapFlags{}, 
-					&data
-				), 
-				"Failed to map memory!"
-			);
-			memcpy(data, stone_image_file_data, static_cast<size_t>(stone_image_width*stone_image_height*stone_image_desired_channels));
-			vk_device.unmapMemory(vk_staging_buffer_memory);
-		}
-
-		vk::Image vk_image = vk_device.createImage({
-			vk::ImageCreateFlags{},
-			vk::ImageType::e2D,
-			vk::Format::eR8G8B8A8Unorm, 
-			vk::Extent3D{static_cast<uint32_t>(stone_image_width), static_cast<uint32_t>(stone_image_height), 1},
-			1,
-			1,
-			vk::SampleCountFlagBits::e1,
-			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eTransferDst|
-			vk::ImageUsageFlagBits::eSampled,
-		});
-		vk::MemoryRequirements vk_image_memory_requirements = vk_device.getImageMemoryRequirements(vk_image);
-		vk::DeviceMemory vk_image_memory = vk_device.allocateMemory({
-			vk_image_memory_requirements.size,
-			vk_find_memory_type_idx(
-				vk_physical_device_memory_properties,
-				vk_image_memory_requirements.memoryTypeBits,
-				vk::MemoryPropertyFlagBits::eDeviceLocal
-			),
-		});
-		vk_device.bindImageMemory(vk_image, vk_image_memory, 0);
-		vk::ImageView vk_image_view = vk_device.createImageView({
-			vk::ImageViewCreateFlags{},
-			vk_image,
-			vk::ImageViewType::e2D,
-			vk::Format::eR8G8B8A8Unorm,
-			vk::ComponentMapping{},
-			vk::ImageSubresourceRange{
-				vk::ImageAspectFlagBits::eColor,
-				0,
-				1,
-				0,
-				1
-			},
-		});
-	#endif
 
 		//The box's binary is formatted like this: first all the vertices, then all the normals, then all the indices.
 		// TODO: Load a gltf file in a way that isn't a complete clusterfuck.
@@ -3289,3 +3200,92 @@ namespace based_renderer
 	// 	device.bindImageMemory2(bind_image_memory_infos);
 	// }
 }
+
+#if 0
+static void load_stone()
+{
+	int32_t stone_image_width;
+	int32_t stone_image_height;
+	int32_t stone_image_channels;
+	int32_t stone_image_desired_channels = 4;
+	uint8_t *stone_image_file_data = stbi_load(
+		"assets/stone.jpg", 
+		&stone_image_width, 
+		&stone_image_height, 
+		&stone_image_channels, 
+		stone_image_desired_channels);
+	if (!stone_image_file_data)
+	{
+		throw std::runtime_error{FORMAT_ERROR("Failed to load assets/stone.jpg")};
+	}
+
+	vk::Buffer vk_staging_buffer = vk_device.createBuffer({
+		vk::BufferCreateFlags{},
+		static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
+		vk::BufferUsageFlagBits::eTransferSrc,
+	});
+	vk::MemoryRequirements vk_staging_buffer_memory_requirements = vk_device.getBufferMemoryRequirements(vk_staging_buffer);
+	vk::DeviceMemory vk_staging_buffer_memory = vk_device.allocateMemory({
+		vk_staging_buffer_memory_requirements.size,
+		vk_find_memory_type_idx(
+			vk_physical_device_memory_properties,
+			vk_staging_buffer_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eHostVisible|
+			vk::MemoryPropertyFlagBits::eHostCoherent
+		),
+	});
+	vk_device.bindBufferMemory(vk_staging_buffer, vk_staging_buffer_memory, 0);
+	{
+		void *data;
+		vk::detail::resultCheck(
+			vk_device.mapMemory(
+				vk_staging_buffer_memory,
+				0, 
+				static_cast<vk::DeviceSize>(stone_image_width*stone_image_height*stone_image_desired_channels),
+				vk::MemoryMapFlags{}, 
+				&data
+			), 
+			"Failed to map memory!"
+		);
+		memcpy(data, stone_image_file_data, static_cast<size_t>(stone_image_width*stone_image_height*stone_image_desired_channels));
+		vk_device.unmapMemory(vk_staging_buffer_memory);
+	}
+
+	vk::Image vk_image = vk_device.createImage({
+		vk::ImageCreateFlags{},
+		vk::ImageType::e2D,
+		vk::Format::eR8G8B8A8Unorm, 
+		vk::Extent3D{static_cast<uint32_t>(stone_image_width), static_cast<uint32_t>(stone_image_height), 1},
+		1,
+		1,
+		vk::SampleCountFlagBits::e1,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eTransferDst|
+		vk::ImageUsageFlagBits::eSampled,
+	});
+	vk::MemoryRequirements vk_image_memory_requirements = vk_device.getImageMemoryRequirements(vk_image);
+	vk::DeviceMemory vk_image_memory = vk_device.allocateMemory({
+		vk_image_memory_requirements.size,
+		vk_find_memory_type_idx(
+			vk_physical_device_memory_properties,
+			vk_image_memory_requirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eDeviceLocal
+		),
+	});
+	vk_device.bindImageMemory(vk_image, vk_image_memory, 0);
+	vk::ImageView vk_image_view = vk_device.createImageView({
+		vk::ImageViewCreateFlags{},
+		vk_image,
+		vk::ImageViewType::e2D,
+		vk::Format::eR8G8B8A8Unorm,
+		vk::ComponentMapping{},
+		vk::ImageSubresourceRange{
+			vk::ImageAspectFlagBits::eColor,
+			0,
+			1,
+			0,
+			1
+		},
+	});
+}
+#endif
