@@ -129,13 +129,13 @@ namespace based_renderer
 	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
-		vk::MemoryPropertyFlags const required_memory_properties);
+		vk::MemoryPropertyFlags const required_memory_properties) noexcept;
 
 	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
 		vk::MemoryPropertyFlags const required_memory_properties,
-		vk::MemoryPropertyFlags const desired_memory_properties);
+		vk::MemoryPropertyFlags const desired_memory_properties) noexcept;
 
 	static void win32_message_box(
 		char const *message,
@@ -2655,8 +2655,14 @@ namespace based_renderer
 	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
-		vk::MemoryPropertyFlags const required_memory_properties)
+		vk::MemoryPropertyFlags const required_memory_properties) noexcept
 	{
+		// These memory properties are always available.
+		assert(
+			required_memory_properties == vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent || 
+			required_memory_properties == vk::MemoryPropertyFlagBits::eDeviceLocal
+		);
+
 		for (
 			uint32_t memory_type_idx = 0; 
 			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
@@ -2670,15 +2676,21 @@ namespace based_renderer
 			}
 		}
 
-		throw vk::LogicError{FORMAT_ERROR("Failed to find memory type index with the required memory properties!")};
+		return -1; // In practice, there is no way for this to happen.
 	}
 
 	static uint32_t vk_find_memory_type_idx(
 		vk::PhysicalDeviceMemoryProperties const &physical_device_memory_properties,
 		uint32_t const memory_type_bits,
 		vk::MemoryPropertyFlags const required_memory_properties,
-		vk::MemoryPropertyFlags const desired_memory_properties)
+		vk::MemoryPropertyFlags const desired_memory_properties) noexcept
 	{
+		// These memory properties are always available.
+		assert(
+			required_memory_properties == vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent || 
+			required_memory_properties == vk::MemoryPropertyFlagBits::eDeviceLocal
+		);
+
 		for (
 			uint32_t memory_type_idx = 0; 
 			memory_type_idx < physical_device_memory_properties.memoryTypeCount; 
@@ -2705,7 +2717,7 @@ namespace based_renderer
 			}
 		}
 
-		throw vk::LogicError{FORMAT_ERROR("Failed to find memory type index with the required memory properties!")};
+		return -1; // In practice, there is no way for this to happen.
 	}
 
 	// struct VulkanMemoryTypeInfo
