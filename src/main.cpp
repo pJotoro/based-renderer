@@ -34,16 +34,30 @@ namespace based_renderer
 	template<class... Args> 
 	static void dprint(std::format_string<Args...> fmt, Args&&... args) noexcept
 	{
-		std::string s = std::format(fmt, std::forward<Args>(args)...);
-		OutputDebugStringA(s.c_str());
+		try 
+		{
+			std::string s = std::format(fmt, std::forward<Args>(args)...);
+			OutputDebugStringA(s.c_str());
+		}
+		catch (std::bad_alloc err)
+		{
+			OutputDebugStringA(err.what());
+		}
 	}
 
 	// Same, but the format string is a wide string.
 	template<class... Args>
 	static void dprint(std::wformat_string<Args...> fmt, Args&&... args) noexcept
 	{
-		std::wstring s = std::format(fmt, std::forward<Args>(args)...);
-		OutputDebugStringW(s.c_str());
+		try
+		{
+			std::wstring s = std::format(fmt, std::forward<Args>(args)...);
+			OutputDebugStringW(s.c_str());
+		}
+		catch (std::bad_alloc err)
+		{
+			OutputDebugStringA(err.what());
+		}
 	}
 
 	// A clever way I found to remove an element from an std::vector.
@@ -51,20 +65,30 @@ namespace based_renderer
 	template <class T>
 	static void unordered_remove(std::vector<T> &v, size_t const i) noexcept
 	{
-		v[i] = v.back();
-		v.pop_back();
+		if (i < v.size())
+		{
+			v[i] = v.back();
+			v.pop_back();
+		}
 	}
 
 	static std::string to_string(std::vector<std::string> const &v) noexcept
 	{
 		std::string res;
-		if (v.size() > 0)
+		try
 		{
-			for (size_t i = 0; i < v.size() - 1; ++i)
+			if (v.size() > 0)
 			{
-				res += v[i] + ", ";
+				for (size_t i = 0; i < v.size() - 1; ++i)
+				{
+					res += v[i] + ", ";
+				}
+				res += v.back();
 			}
-			res += v.back();
+		}
+		catch (std::length_error err)
+		{
+			return err.what(); // TODO: Is it sus to just return this?
 		}
 		return res;
 	}
