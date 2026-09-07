@@ -75,16 +75,20 @@ namespace based_renderer
 	static std::string to_string(std::vector<std::string> const &v) noexcept
 	{
 		std::string res;
-		if (v.size() > 0)
+		try
 		{
-			bool within_max_size = (v.size()-1)*3 + 1 <= res.max_size();
-			assert(within_max_size);
-			
-			for (size_t i = 0; i < v.size() - 1; ++i)
+			if (v.size() > 0)
 			{
-				res += v[i] + ", ";
+				for (size_t i = 0; i < v.size() - 1; ++i)
+				{
+					res += v[i] + ", ";
+				}
+				res += v.back();
 			}
-			res += v.back();
+		}
+		catch (std::length_error err)
+		{
+			return err.what(); // TODO: Is it sus to just return this?
 		}
 		return res;
 	}
