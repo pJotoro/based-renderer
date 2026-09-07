@@ -39,7 +39,7 @@ namespace based_renderer
 			std::string s = std::format(fmt, std::forward<Args>(args)...);
 			OutputDebugStringA(s.c_str());
 		}
-		catch (std::bad_alloc err)
+		catch (std::exception err)
 		{
 			OutputDebugStringA(err.what());
 		}
@@ -54,7 +54,7 @@ namespace based_renderer
 			std::wstring s = std::format(fmt, std::forward<Args>(args)...);
 			OutputDebugStringW(s.c_str());
 		}
-		catch (std::bad_alloc err)
+		catch (std::exception err)
 		{
 			OutputDebugStringA(err.what());
 		}
@@ -86,7 +86,7 @@ namespace based_renderer
 				res += v.back();
 			}
 		}
-		catch (std::length_error err)
+		catch (std::exception err)
 		{
 			return err.what(); // TODO: Is it sus to just return this?
 		}
@@ -642,9 +642,31 @@ namespace based_renderer
 	~ Multisample state.
 	*/
 
+	/*
+	Here's the dilemma:
+	What I would REALLY LIKE to do is just simply memcpy the data out of the buffer and into a vertex buffer and index buffer.
+	At the same time, I want to do this right. I don't want to just hard-code some shit. Instead, I want to actually parse the scene properly.
+	However, in order to do that, it seems like you have to actually go from the top down, looping through each scene, then each mesh. As it turns out, this is pretty complicated.
+
+	You might be thinking: well, isn't it better to just get something working first? Normally, I would agree, but the thing is, I *have* gotten this to work before. When I was sixteen, I following LearnOpenGL, and I loaded a model. I also did the same thing more recently in a little repository I called "GPU Journey" but in Vulkan. The point being, I'm long past the stage of just trying to get something working. Now, I want to learn what the right way to do things is. And naturally, that means spending a lot of time figuring things out without yielding any tangible results. Oh well. That's fine. Just keep watching Arseny's streams. He literally made a stream where he loaded a glTF scene about a year ago. At the same time, it's far enough in the series that I think it's better I watch all of the streams leading up to that point. 
+	*/
+
 	static gltf_process_data_result_t gltf_process_data(cgltf_data const *data)
 	{
 		gltf_process_data_result_t res{};
+
+		for (size_t accessor_idx = 0; accessor_idx < accessor_idx; ++accessor_idx)
+		{
+			cgltf_accessor* accessor = &data->accessors[accessor_idx];
+
+			buffer_info_t buffer_create_info{
+				.data = PTR_ADD(accessor->buffer_view->buffer->data, accessor->offset + accessor->buffer_view->offset),
+				.size = (accessor->buffer_view->stride != 0 ? accessor->buffer_view->stride : accessor->stride) * accessor->count,
+				.usage = vk::BufferUsageFlagBits::eTransferDst|(accessor->buffer_view->type == cgltf_buffer_view_type_vertices ? vk::BufferUsageFlagBits::eVertexBuffer : BufferUsageFlagBits::eIndexBuffer),
+			};
+
+
+		}
 
 		for (size_t mesh_idx = 0; mesh_idx < data->meshes_count; ++mesh_idx)
 		{
@@ -657,11 +679,7 @@ namespace based_renderer
 
 			}
 
-			buffer_info_t buffer_create_info{
-				.data = PTR_ADD(accessor->buffer_view->buffer->data, accessor->offset + accessor->buffer_view->offset),
-				.size = (accessor->buffer_view->stride != 0 ? accessor->buffer_view->stride : accessor->stride) * accessor->count, // TODO: Is this correct?
-				.usage = vk::BufferUsageFlagBits::eTransferDst|(accessor->buffer_view->type == cgltf_buffer_view_type_vertices ? vk::BufferUsageFlagBits::eVertexBuffer : BufferUsageFlagBits::eIndexBuffer),
-			};
+			
 		}
 
 		// for (size_t accessor_idx = 0; accessor_idx < data->accessors_count; ++accessor_idx)
